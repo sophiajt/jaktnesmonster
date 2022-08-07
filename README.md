@@ -1,2 +1,2 @@
-- [ ] bind libsdl2 to jakt
+- [x] bind libsdl2 to jakt
 
