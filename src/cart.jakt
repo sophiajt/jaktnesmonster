@@ -1,0 +1,71 @@
+enum Mirroring {
+    Horizontal
+    Vertical
+}
+
+class Cart {
+    prg_rom: usize
+    chr_rom: usize
+    mirroring: Mirroring
+    battery_present: bool
+    mapper: u8
+    prg_rom_pages: [[u8]]
+    chr_rom_pages: [[u8]]
+}
+
+enum CartLoadStatus {
+    Success(Cart)
+    NotARom
+}
+
+function load_cart(filename: String) throws -> CartLoadStatus {
+    mut file = File::open_for_reading(filename)
+    let buffer = file.read_all()
+
+    // ensure this is a valid ROM file
+    guard buffer.size() > 16 and buffer[0] == b'N' and buffer[1] == b'E' and buffer[2] == b'S' and buffer[3] == 0x1a else {
+        return CartLoadStatus::NotARom
+    }
+
+    let prg_rom = buffer[4] as! usize
+    let chr_rom = buffer[5] as! usize
+
+    let mirroring = match (buffer[6]) & 0x1 {
+        0u8 => Mirroring::Horizontal
+        1u8 => Mirroring::Vertical
+        else => Mirroring::Horizontal
+    }
+
+    let battery_present = ((buffer[6] & 0x2) == 0x2)
+
+    mut mapper = buffer[6] >> 4
+    mapper += buffer[7] & 0xf0;
+
+    mut prg_rom_pages: [[u8]] = []
+    let prg_rom_page_size: usize = 16 * 1024
+    mut current_start: usize = 16
+
+    for page in 0..prg_rom {
+        mut current_page: [u8] = []
+        for offset in 0..prg_rom_page_size {
+            current_page.push(buffer[current_start + page * prg_rom_page_size + offset])            
+        }
+        prg_rom_pages.push(current_page)
+    }
+
+    mut chr_rom_pages: [[u8]] = []
+    let chr_rom_page_size: usize = 8 * 1024
+    current_start += prg_rom_page_size * prg_rom;
+
+    for page in 0..chr_rom {
+        mut current_page: [u8] = []
+        for offset in 0..chr_rom_page_size {
+            current_page.push(buffer[current_start + page * chr_rom_page_size + offset])            
+        }
+        chr_rom_pages.push(current_page)
+    }
+
+    return CartLoadStatus::Success(Cart(prg_rom, 
+        chr_rom, mirroring, battery_present, mapper, prg_rom_pages, chr_rom_pages))
+}
+

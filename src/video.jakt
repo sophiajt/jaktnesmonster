@@ -1,0 +1,55 @@
+import sdl { SDL }
+
+function draw_frame(sdl: SDL) throws {
+    let WINDOW_WIDTH = 600;
+    mut user_x = 100u64;
+    mut user_y = 100u64;
+
+    sdl.set_render_draw_color(red: 0, green: 0, blue: 0, alpha: 0)
+    sdl.render_clear()
+    sdl.set_render_draw_color(red: 255, green: 0, blue: 0, alpha: 255)
+
+    mut i = 0u64
+    while i < 600 {
+        sdl.render_draw_point(x: i, y: 600u64 - i)
+        ++i
+    }
+
+    sdl.render_present()
+
+    while true {
+        mut event = sdl.poll_event()
+        if event.has_value() {
+            match event! {
+                Quit => {
+                    break
+                }
+                KeyDown(key) => {
+                    match key {
+                        Up => {
+                            user_y -= 1
+                            sdl.render_draw_point(x: user_x, y: user_y)
+                            sdl.render_present()
+                        }
+                        Down => {
+                            user_y += 1
+                            sdl.render_draw_point(x: user_x, y: user_y)
+                            sdl.render_present()
+                        }
+                        Left => {
+                            user_x -= 1
+                            sdl.render_draw_point(x: user_x, y: user_y)
+                            sdl.render_present()
+                        }
+                        Right => {
+                            user_x += 1
+                            sdl.render_draw_point(x: user_x, y: user_y)
+                            sdl.render_present()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

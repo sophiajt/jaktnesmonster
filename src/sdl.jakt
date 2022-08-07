@@ -1,0 +1,102 @@
+import extern c "SDL2/SDL.h" {}
+
+enum Key {
+    Up
+    Down
+    Left
+    Right
+}
+
+enum SDLEvent {
+    Quit
+    KeyDown(key: Key)
+}
+
+class SDL {
+    renderer: usize
+    window: usize
+
+    public function construct() throws -> SDL {
+        return SDL(renderer: 0, window: 0)
+    }
+
+    public function init_video(mut this, width: i64, height: i64) {
+        unsafe {
+            cpp {
+                "SDL_Init(SDL_INIT_VIDEO);
+                SDL_CreateWindowAndRenderer(width, height, 0, (SDL_Window **)&this->window, (SDL_Renderer **)&this->renderer);"
+            }
+        }
+    }
+
+    public function set_render_draw_color(this, red: u8, green: u8, blue: u8, alpha: u8) {
+        unsafe {
+            cpp {
+                "SDL_SetRenderDrawColor((SDL_Renderer *)this->renderer, red, green, blue, alpha);"
+            }
+        }
+    }
+
+    public function render_clear(this) {
+        unsafe {
+            cpp {
+                "SDL_RenderClear((SDL_Renderer *)this->renderer);"
+            }
+        }
+    }
+
+    public function render_draw_point(this, x: u64, y: u64) {
+        unsafe {
+            cpp {
+                "SDL_RenderDrawPoint((SDL_Renderer *)this->renderer, x, y);"
+            }
+        }
+    }
+
+    public function render_present(this) {
+        unsafe {
+            cpp {
+                "SDL_RenderPresent((SDL_Renderer *)this->renderer);"
+            }
+        }
+    }
+
+    public function poll_event(this) -> SDLEvent? {
+        unsafe {
+            cpp {
+                "SDL_Event event;
+                const int has_event = SDL_PollEvent(&event);
+                if (has_event && event.type == SDL_QUIT) {
+                    const Optional<SDLEvent> event = typename SDLEvent::Quit();
+                    return event;
+                } else if (has_event && event.type == SDL_KEYDOWN) {
+                    if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Up());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_DOWN) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Down());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_LEFT) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Left());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Right());
+                        return event;
+                    }
+                }"
+            }
+        }
+
+        return None
+    }
+
+    public function quit(this) {
+        unsafe {
+            cpp {
+                "SDL_DestroyRenderer((SDL_Renderer *)this->renderer);
+                SDL_DestroyWindow((SDL_Window *)this->window);
+                SDL_Quit();"
+            }
+        }
+    }
+}

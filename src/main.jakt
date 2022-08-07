@@ -1,0 +1,33 @@
+import sdl { SDL }
+import video { draw_frame }
+import system { System }
+import cpu { CPU }
+
+function main(args: [String]) {
+    // mut sdl = SDL::construct()
+    // sdl.init_video(width: 600, height: 600)
+    // draw_frame(sdl)
+    // sdl.quit()
+
+    guard args.size() > 1 else {
+        eprintln("usage: jakt_nes <rom file>")
+        return 1
+    }
+
+    let filename = args[1]
+
+    let system = System::init(filename)
+
+    match system {
+        Success(system) => {
+            println("system: {}", system)
+            mut cpu = CPU::init(system)
+        }
+        Error(msg) => {
+            eprintln("Error: {}", msg)
+            return 2
+        }
+    }
+
+    return 0
+}

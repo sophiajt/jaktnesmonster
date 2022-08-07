@@ -1,0 +1,13 @@
+class APU {
+    public function init() throws -> APU {
+        return APU()
+    }
+
+    public function read_apu_addr(this, address: u16) -> u8 {
+        return 0
+    }
+
+    public function write_apu_addr(this, address: u16, value: u8) {
+
+    }
+}

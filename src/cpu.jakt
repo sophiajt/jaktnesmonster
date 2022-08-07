@@ -1,0 +1,57 @@
+import system { System }
+
+class CPU {
+    a: u8
+    x: u8
+    y: u8
+    public pc: u16
+    s: u8
+    // flags
+    carry: bool
+    zero: bool
+    interrupt_disable: bool
+    decimal: bool
+    overflow: bool
+    negative: bool
+    system: System
+    clock: u64
+
+    public function init(system: System) throws -> CPU {
+        let reset_vector = system.read_word(address: 0xfffc)
+
+        return CPU (
+            a: 0
+            x: 0
+            y: 0
+            pc: reset_vector
+            s: 0xfd
+            carry: false
+            zero: false
+            interrupt_disable: true
+            decimal: false
+            overflow: false
+            negative: false
+            system
+            clock: 0
+        )
+    }
+
+    public function lda(mut this, opcode: u8) {
+        let intermediate: u8 = match opcode {
+            0xa9u8 => {
+                .clock += 2
+                yield .system.read_byte(address: .pc + 1)
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0u8
+            }
+        }
+
+        // set the flags
+        .negative = (intermediate & 0x80) == 0x80 
+        .zero = intermediate == 0
+
+        .a = intermediate
+    } 
+}

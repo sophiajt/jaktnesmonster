@@ -1,0 +1,13 @@
+class PPU {
+    public function init() throws -> PPU {
+        return PPU()
+    }
+
+    public function read_ppu_addr(this, address: u16) -> u8 {
+        return 0
+    }
+
+    public function write_ppu_addr(this, address: u16, value: u8) {
+
+    }
+}

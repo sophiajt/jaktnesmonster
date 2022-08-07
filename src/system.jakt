@@ -1,0 +1,68 @@
+import ppu { PPU }
+import apu { APU }
+import cart { load_cart, Cart }
+
+enum SystemLoadStatus {
+    Success(System)
+    Error(String)
+}
+
+class System {
+    scratch_ram: [u8]
+    ppu: PPU
+    apu: APU
+    cart: Cart
+
+    public function init(filename: String) throws -> SystemLoadStatus {
+        let status = load_cart(filename)
+        guard status is Success(cart) else {
+            return SystemLoadStatus::Error("not a valid ROM file")
+        }
+
+        return SystemLoadStatus::Success(
+            System(scratch_ram: [0u8; 0x800], ppu: PPU::init(), apu: APU::init(), cart)
+        )
+    }
+
+    function mapper_read_byte(this, address: u16) -> u8 {
+        return 0
+    }
+
+    function mapper_write_byte(this, address: u16, value: u8) {
+    }
+
+    public function read_byte(this, address: u16) -> u8 {
+        if address < 0x2000 {
+            return .scratch_ram[address & 0x7ff]
+        } else if address < 0x4000 {
+            return .ppu.read_ppu_addr(address)
+        } else if address < 0x4020 {
+            return .apu.read_apu_addr(address)
+        } else {
+            return .mapper_read_byte(address)
+        }
+        return 0
+    }
+
+    public function read_word(this, address: u16) -> u16 {
+        mut output = 0u16
+        output += .read_byte(address: address + 1) as! u16
+        output = output << 8
+
+        output += .read_byte(address) as! u16
+
+        return output
+    }
+
+    public function write_byte(mut this, address: u16, value: u8) {
+        if address < 0x2000 {
+            .scratch_ram[address & 0x7ff] = value
+        } else if address < 0x4000 {
+            .ppu.write_ppu_addr(address, value)
+        } else if address < 0x4020 {
+            .apu.write_apu_addr(address, value)
+        } else {
+            .mapper_write_byte(address, value)
+        }
+    }
+}
