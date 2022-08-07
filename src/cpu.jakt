@@ -11,6 +11,7 @@ class CPU {
     zero: bool
     interrupt_disable: bool
     decimal: bool
+    break_flag: bool
     overflow: bool
     negative: bool
     system: System
@@ -29,6 +30,7 @@ class CPU {
             zero: false
             interrupt_disable: true
             decimal: false
+            break_flag: false
             overflow: false
             negative: false
             system
@@ -36,11 +38,148 @@ class CPU {
         )
     }
 
+    public function debug(this) {
+        print("a: {:0>2x}  x: {:0>2x}  y: {:0>2x}  pc: {:0>4x}  s: {:0>2x}  flags: ", .a, .x, .y, .pc, .s)
+        if .negative {
+            print("N")
+        } else {
+            print("-")
+        }
+        if .overflow {
+            print("V")
+        } else {
+            print("-")
+        }
+        if .break_flag {
+            print("B")
+        } else {
+            print("-")
+        }
+        if .decimal {
+            print("D")
+        } else {
+            print("-")
+        }
+        if .interrupt_disable {
+            print("I")
+        } else {
+            print("-")
+        }
+        if .zero {
+            print("Z")
+        } else {
+            print("-")
+        }
+        if .carry {
+            print("C")
+        } else {
+            print("-")
+        }
+    }
+
     public function lda(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
         let intermediate: u8 = match opcode {
             0xa9u8 => {
+                // Immediate
                 .clock += 2
-                yield .system.read_byte(address: .pc + 1)
+                .pc += 2
+
+                yield .system.read_byte(address: arg_address)
+            }
+            0xa5u8 => {
+                // Zero page
+                .clock += 3
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address) as! u16
+                yield .system.read_byte(address)
+            }
+            0xb5u8 => {
+                // Zero page, X
+                .clock += 4
+                .pc += 2
+
+                let address = (.system.read_byte(address: arg_address) + .x) as! u16
+                yield .system.read_byte(address)
+            }
+            0xadu8 => {
+                // Absolute address
+                .clock += 4
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                yield .system.read_byte(address)
+            }
+            0xbdu8 => {
+                // Absolute address, x
+                .clock += 4
+                .pc += 3
+
+                mut address = .system.read_word(address: arg_address)
+
+                let page = address >> 2
+
+                address += .x as! u16
+                let new_page = address >> 2
+
+                if page != new_page {
+                    .clock += 1
+                }
+
+                yield .system.read_byte(address: address + .x as! u16)
+
+                // Example of crossing pages:
+                // 01ff -> 0200
+            }
+            0xb9u8 => {
+                // Absolute address, y
+                .clock += 4
+                .pc += 3
+
+                mut address = .system.read_word(address: arg_address)
+                let page = address >> 2
+
+                address += .x as! u16
+                let new_page = address >> 2
+
+                if page != new_page {
+                    .clock += 1
+                }
+
+                yield .system.read_byte(address: address + .y as! u16)
+            }
+            0xa1u8 => {
+                // Indirect, X
+                .clock += 6
+                .pc += 2
+
+                let address = (.system.read_byte(address: arg_address) + .x) as! u16
+                let new_address = .system.read_word(address)
+
+                yield .system.read_byte(address: new_address)
+            }
+            0xb1u8 => {
+                // Indirect, Y
+                .clock += 6
+                .pc += 2
+
+                let address = (.system.read_byte(address: arg_address)) as! u16
+
+                let pre_index = .system.read_word(address)
+                let page = pre_index >> 2
+
+                let new_address = pre_index + .y as! u16
+
+                let new_page = new_address >> 2
+
+                if page != new_page {
+                    .clock += 1
+                }
+
+
+                yield .system.read_byte(address: new_address)
             }
             else => {
                 eprintln("unknown opcode")

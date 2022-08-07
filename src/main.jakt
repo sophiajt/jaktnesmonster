@@ -20,8 +20,8 @@ function main(args: [String]) {
 
     match system {
         Success(system) => {
-            println("system: {}", system)
             mut cpu = CPU::init(system)
+            cpu.debug()
         }
         Error(msg) => {
             eprintln("Error: {}", msg)
