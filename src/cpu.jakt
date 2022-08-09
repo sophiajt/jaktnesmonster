@@ -192,5 +192,655 @@ class CPU {
         .zero = intermediate == 0
 
         .a = intermediate
-    } 
+    }
+
+    public function ldx(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
+        let intermediate: u8 = match opcode {
+            0xa2u8 => {
+                // Immediate
+                .clock += 2
+                .pc += 2
+
+                yield .system.read_byte(address: arg_address)
+            }
+            0xa6u8 => {
+                // Zero page
+                .clock += 3
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address) as! u16
+                yield .system.read_byte(address)
+            }
+            0xb6u8 => {
+                // Zero page, Y
+                .clock += 4
+                .pc += 2
+
+                let address = (.system.read_byte(address: arg_address) + .y) as! u16
+                yield .system.read_byte(address)
+            }
+            0xaeu8 => {
+                // Absolute address
+                .clock += 4
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                yield .system.read_byte(address)
+            }
+            0xbeu8 => {
+                // Absolute address, y
+                .clock += 4
+                .pc += 3
+
+                mut address = .system.read_word(address: arg_address)
+                let page = address >> 2
+
+                address += .y as! u16
+                let new_page = address >> 2
+
+                if page != new_page {
+                    .clock += 1
+                }
+
+                yield .system.read_byte(address: address + .y as! u16)
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0u8
+            }           
+        }
+
+        // set the flags
+        .negative = (intermediate & 0x80) == 0x80 
+        .zero = intermediate == 0
+
+        .x = intermediate
+    }
+
+    public function ldy(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
+        let intermediate: u8 = match opcode {
+            0xa0u8 => {
+                // Immediate
+                .clock += 2
+                .pc += 2
+
+                yield .system.read_byte(address: arg_address)
+            }
+            0xa4u8 => {
+                // Zero page
+                .clock += 3
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address) as! u16
+                yield .system.read_byte(address)
+            }
+            0xb4u8 => {
+                // Zero page, X
+                .clock += 4
+                .pc += 2
+
+                let address = (.system.read_byte(address: arg_address) + .x) as! u16
+                yield .system.read_byte(address)
+            }
+            0xacu8 => {
+                // Absolute address
+                .clock += 4
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                yield .system.read_byte(address)
+            }
+            0xbcu8 => {
+                // Absolute address, x
+                .clock += 4
+                .pc += 3
+
+                mut address = .system.read_word(address: arg_address)
+                let page = address >> 2
+
+                address += .x as! u16
+                let new_page = address >> 2
+
+                if page != new_page {
+                    .clock += 1
+                }
+
+                yield .system.read_byte(address: address + .x as! u16)
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0u8
+            }           
+        }
+
+        // set the flags
+        .negative = (intermediate & 0x80) == 0x80 
+        .zero = intermediate == 0
+
+        .y = intermediate
+    }
+
+    function sta(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
+        match opcode {
+            0x85u8 => {
+                // Zero page
+                .clock += 3
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address)
+                .system.write_byte(address: address as! u16, value: .a)
+            }
+            0x95u8 => {
+                // Zero page, x
+                .clock += 4
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address)
+                // TODO: does this wrap around the zero page?
+                .system.write_byte(address: (address + .x) as! u16, value: .a)
+            }
+            0x8du8 => {
+                // Absolute
+                .clock += 4
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                .system.write_byte(address, value: .a)
+            }
+            0x9du8 => {
+                // Absolute, X
+                .clock += 5
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                .system.write_byte(address: address + .x as! u16, value: .a)
+            }
+            0x99u8 => {
+                // Absolute, Y
+                .clock += 5
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                .system.write_byte(address: address + .y as! u16, value: .a)
+            }
+            0x81u8 => {
+                // Indirect, X
+                .clock += 6
+                .pc += 2
+
+                let address = (.system.read_byte(address: arg_address) + .x) as! u16
+                let new_address = .system.write_byte(address, value: .a)
+            }
+            0x91u8 => {
+                // Indirect, Y
+                .clock += 6
+                .pc += 2
+
+                let address = (.system.read_byte(address: arg_address)) as! u16
+
+                let pre_index = .system.read_word(address)
+
+                let new_address = pre_index + .y as! u16
+
+                .system.write_byte(address: new_address, value: .a)
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function stx(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
+        match opcode {
+            0x86u8 => {
+                // Zero page
+                .clock += 3
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address)
+                .system.write_byte(address: address as! u16, value: .x)
+            }
+            0x96u8 => {
+                // Zero page, Y
+                .clock += 4
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address)
+                // TODO: does this wrap around the zero page?
+                .system.write_byte(address: (address + .y) as! u16, value: .x)
+            }
+            0x8eu8 => {
+                // Absolute
+                .clock += 4
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                .system.write_byte(address, value: .x)
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function sty(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
+        match opcode {
+            0x84u8 => {
+                // Zero page
+                .clock += 3
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address)
+                .system.write_byte(address: address as! u16, value: .y)
+            }
+            0x94u8 => {
+                // Zero page, X
+                .clock += 4
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address)
+                // TODO: does this wrap around the zero page?
+                .system.write_byte(address: (address + .x) as! u16, value: .y)
+            }
+            0x8cu8 => {
+                // Absolute
+                .clock += 4
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                .system.write_byte(address, value: .y)
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function tax(mut this) {
+        .pc += 1
+        .clock += 2
+
+        // set the flags
+        .negative = (.a & 0x80) == 0x80 
+        .zero = .a == 0
+
+        .x = .a
+    }
+
+    function txa(mut this) {
+        .pc += 1
+        .clock += 2
+
+        // set the flags
+        .negative = (.x & 0x80) == 0x80 
+        .zero = .x == 0
+
+        .a = .x
+    }
+
+    function tay(mut this) {
+        .pc += 1
+        .clock += 2
+
+        // set the flags
+        .negative = (.a & 0x80) == 0x80 
+        .zero = .a == 0
+
+        .y = .a
+    }
+
+    function tya(mut this) {
+        .pc += 1
+        .clock += 2
+
+        // set the flags
+        .negative = (.y & 0x80) == 0x80 
+        .zero = .y == 0
+
+        .a = .y
+    }
+
+    function tsx(mut this) {
+        .pc += 1
+        .clock += 2
+
+        // set the flags
+        .negative = (.s & 0x80) == 0x80 
+        .zero = .s == 0
+
+        .x = .s
+    }
+
+    function txs(mut this) {
+        .pc += 1
+        .clock += 2
+
+        .s = .x
+    }
+
+    function pla(mut this) {
+        .pc += 1
+        .clock += 4
+
+        .s += 1
+        let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
+
+        // set the flags
+        .negative = (intermediate & 0x80) == 0x80 
+        .zero = intermediate == 0
+        .a = intermediate
+    }
+
+    function pha(mut this) {
+        .pc += 1
+        .clock += 3
+
+        .system.write_byte(address: 0x100u16 + .s as! u16, value: .a)
+        .s -= 1
+    }
+
+    function pull_status(mut this) {
+        .s += 1
+        let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
+
+        .negative = ((intermediate & 0x80) == 0x80)
+        .overflow = ((intermediate & 0x40) == 0x40)
+        .decimal = ((intermediate & 0x08) == 0x08)
+        .interrupt_disable = ((intermediate & 0x04) == 0x04)
+        .zero = ((intermediate & 0x02) == 0x02)
+        .carry = ((intermediate & 0x01) == 0x01)
+    }
+
+    function pull_pc(mut this) {
+        .s += 1
+        .pc = .system.read_word(address: 0x100u16 + .s as! u16)
+        .s += 1
+    }
+
+    function plp(mut this) {
+        .pc += 1
+        .clock += 4
+
+        .pull_status()
+    }
+
+    function push_status(mut this) {
+        mut intermediate = 0u8
+        if .negative {
+            intermediate |= 0x80
+        }
+        if .overflow {
+            intermediate |= 0x40
+        }
+        
+        intermediate |= 0x20
+
+        if .break_flag {
+            intermediate |= 0x10
+        }
+        if .decimal {
+            intermediate |= 0x08
+        }
+        if .interrupt_disable {
+            intermediate |= 0x04
+        }
+        if .zero {
+            intermediate |= 0x02
+        }
+        if .carry {
+            intermediate |= 0x1
+        }
+
+        .system.write_byte(address: 0x100u16 + .s as! u16, value: intermediate)
+        .s -= 1
+    }
+
+    function push_word(mut this, value: u16) {
+        // TODO: What order do we push our bytes?
+
+        let first_byte = (value >> 8) as! u8
+        .system.write_byte(address: (0x100u16 + .s as! u16), value: first_byte)
+        .s -= 1
+
+        let second_byte = (value & 0xff) as! u8
+        .system.write_byte(address: (0x100u16 + .s as! u16), value: second_byte)
+        .s -= 1
+    }
+
+    function php(mut this) {
+        .pc += 1
+        .clock += 4
+
+        .push_status()
+    }
+
+    function branch(mut this) {
+        let arg_address = .pc + 1
+        let address: i8 = .system.read_byte(address: arg_address) as! i8
+
+        let prev_page = .pc >> 8
+
+        // TODO: please add a test for this
+        .pc = (.pc as! i16 + address as! i16) as! u16
+
+        let new_page = .pc >> 8
+
+        if prev_page != new_page {
+            .clock += 4
+        } else {
+            .clock += 3
+        }
+    }
+
+    function bpl(mut this) {
+        if not .negative {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function bmi(mut this) {
+        if .negative {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function bvc(mut this) {
+        if not .overflow {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function bvs(mut this) {
+        if .overflow {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function bcc(mut this) {
+        if not .carry {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function bcs(mut this) {
+        if .carry {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function bne(mut this) {
+        if not .zero {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function beq(mut this) {
+        if .zero {
+            .branch()
+        } else {
+            .clock += 2
+            .pc += 2
+        }
+    }
+
+    function brk(mut this) {
+        .push_word(value: .pc)
+
+        .clock += 7
+
+        .pc = .system.read_word(address: 0xfffe)
+        .break_flag = true
+        .interrupt_disable = true
+    }
+
+    function rti(mut this) {
+        .clock += 6
+
+        .pull_status()
+        .pull_pc()
+    }
+
+    function jsr(mut this) {
+        .push_word(value: .pc + 2)
+
+        .clock += 6
+
+        let arg_address = .pc + 1
+        .pc = .system.read_word(address: arg_address)
+    }
+
+    function rts(mut this) {
+        .clock += 6
+        .pull_pc()
+    }
+
+    function jmp(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
+        match opcode {
+            0x4cu8 => {
+                let address = .system.read_word(address: arg_address)
+                .clock += 3
+                .pc = address
+            }
+            0x6cu8 => {
+                let indirect_address = .system.read_word(address: arg_address)
+                let address = .system.read_word(address: indirect_address)
+                .clock += 5
+                .pc = address
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function bit(mut this, opcode: u8) {
+        let arg_address = .pc + 1
+
+        let value = match opcode {
+            0x24u8 => {
+                .clock += 3
+                .pc += 2
+
+                let address = .system.read_byte(address: arg_address)
+                let value = .system.read_byte(address: address as! u16)
+                yield value
+            }
+            0x2cu8 => {
+                .clock += 4
+                .pc += 3
+
+                let address = .system.read_word(address: arg_address)
+                let value = .system.read_byte(address: address)
+                yield value
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0u8
+            }
+        }
+
+        .zero = (value & .a) == 0
+        .negative = (value & 0x80) == 0x80
+        .overflow = (value & 0x40) == 0x40
+    }
+
+    function clc(mut this) {
+        .carry = false
+        .pc += 1
+        .clock += 2
+    }
+
+    function sec(mut this) {
+        .carry = true
+        .pc += 1
+        .clock += 2
+    }
+
+    function cld(mut this) {
+        .decimal = false
+        .pc += 1
+        .clock += 2
+    }
+
+    function sed(mut this) {
+        .decimal = true
+        .pc += 1
+        .clock += 2
+    }
+
+    function cli(mut this) {
+        .interrupt_disable = false
+        .pc += 1
+        .clock += 2
+    }
+
+    function sei(mut this) {
+        .interrupt_disable = true
+        .pc += 1
+        .clock += 2
+    }
+
+    function clv(mut this) {
+        .overflow = false
+        .pc += 1
+        .clock += 2
+    }
+
+    function nop(mut this) {
+        .pc += 1
+        .clock += 2
+    }
 }
