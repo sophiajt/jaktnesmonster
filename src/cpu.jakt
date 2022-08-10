@@ -89,10 +89,22 @@ class CPU {
         return .system.read_byte(address)
     }
 
+    function zero_page_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = .system.read_byte(address: arg_address) as! u16
+        .system.write_byte(address, value)
+    }
+
     function zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
         let address = (.system.read_byte(address: arg_address) + .x) as! u16
         return .system.read_byte(address)
+    }
+
+    function zero_page_x_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        .system.write_byte(address, value)
     }
 
     function zero_page_y(mut this) -> u8 {
@@ -135,6 +147,12 @@ class CPU {
         return .system.read_byte(address)
     }
 
+    function absolute_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = .system.read_word(address: arg_address)
+        .system.write_byte(address, value)
+    }
+
     function absolute_x(mut this, check_extra_clock: bool) -> u8 {
         let arg_address = .pc + 1
         mut address = .system.read_word(address: arg_address)
@@ -151,6 +169,15 @@ class CPU {
         }
 
         return .system.read_byte(address)
+    }
+
+    function absolute_x_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        mut address = .system.read_word(address: arg_address)
+
+        address += .x as! u16
+
+        .system.write_byte(address, value)
     }
 
     function absolute_y(mut this, check_extra_clock: bool) -> u8 {
@@ -178,46 +205,44 @@ class CPU {
     function ora(mut this, opcode: u8) {
         match opcode {
             0x09u8 => {
+                .a = .a | .immediate()
                 .clock += 2
                 .pc += 2
-
-                .a = .a | .immediate()
             }
             0x05u8 => {
+                .a = .a | .zero_page()
                 .clock += 3
                 .pc += 2
-
-                .a = .a | .zero_page()
             }
             0x15u8 => {
+                .a = .a | .zero_page_x()
                 .clock += 4
                 .pc += 2
-                .a = .a | .zero_page_x()
             }
             0x01u8 => {
+                .a = .a | .indirect_zero_page_x()
                 .clock += 6
                 .pc += 2
-                .a = .a | .indirect_zero_page_x()
             }
             0x11u8 => {
+                .a = .a | .indirect_zero_page_y(check_extra_clock: true)
                 .clock += 5
                 .pc += 2
-                .a = .a | .indirect_zero_page_y(check_extra_clock: true)
             }
             0x0du8 => {
+                .a = .a | .absolute()
                 .clock += 4
                 .pc += 3
-                .a = .a | .absolute()
             }
             0x1du8 => {
+                .a = .a | .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-                .a = .a | .absolute_x(check_extra_clock: true)
             }
             0x19u8 => {
+                .a = .a | .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-                .a = .a | .absolute_y(check_extra_clock: true)
             }
             else => {
                 eprintln("unknown opcode")
@@ -229,46 +254,44 @@ class CPU {
     function and_opcode(mut this, opcode: u8) {
         match opcode {
             0x29u8 => {
+                .a = .a & .immediate()
                 .clock += 2
                 .pc += 2
-
-                .a = .a & .immediate()
             }
             0x25u8 => {
+                .a = .a & .zero_page()
                 .clock += 3
                 .pc += 2
-
-                .a = .a & .zero_page()
             }
             0x35u8 => {
+                .a = .a & .zero_page_x()
                 .clock += 4
                 .pc += 2
-                .a = .a & .zero_page_x()
             }
             0x21u8 => {
+                .a = .a & .indirect_zero_page_x()
                 .clock += 6
                 .pc += 2
-                .a = .a & .indirect_zero_page_x()
             }
             0x31u8 => {
+                .a = .a & .indirect_zero_page_y(check_extra_clock: true)
                 .clock += 5
                 .pc += 2
-                .a = .a & .indirect_zero_page_y(check_extra_clock: true)
             }
             0x2du8 => {
+                .a = .a & .absolute()
                 .clock += 4
                 .pc += 3
-                .a = .a & .absolute()
             }
             0x3du8 => {
+                .a = .a & .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-                .a = .a & .absolute_x(check_extra_clock: true)
             }
             0x39u8 => {
+                .a = .a & .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-                .a = .a & .absolute_y(check_extra_clock: true)
             }
             else => {
                 eprintln("unknown opcode")
@@ -280,46 +303,44 @@ class CPU {
     function eor(mut this, opcode: u8) {
         match opcode {
             0x49u8 => {
+                .a = .a ^ .immediate()
                 .clock += 2
                 .pc += 2
-
-                .a = .a ^ .immediate()
             }
             0x45u8 => {
+                .a = .a ^ .zero_page()
                 .clock += 3
                 .pc += 2
-
-                .a = .a ^ .zero_page()
             }
             0x55u8 => {
+                .a = .a ^ .zero_page_x()
                 .clock += 4
                 .pc += 2
-                .a = .a ^ .zero_page_x()
             }
             0x41u8 => {
+                .a = .a ^ .indirect_zero_page_x()
                 .clock += 6
                 .pc += 2
-                .a = .a ^ .indirect_zero_page_x()
             }
             0x51u8 => {
+                .a = .a ^ .indirect_zero_page_y(check_extra_clock: true)
                 .clock += 5
                 .pc += 2
-                .a = .a ^ .indirect_zero_page_y(check_extra_clock: true)
             }
             0x4du8 => {
+                .a = .a ^ .absolute()
                 .clock += 4
                 .pc += 3
-                .a = .a ^ .absolute()
             }
             0x5du8 => {
+                .a = .a ^ .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-                .a = .a ^ .absolute_x(check_extra_clock: true)
             }
             0x59u8 => {
+                .a = .a ^ .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-                .a = .a ^ .absolute_y(check_extra_clock: true)
             }
             else => {
                 eprintln("unknown opcode")
@@ -336,52 +357,58 @@ class CPU {
 
         let intermediate = match opcode {
             0x69u8 => {
+                let tmp = .a as! i16 + .immediate() as! i16 + carry_value
                 .clock += 2
                 .pc += 2
-
-                yield .a as! i16 + .immediate() as! i16 + carry_value
+                yield tmp
             }
             0x65u8 => {
+                let tmp = .a as! i16 + .zero_page() as! i16 + carry_value
                 .clock += 3
                 .pc += 2
-
-                yield .a as! i16 + .zero_page() as! i16 + carry_value
+                yield tmp
             }
             0x75u8 => {
+                let tmp = .a as! i16 + .zero_page_x() as! i16 + carry_value
                 .clock += 4
                 .pc += 2
 
-                yield .a as! i16 + .zero_page_x() as! i16 + carry_value
+                yield tmp
             }
             0x61u8 => {
-                .clock += 2
-                .pc += 6
+                let tmp = .a as! i16 + .indirect_zero_page_x() as! i16 + carry_value
+                .clock += 6
+                .pc += 2
 
-                yield .a as! i16 + .indirect_zero_page_x() as! i16 + carry_value
+                yield tmp
             }
             0x71u8 => {
-                .clock += 2
-                .pc += 5
+                let tmp = .a as! i16 + .indirect_zero_page_y(check_extra_clock: true) as! i16 + carry_value
+                .clock += 5
+                .pc += 2
 
-                yield .a as! i16 + .indirect_zero_page_y(check_extra_clock: true) as! i16 + carry_value
+                yield tmp
             }
             0x6du8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 + .absolute() as! i16 + carry_value
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 + .absolute() as! i16 + carry_value
+                yield tmp
             }
             0x7du8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 + .absolute_x(check_extra_clock: true) as! i16 + carry_value
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 + .absolute_x(check_extra_clock: true) as! i16 + carry_value
+                yield tmp
             }
             0x79u8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 + .absolute_y(check_extra_clock: true) as! i16 + carry_value
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 + .absolute_y(check_extra_clock: true) as! i16 + carry_value
+                yield tmp
             }
             else => {
                 eprintln("unknown opcode")
@@ -396,58 +423,66 @@ class CPU {
 
     function sbc(mut this, opcode: u8) {
         let carry_value = match .carry {
-            true => 1i16
-            else => 0i16
+            true => 0i16
+            else => 1i16
         }
 
         let intermediate = match opcode {
             0xe9u8 => {
+                let tmp = .a as! i16 - .immediate() as! i16 - carry_value
                 .clock += 2
                 .pc += 2
 
-                yield .a as! i16 - .immediate() as! i16 - carry_value
+                yield tmp
             }
             0xe5u8 => {
+                let tmp = .a as! i16 - .zero_page() as! i16 - carry_value
                 .clock += 3
                 .pc += 2
 
-                yield .a as! i16 - .zero_page() as! i16 - carry_value
+                yield tmp
             }
             0xf5u8 => {
+                let tmp = .a as! i16 - .zero_page_x() as! i16 - carry_value
                 .clock += 4
                 .pc += 2
 
-                yield .a as! i16 - .zero_page_x() as! i16 - carry_value
+                yield tmp
             }
             0xe1u8 => {
-                .clock += 2
-                .pc += 6
+                let tmp = .a as! i16 - .indirect_zero_page_x() as! i16 - carry_value
+                .clock += 6
+                .pc += 2
 
-                yield .a as! i16 - .indirect_zero_page_x() as! i16 - carry_value
+                yield tmp
             }
             0xf1u8 => {
-                .clock += 2
-                .pc += 5
+                let tmp = .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16 - carry_value
+                .clock += 5
+                .pc += 2
 
-                yield .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16 - carry_value
+                yield tmp
             }
             0xedu8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 - .absolute() as! i16 - carry_value
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 - .absolute() as! i16 - carry_value
+                yield tmp
             }
             0xfdu8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 - .absolute_x(check_extra_clock: true) as! i16 - carry_value
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 - .absolute_x(check_extra_clock: true) as! i16 - carry_value
+                yield tmp
             }
             0xf9u8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 - .absolute_y(check_extra_clock: true) as! i16 - carry_value
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 - .absolute_y(check_extra_clock: true) as! i16 - carry_value
+                yield tmp
             }
             else => {
                 eprintln("unknown opcode")
@@ -463,49 +498,57 @@ class CPU {
     function cmp(mut this, opcode: u8) {
         let intermediate = match opcode {
             0xc9u8 => {
+                let tmp = .a as! i16 - .immediate() as! i16
                 .clock += 2
                 .pc += 2
-                yield .a as! i16 - .immediate() as! i16
+                yield tmp
             }
             0xc5u8 => {
+                let tmp = .a as! i16 - .zero_page() as! i16
                 .clock += 3
                 .pc += 2
-                yield .a as! i16 - .zero_page() as! i16
+                yield tmp
             }
             0xd5u8 => {
+                let tmp = .a as! i16 - .zero_page_x() as! i16
                 .clock += 4
                 .pc += 2
-                yield .a as! i16 - .zero_page_x() as! i16
+                yield tmp
             }
             0xc1u8 => {
-                .clock += 2
-                .pc += 6
+                let tmp = .a as! i16 - .indirect_zero_page_x() as! i16
+                .clock += 6
+                .pc += 2
 
-                yield .a as! i16 - .indirect_zero_page_x() as! i16
+                yield tmp
             }
             0xd1u8 => {
-                .clock += 2
-                .pc += 5
+                let tmp = .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16
+                .clock += 5
+                .pc += 2
 
-                yield .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16
+                yield tmp
             }
             0xcdu8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 - .absolute() as! i16
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 - .absolute() as! i16
+                yield tmp
             }
             0xddu8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 - .absolute_x(check_extra_clock: true) as! i16
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 - .absolute_x(check_extra_clock: true) as! i16
+                yield tmp
             }
             0xd9u8 => {
-                .clock += 2
-                .pc += 4
+                let tmp = .a as! i16 - .absolute_y(check_extra_clock: true) as! i16
+                .clock += 4
+                .pc += 3
 
-                yield .a as! i16 - .absolute_y(check_extra_clock: true) as! i16
+                yield tmp
             }
             else => {
                 eprintln("unknown opcode")
@@ -518,55 +561,455 @@ class CPU {
         .negative = (intermediate & 0x80) == 0x80
     }
 
+    function cpx(mut this, opcode: u8) {
+        let intermediate = match opcode {
+            0xe0u8 => {
+                let tmp = .x as! i16 - .immediate() as! i16
+                .clock += 2
+                .pc += 2
+                yield tmp
+            }
+            0xe4u8 => {
+                let tmp = .x as! i16 - .zero_page() as! i16
+                .clock += 3
+                .pc += 2
+                yield tmp
+            }
+            0xecu8 => {
+                let tmp = .x as! i16 - .absolute() as! i16
+                .clock += 4
+                .pc += 3
+
+                yield tmp
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0i16
+            }
+        }
+        .carry = intermediate >= 0
+        .zero = intermediate == 0
+        .negative = (intermediate & 0x80) == 0x80
+    }
+
+    function cpy(mut this, opcode: u8) {
+        let intermediate = match opcode {
+            0xc0u8 => {
+                let tmp = .y as! i16 - .immediate() as! i16 
+                .clock += 2
+                .pc += 2
+                yield tmp
+            }
+            0xc4u8 => {
+                let tmp = .y as! i16 - .zero_page() as! i16
+                .clock += 3
+                .pc += 2
+                yield tmp
+            }
+            0xccu8 => {
+                let tmp = .y as! i16 - .absolute() as! i16
+                .clock += 4
+                .pc += 3
+
+                yield tmp
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0i16
+            }
+        }
+        .carry = intermediate >= 0
+        .zero = intermediate == 0
+        .negative = (intermediate & 0x80) == 0x80
+    }
+
+    function dec(mut this, opcode: u8) {
+        match opcode {
+            0xc6u8 => {
+                mut intermediate = .zero_page()
+                intermediate--
+                .test_nz_flags(value: intermediate)
+                .zero_page_set(value: intermediate)
+
+                .pc += 2
+                .clock += 5
+            }
+            0xd6u8 => {
+                mut intermediate = .zero_page_x()
+                intermediate--
+                .test_nz_flags(value: intermediate)
+                .zero_page_x_set(value: intermediate)
+
+                .pc += 2
+                .clock += 6
+            }
+            0xceu8 => {
+                mut intermediate = .absolute()
+                intermediate--
+                .test_nz_flags(value: intermediate)
+                .absolute_set(value: intermediate)
+
+                .pc += 3
+                .clock += 6
+            }
+            0xdeu8 => {
+                mut intermediate = .absolute_x(check_extra_clock: false)
+                intermediate--
+                .test_nz_flags(value: intermediate)
+                .absolute_x_set(value: intermediate)
+
+                .pc += 3
+                .clock += 7
+            }
+            else => {
+                eprintln("unknown opcode")
+            }            
+        }
+    }
+
+    function dex(mut this) {
+        .pc += 1
+        .clock += 2
+        .x--
+        .test_nz_flags(value: .x)
+    }
+
+    function dey(mut this) {
+        .pc += 1
+        .clock += 2
+        .y--
+        .test_nz_flags(value: .y)
+    }
+
+    function inc(mut this, opcode: u8) {
+        match opcode {
+            0xe6u8 => {
+                mut intermediate = .zero_page()
+                intermediate++
+                .test_nz_flags(value: intermediate)
+                .zero_page_set(value: intermediate)
+
+                .pc += 2
+                .clock += 5
+            }
+            0xf6u8 => {
+                mut intermediate = .zero_page_x()
+                intermediate++
+                .test_nz_flags(value: intermediate)
+                .zero_page_x_set(value: intermediate)
+
+                .pc += 2
+                .clock += 6
+            }
+            0xeeu8 => {
+                mut intermediate = .absolute()
+                intermediate++
+                .test_nz_flags(value: intermediate)
+                .absolute_set(value: intermediate)
+
+                .pc += 3
+                .clock += 6
+            }
+            0xfeu8 => {
+                mut intermediate = .absolute_x(check_extra_clock: false)
+                intermediate++
+                .test_nz_flags(value: intermediate)
+                .absolute_x_set(value: intermediate)
+
+                .pc += 3
+                .clock += 7
+            }
+            else => {
+                eprintln("unknown opcode")
+            }            
+        }
+    }
+
+    function inx(mut this) {
+        .pc += 1
+        .clock += 2
+        .x++
+        .test_nz_flags(value: .x)
+    }
+
+    function iny(mut this) {
+        .pc += 1
+        .clock += 2
+        .y++
+        .test_nz_flags(value: .y)
+    }
+
+    function asl(mut this, opcode: u8) {
+        match opcode {
+            0x0au8 => {
+                .carry = (.a & 0x80) == 0x80
+                .a = .a << 1
+                .test_nz_flags(value: .a)
+                .pc += 1
+                .clock += 2
+            }
+            0x06u8 => {
+                mut tmp = .zero_page()
+                .carry = (tmp & 0x80) == 0x80
+                tmp = tmp << 1
+                .test_nz_flags(value: tmp)
+                .zero_page_set(value: tmp)
+                .pc += 2
+                .clock += 5
+            }
+            0x16u8 => {
+                mut tmp = .zero_page_x()
+                .carry = (tmp & 0x80) == 0x80
+                tmp = tmp << 1
+                .test_nz_flags(value: tmp)
+                .zero_page_x_set(value: tmp)
+                .pc += 2
+                .clock += 6
+            }
+            0x0eu8 => {
+                mut tmp = .absolute()
+                .carry = (tmp & 0x80) == 0x80
+                tmp = tmp << 1
+                .test_nz_flags(value: tmp)
+                .absolute_set(value: tmp)
+                .pc += 3
+                .clock += 6
+            }
+            0x1eu8 => {
+                mut tmp = .absolute_x(check_extra_clock: false)
+                .carry = (tmp & 0x80) == 0x80
+                tmp = tmp << 1
+                .test_nz_flags(value: tmp)
+                .absolute_x_set(value: tmp)
+                .pc += 2
+                .clock += 7
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function rol(mut this, opcode: u8) {
+        let carry_value = match .carry {
+            true => 1u8
+            else => 0u8
+        }
+
+        match opcode {
+            0x2au8 => {
+                .carry = (.a & 0x80) == 0x80
+                .a = (.a << 1) + carry_value
+                .test_nz_flags(value: .a)
+                .pc += 1
+                .clock += 2
+            }
+            0x26u8 => {
+                mut tmp = .zero_page()
+                .carry = (tmp & 0x80) == 0x80
+                tmp = (tmp << 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .zero_page_set(value: tmp)
+                .pc += 2
+                .clock += 5
+            }
+            0x36u8 => {
+                mut tmp = .zero_page_x()
+                .carry = (tmp & 0x80) == 0x80
+                tmp = (tmp << 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .zero_page_x_set(value: tmp)
+                .pc += 2
+                .clock += 6
+            }
+            0x2eu8 => {
+                mut tmp = .absolute()
+                .carry = (tmp & 0x80) == 0x80
+                tmp = (tmp << 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .absolute_set(value: tmp)
+                .pc += 3
+                .clock += 6
+            }
+            0x3eu8 => {
+                mut tmp = .absolute_x(check_extra_clock: false)
+                .carry = (tmp & 0x80) == 0x80
+                tmp = (tmp << 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .absolute_x_set(value: tmp)
+                .pc += 2
+                .clock += 7
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function lsr(mut this, opcode: u8) {
+        match opcode {
+            0x4au8 => {
+                .carry = (.a & 0x1) == 0x1
+                .a = .a >> 1
+                .test_nz_flags(value: .a)
+                .pc += 1
+                .clock += 2
+            }
+            0x46u8 => {
+                mut tmp = .zero_page()
+                .carry = (tmp & 0x01) == 0x01
+                tmp = tmp >> 1
+                .test_nz_flags(value: tmp)
+                .zero_page_set(value: tmp)
+                .pc += 2
+                .clock += 5
+            }
+            0x56u8 => {
+                mut tmp = .zero_page_x()
+                .carry = (tmp & 0x01) == 0x01
+                tmp = tmp >> 1
+                .test_nz_flags(value: tmp)
+                .zero_page_x_set(value: tmp)
+                .pc += 2
+                .clock += 6
+            }
+            0x4eu8 => {
+                mut tmp = .absolute()
+                .carry = (tmp & 0x01) == 0x01
+                tmp = tmp >> 1
+                .test_nz_flags(value: tmp)
+                .absolute_set(value: tmp)
+                .pc += 3
+                .clock += 6
+            }
+            0x5eu8 => {
+                mut tmp = .absolute_x(check_extra_clock: false)
+                .carry = (tmp & 0x01) == 0x01
+                tmp = tmp >> 1
+                .test_nz_flags(value: tmp)
+                .absolute_x_set(value: tmp)
+                .pc += 2
+                .clock += 7
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function ror(mut this, opcode: u8) {
+        let carry_value = match .carry {
+            true => 0x80u8
+            else => 0u8
+        }
+
+        match opcode {
+            0x6au8 => {
+                .carry = (.a & 0x01) == 0x01
+                .a = (.a >> 1) + carry_value
+                .test_nz_flags(value: .a)
+                .pc += 1
+                .clock += 2
+            }
+            0x66u8 => {
+                mut tmp = .zero_page()
+                .carry = (tmp & 0x01) == 0x01
+                tmp = (tmp >> 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .zero_page_set(value: tmp)
+                .pc += 2
+                .clock += 5
+            }
+            0x76u8 => {
+                mut tmp = .zero_page_x()
+                .carry = (tmp & 0x01) == 0x01
+                tmp = (tmp >> 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .zero_page_x_set(value: tmp)
+                .pc += 2
+                .clock += 6
+            }
+            0x6eu8 => {
+                mut tmp = .absolute()
+                .carry = (tmp & 0x01) == 0x01
+                tmp = (tmp >> 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .absolute_set(value: tmp)
+                .pc += 3
+                .clock += 6
+            }
+            0x7eu8 => {
+                mut tmp = .absolute_x(check_extra_clock: false)
+                .carry = (tmp & 0x01) == 0x01
+                tmp = (tmp >> 1) + carry_value
+                .test_nz_flags(value: tmp)
+                .absolute_x_set(value: tmp)
+                .pc += 2
+                .clock += 7
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
     public function lda(mut this, opcode: u8) {
         let intermediate: u8 = match opcode {
             0xa9u8 => {
+                let tmp = .immediate()
                 .clock += 2
                 .pc += 2
 
-                yield .immediate()
+                yield tmp
             }
             0xa5u8 => {
+                let tmp = .zero_page()
                 .clock += 3
                 .pc += 2
 
-                yield .zero_page()
+                yield tmp
             }
             0xb5u8 => {
+                let tmp = .zero_page_x()
                 .clock += 4
                 .pc += 2
 
-                yield .zero_page_x()
+                yield tmp
             }
             0xadu8 => {
+                let tmp = .absolute()
                 .clock += 4
                 .pc += 3
 
-                yield .absolute()
+                yield tmp
             }
             0xbdu8 => {
+                let tmp = .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
 
-                yield .absolute_x(check_extra_clock: true)
+                yield tmp
             }
             0xb9u8 => {
+                let tmp = .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
 
-                yield .absolute_x(check_extra_clock: true)
+                yield tmp
             }
             0xa1u8 => {
+                let tmp = .indirect_zero_page_x()
                 .clock += 6
                 .pc += 2
 
-                yield .indirect_zero_page_x()
+                yield tmp
             }
             0xb1u8 => {
+                let tmp = .indirect_zero_page_y(check_extra_clock: true)
                 .clock += 6
                 .pc += 2
 
-                yield .indirect_zero_page_y(check_extra_clock: true)
+                yield tmp
             }
             else => {
                 eprintln("unknown opcode")
@@ -583,34 +1026,39 @@ class CPU {
     public function ldx(mut this, opcode: u8) {
         let intermediate: u8 = match opcode {
             0xa2u8 => {
+                let tmp = .immediate()
                 .clock += 2
                 .pc += 2
 
-                yield .immediate()
+                yield tmp
             }
             0xa6u8 => {
+                let tmp = .zero_page()
                 .clock += 3
                 .pc += 2
 
-                yield .zero_page()
+                yield tmp
             }
             0xb6u8 => {
+                let tmp = .zero_page_y()
                 .clock += 4
                 .pc += 2
 
-                yield .zero_page_y()
+                yield tmp
             }
             0xaeu8 => {
+                let tmp = .absolute()
                 .clock += 4
                 .pc += 3
 
-                yield .absolute()
+                yield tmp
             }
             0xbeu8 => {
+                let tmp = .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
 
-                yield .absolute_y(check_extra_clock: true)
+                yield tmp
             }
             else => {
                 eprintln("unknown opcode")
@@ -629,34 +1077,39 @@ class CPU {
 
         let intermediate: u8 = match opcode {
             0xa0u8 => {
+                let tmp = .immediate()
                 .clock += 2
                 .pc += 2
 
-                yield .immediate()
+                yield tmp
             }
             0xa4u8 => {
+                let tmp = .zero_page()
                 .clock += 3
                 .pc += 2
 
-                yield .zero_page()
+                yield tmp
             }
             0xb4u8 => {
+                let tmp = .zero_page_x()
                 .clock += 4
                 .pc += 2
 
-                yield .zero_page_x()
+                yield tmp
             }
             0xacu8 => {
+                let tmp = .absolute()
                 .clock += 4
                 .pc += 3
 
-                yield .absolute()
+                yield tmp
             }
             0xbcu8 => {
+                let tmp = .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
 
-                yield .absolute_x(check_extra_clock: true)
+                yield tmp
             }
             else => {
                 eprintln("unknown opcode")
