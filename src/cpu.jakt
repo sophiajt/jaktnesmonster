@@ -77,109 +77,496 @@ class CPU {
         }
     }
 
-    public function lda(mut this, opcode: u8) {
+    // Addressing modes
+    function immediate(mut this) -> u8 {
         let arg_address = .pc + 1
+        return .system.read_byte(address: arg_address)
+    }
 
-        let intermediate: u8 = match opcode {
-            0xa9u8 => {
-                // Immediate
+    function zero_page(mut this) -> u8 {
+        let arg_address = .pc + 1
+        let address = .system.read_byte(address: arg_address) as! u16
+        return .system.read_byte(address)
+    }
+
+    function zero_page_x(mut this) -> u8 {
+        let arg_address = .pc + 1
+        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        return .system.read_byte(address)
+    }
+
+    function zero_page_y(mut this) -> u8 {
+        let arg_address = .pc + 1
+        let address = (.system.read_byte(address: arg_address) + .y) as! u16
+        return .system.read_byte(address)        
+    }
+
+    function indirect_zero_page_x(mut this) -> u8 {
+        let arg_address = .pc + 1
+        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        let new_address = .system.read_word(address)
+
+        yield .system.read_byte(address: new_address)
+    }
+
+    function indirect_zero_page_y(mut this, check_extra_clock: bool) -> u8 {
+        let arg_address = .pc + 1
+        let address = (.system.read_byte(address: arg_address)) as! u16
+
+        let pre_index = .system.read_word(address)
+        let page = pre_index >> 2
+
+        let new_address = pre_index + .y as! u16
+
+        let new_page = new_address >> 2
+
+        // Example of crossing pages:
+        // 01ff -> 0200
+        if check_extra_clock and page != new_page {
+            .clock += 1
+        }
+
+        return .system.read_byte(address: new_address)
+    }
+
+    function absolute(mut this) -> u8 {
+        let arg_address = .pc + 1
+        let address = .system.read_word(address: arg_address)
+        return .system.read_byte(address)
+    }
+
+    function absolute_x(mut this, check_extra_clock: bool) -> u8 {
+        let arg_address = .pc + 1
+        mut address = .system.read_word(address: arg_address)
+
+        let page = address >> 2
+
+        address += .x as! u16
+        let new_page = address >> 2
+
+        // Example of crossing pages:
+        // 01ff -> 0200
+        if check_extra_clock and page != new_page {
+            .clock += 1
+        }
+
+        return .system.read_byte(address)
+    }
+
+    function absolute_y(mut this, check_extra_clock: bool) -> u8 {
+        let arg_address = .pc + 1
+        mut address = .system.read_word(address: arg_address)
+        let page = address >> 2
+
+        address += .y as! u16
+        let new_page = address >> 2
+
+        // Example of crossing pages:
+        // 01ff -> 0200
+        if check_extra_clock and page != new_page {
+            .clock += 1
+        }
+
+        return .system.read_byte(address)
+    }
+
+    function test_nz_flags(mut this, value: u8) {
+        .negative = (value & 0x80) == 0x80
+        .zero = value == 0
+    }
+
+    function ora(mut this, opcode: u8) {
+        match opcode {
+            0x09u8 => {
                 .clock += 2
                 .pc += 2
 
-                yield .system.read_byte(address: arg_address)
+                .a = .a | .immediate()
             }
-            0xa5u8 => {
-                // Zero page
+            0x05u8 => {
                 .clock += 3
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address) as! u16
-                yield .system.read_byte(address)
+                .a = .a | .zero_page()
+            }
+            0x15u8 => {
+                .clock += 4
+                .pc += 2
+                .a = .a | .zero_page_x()
+            }
+            0x01u8 => {
+                .clock += 6
+                .pc += 2
+                .a = .a | .indirect_zero_page_x()
+            }
+            0x11u8 => {
+                .clock += 5
+                .pc += 2
+                .a = .a | .indirect_zero_page_y(check_extra_clock: true)
+            }
+            0x0du8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a | .absolute()
+            }
+            0x1du8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a | .absolute_x(check_extra_clock: true)
+            }
+            0x19u8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a | .absolute_y(check_extra_clock: true)
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+        .test_nz_flags(value: .a)
+    }
+
+    function and_opcode(mut this, opcode: u8) {
+        match opcode {
+            0x29u8 => {
+                .clock += 2
+                .pc += 2
+
+                .a = .a & .immediate()
+            }
+            0x25u8 => {
+                .clock += 3
+                .pc += 2
+
+                .a = .a & .zero_page()
+            }
+            0x35u8 => {
+                .clock += 4
+                .pc += 2
+                .a = .a & .zero_page_x()
+            }
+            0x21u8 => {
+                .clock += 6
+                .pc += 2
+                .a = .a & .indirect_zero_page_x()
+            }
+            0x31u8 => {
+                .clock += 5
+                .pc += 2
+                .a = .a & .indirect_zero_page_y(check_extra_clock: true)
+            }
+            0x2du8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a & .absolute()
+            }
+            0x3du8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a & .absolute_x(check_extra_clock: true)
+            }
+            0x39u8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a & .absolute_y(check_extra_clock: true)
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+        .test_nz_flags(value: .a)
+    }
+
+    function eor(mut this, opcode: u8) {
+        match opcode {
+            0x49u8 => {
+                .clock += 2
+                .pc += 2
+
+                .a = .a ^ .immediate()
+            }
+            0x45u8 => {
+                .clock += 3
+                .pc += 2
+
+                .a = .a ^ .zero_page()
+            }
+            0x55u8 => {
+                .clock += 4
+                .pc += 2
+                .a = .a ^ .zero_page_x()
+            }
+            0x41u8 => {
+                .clock += 6
+                .pc += 2
+                .a = .a ^ .indirect_zero_page_x()
+            }
+            0x51u8 => {
+                .clock += 5
+                .pc += 2
+                .a = .a ^ .indirect_zero_page_y(check_extra_clock: true)
+            }
+            0x4du8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a ^ .absolute()
+            }
+            0x5du8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a ^ .absolute_x(check_extra_clock: true)
+            }
+            0x59u8 => {
+                .clock += 4
+                .pc += 3
+                .a = .a ^ .absolute_y(check_extra_clock: true)
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+        .test_nz_flags(value: .a)
+    }
+
+    function adc(mut this, opcode: u8) {
+        let carry_value = match .carry {
+            true => 1i16
+            else => 0i16
+        }
+
+        let intermediate = match opcode {
+            0x69u8 => {
+                .clock += 2
+                .pc += 2
+
+                yield .a as! i16 + .immediate() as! i16 + carry_value
+            }
+            0x65u8 => {
+                .clock += 3
+                .pc += 2
+
+                yield .a as! i16 + .zero_page() as! i16 + carry_value
+            }
+            0x75u8 => {
+                .clock += 4
+                .pc += 2
+
+                yield .a as! i16 + .zero_page_x() as! i16 + carry_value
+            }
+            0x61u8 => {
+                .clock += 2
+                .pc += 6
+
+                yield .a as! i16 + .indirect_zero_page_x() as! i16 + carry_value
+            }
+            0x71u8 => {
+                .clock += 2
+                .pc += 5
+
+                yield .a as! i16 + .indirect_zero_page_y(check_extra_clock: true) as! i16 + carry_value
+            }
+            0x6du8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 + .absolute() as! i16 + carry_value
+            }
+            0x7du8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 + .absolute_x(check_extra_clock: true) as! i16 + carry_value
+            }
+            0x79u8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 + .absolute_y(check_extra_clock: true) as! i16 + carry_value
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0i16
+            }
+        }
+        // TODO: decimal mode
+        .overflow = intermediate < -128i16 or intermediate > 127i16
+        .carry = (intermediate as! u16 & 0xff00) != 0
+        .test_nz_flags(value: .a)
+    }
+
+    function sbc(mut this, opcode: u8) {
+        let carry_value = match .carry {
+            true => 1i16
+            else => 0i16
+        }
+
+        let intermediate = match opcode {
+            0xe9u8 => {
+                .clock += 2
+                .pc += 2
+
+                yield .a as! i16 - .immediate() as! i16 - carry_value
+            }
+            0xe5u8 => {
+                .clock += 3
+                .pc += 2
+
+                yield .a as! i16 - .zero_page() as! i16 - carry_value
+            }
+            0xf5u8 => {
+                .clock += 4
+                .pc += 2
+
+                yield .a as! i16 - .zero_page_x() as! i16 - carry_value
+            }
+            0xe1u8 => {
+                .clock += 2
+                .pc += 6
+
+                yield .a as! i16 - .indirect_zero_page_x() as! i16 - carry_value
+            }
+            0xf1u8 => {
+                .clock += 2
+                .pc += 5
+
+                yield .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16 - carry_value
+            }
+            0xedu8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 - .absolute() as! i16 - carry_value
+            }
+            0xfdu8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 - .absolute_x(check_extra_clock: true) as! i16 - carry_value
+            }
+            0xf9u8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 - .absolute_y(check_extra_clock: true) as! i16 - carry_value
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0i16
+            }
+        }
+        // TODO: double check the logic here
+        .overflow = intermediate < -128i16 or intermediate > 127i16
+        .carry = (intermediate as! u16 & 0xff00) != 0
+        .test_nz_flags(value: .a)
+    }
+
+    function cmp(mut this, opcode: u8) {
+        let intermediate = match opcode {
+            0xc9u8 => {
+                .clock += 2
+                .pc += 2
+                yield .a as! i16 - .immediate() as! i16
+            }
+            0xc5u8 => {
+                .clock += 3
+                .pc += 2
+                yield .a as! i16 - .zero_page() as! i16
+            }
+            0xd5u8 => {
+                .clock += 4
+                .pc += 2
+                yield .a as! i16 - .zero_page_x() as! i16
+            }
+            0xc1u8 => {
+                .clock += 2
+                .pc += 6
+
+                yield .a as! i16 - .indirect_zero_page_x() as! i16
+            }
+            0xd1u8 => {
+                .clock += 2
+                .pc += 5
+
+                yield .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16
+            }
+            0xcdu8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 - .absolute() as! i16
+            }
+            0xddu8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 - .absolute_x(check_extra_clock: true) as! i16
+            }
+            0xd9u8 => {
+                .clock += 2
+                .pc += 4
+
+                yield .a as! i16 - .absolute_y(check_extra_clock: true) as! i16
+            }
+            else => {
+                eprintln("unknown opcode")
+                yield 0i16
+            }
+        }
+
+        .carry = intermediate >= 0
+        .zero = intermediate == 0
+        .negative = (intermediate & 0x80) == 0x80
+    }
+
+    public function lda(mut this, opcode: u8) {
+        let intermediate: u8 = match opcode {
+            0xa9u8 => {
+                .clock += 2
+                .pc += 2
+
+                yield .immediate()
+            }
+            0xa5u8 => {
+                .clock += 3
+                .pc += 2
+
+                yield .zero_page()
             }
             0xb5u8 => {
-                // Zero page, X
                 .clock += 4
                 .pc += 2
 
-                let address = (.system.read_byte(address: arg_address) + .x) as! u16
-                yield .system.read_byte(address)
+                yield .zero_page_x()
             }
             0xadu8 => {
-                // Absolute address
                 .clock += 4
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                yield .system.read_byte(address)
+                yield .absolute()
             }
             0xbdu8 => {
-                // Absolute address, x
                 .clock += 4
                 .pc += 3
 
-                mut address = .system.read_word(address: arg_address)
-
-                let page = address >> 2
-
-                address += .x as! u16
-                let new_page = address >> 2
-
-                if page != new_page {
-                    .clock += 1
-                }
-
-                yield .system.read_byte(address: address + .x as! u16)
-
-                // Example of crossing pages:
-                // 01ff -> 0200
+                yield .absolute_x(check_extra_clock: true)
             }
             0xb9u8 => {
-                // Absolute address, y
                 .clock += 4
                 .pc += 3
 
-                mut address = .system.read_word(address: arg_address)
-                let page = address >> 2
-
-                address += .x as! u16
-                let new_page = address >> 2
-
-                if page != new_page {
-                    .clock += 1
-                }
-
-                yield .system.read_byte(address: address + .y as! u16)
+                yield .absolute_x(check_extra_clock: true)
             }
             0xa1u8 => {
-                // Indirect, X
                 .clock += 6
                 .pc += 2
 
-                let address = (.system.read_byte(address: arg_address) + .x) as! u16
-                let new_address = .system.read_word(address)
-
-                yield .system.read_byte(address: new_address)
+                yield .indirect_zero_page_x()
             }
             0xb1u8 => {
-                // Indirect, Y
                 .clock += 6
                 .pc += 2
 
-                let address = (.system.read_byte(address: arg_address)) as! u16
-
-                let pre_index = .system.read_word(address)
-                let page = pre_index >> 2
-
-                let new_address = pre_index + .y as! u16
-
-                let new_page = new_address >> 2
-
-                if page != new_page {
-                    .clock += 1
-                }
-
-
-                yield .system.read_byte(address: new_address)
+                yield .indirect_zero_page_y(check_extra_clock: true)
             }
             else => {
                 eprintln("unknown opcode")
@@ -188,63 +575,42 @@ class CPU {
         }
 
         // set the flags
-        .negative = (intermediate & 0x80) == 0x80 
-        .zero = intermediate == 0
+        .test_nz_flags(value: intermediate)
 
         .a = intermediate
     }
 
     public function ldx(mut this, opcode: u8) {
-        let arg_address = .pc + 1
-
         let intermediate: u8 = match opcode {
             0xa2u8 => {
-                // Immediate
                 .clock += 2
                 .pc += 2
 
-                yield .system.read_byte(address: arg_address)
+                yield .immediate()
             }
             0xa6u8 => {
-                // Zero page
                 .clock += 3
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address) as! u16
-                yield .system.read_byte(address)
+                yield .zero_page()
             }
             0xb6u8 => {
-                // Zero page, Y
                 .clock += 4
                 .pc += 2
 
-                let address = (.system.read_byte(address: arg_address) + .y) as! u16
-                yield .system.read_byte(address)
+                yield .zero_page_y()
             }
             0xaeu8 => {
-                // Absolute address
                 .clock += 4
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                yield .system.read_byte(address)
+                yield .absolute()
             }
             0xbeu8 => {
-                // Absolute address, y
                 .clock += 4
                 .pc += 3
 
-                mut address = .system.read_word(address: arg_address)
-                let page = address >> 2
-
-                address += .y as! u16
-                let new_page = address >> 2
-
-                if page != new_page {
-                    .clock += 1
-                }
-
-                yield .system.read_byte(address: address + .y as! u16)
+                yield .absolute_y(check_extra_clock: true)
             }
             else => {
                 eprintln("unknown opcode")
@@ -253,8 +619,7 @@ class CPU {
         }
 
         // set the flags
-        .negative = (intermediate & 0x80) == 0x80 
-        .zero = intermediate == 0
+        .test_nz_flags(value: intermediate)
 
         .x = intermediate
     }
@@ -264,52 +629,34 @@ class CPU {
 
         let intermediate: u8 = match opcode {
             0xa0u8 => {
-                // Immediate
                 .clock += 2
                 .pc += 2
 
-                yield .system.read_byte(address: arg_address)
+                yield .immediate()
             }
             0xa4u8 => {
-                // Zero page
                 .clock += 3
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address) as! u16
-                yield .system.read_byte(address)
+                yield .zero_page()
             }
             0xb4u8 => {
-                // Zero page, X
                 .clock += 4
                 .pc += 2
 
-                let address = (.system.read_byte(address: arg_address) + .x) as! u16
-                yield .system.read_byte(address)
+                yield .zero_page_x()
             }
             0xacu8 => {
-                // Absolute address
                 .clock += 4
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                yield .system.read_byte(address)
+                yield .absolute()
             }
             0xbcu8 => {
-                // Absolute address, x
                 .clock += 4
                 .pc += 3
 
-                mut address = .system.read_word(address: arg_address)
-                let page = address >> 2
-
-                address += .x as! u16
-                let new_page = address >> 2
-
-                if page != new_page {
-                    .clock += 1
-                }
-
-                yield .system.read_byte(address: address + .x as! u16)
+                yield .absolute_x(check_extra_clock: true)
             }
             else => {
                 eprintln("unknown opcode")
@@ -318,8 +665,7 @@ class CPU {
         }
 
         // set the flags
-        .negative = (intermediate & 0x80) == 0x80 
-        .zero = intermediate == 0
+        .test_nz_flags(value: intermediate)
 
         .y = intermediate
     }
@@ -471,8 +817,7 @@ class CPU {
         .clock += 2
 
         // set the flags
-        .negative = (.a & 0x80) == 0x80 
-        .zero = .a == 0
+        .test_nz_flags(value: .a)
 
         .x = .a
     }
@@ -482,8 +827,7 @@ class CPU {
         .clock += 2
 
         // set the flags
-        .negative = (.x & 0x80) == 0x80 
-        .zero = .x == 0
+        .test_nz_flags(value: .x)
 
         .a = .x
     }
@@ -493,8 +837,7 @@ class CPU {
         .clock += 2
 
         // set the flags
-        .negative = (.a & 0x80) == 0x80 
-        .zero = .a == 0
+        .test_nz_flags(value: .a)
 
         .y = .a
     }
@@ -504,8 +847,7 @@ class CPU {
         .clock += 2
 
         // set the flags
-        .negative = (.y & 0x80) == 0x80 
-        .zero = .y == 0
+        .test_nz_flags(value: .y)
 
         .a = .y
     }
@@ -515,8 +857,7 @@ class CPU {
         .clock += 2
 
         // set the flags
-        .negative = (.s & 0x80) == 0x80 
-        .zero = .s == 0
+        .test_nz_flags(value: .s)
 
         .x = .s
     }
@@ -536,8 +877,7 @@ class CPU {
         let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
 
         // set the flags
-        .negative = (intermediate & 0x80) == 0x80 
-        .zero = intermediate == 0
+        .test_nz_flags(value: intermediate)
         .a = intermediate
     }
 
