@@ -1,6 +1,6 @@
 # Jakt NES Monster
 
-Creating a NES emulator in the [jakt]() programming language.
+Creating a NES emulator in the [jakt](https://github.com/SerenityOS/jakt) programming language.
 
 Currently assuming building in linux. Make sure you have libsdl2+SDL2 headers installed, and build and install the jakt compiler into your PATH.
 
