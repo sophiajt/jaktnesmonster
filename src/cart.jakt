@@ -4,13 +4,13 @@ enum Mirroring {
 }
 
 class Cart {
-    prg_rom: usize
-    chr_rom: usize
-    mirroring: Mirroring
-    battery_present: bool
-    mapper: u8
-    prg_rom_pages: [[u8]]
-    chr_rom_pages: [[u8]]
+    public prg_rom: usize
+    public chr_rom: usize
+    public mirroring: Mirroring
+    public battery_present: bool
+    public mapper: u8
+    public prg_rom_pages: [[u8]]
+    public chr_rom_pages: [[u8]]
 }
 
 enum CartLoadStatus {

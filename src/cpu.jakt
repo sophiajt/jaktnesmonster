@@ -118,7 +118,7 @@ class CPU {
         let address = (.system.read_byte(address: arg_address) + .x) as! u16
         let new_address = .system.read_word(address)
 
-        yield .system.read_byte(address: new_address)
+        return .system.read_byte(address: new_address)
     }
 
     function indirect_zero_page_y(mut this, check_extra_clock: bool) -> u8 {
@@ -1174,7 +1174,7 @@ class CPU {
                 .pc += 2
 
                 let address = (.system.read_byte(address: arg_address) + .x) as! u16
-                let new_address = .system.write_byte(address, value: .a)
+                .system.write_byte(address, value: .a)
             }
             0x91u8 => {
                 // Indirect, Y

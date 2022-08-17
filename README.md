@@ -7,5 +7,5 @@ Currently assuming building in linux. Make sure you have libsdl2+SDL2 headers in
 Then, you can build using:
 
 ```
-> jakt src/main.jakt -l SDL2 -I <path to Jakt runtime directory> -o jakt_nes -O
+> jakt src/main.jakt -l SDL2 -I <path to Jakt runtime directory> -O -o jakt_nes
 ```
