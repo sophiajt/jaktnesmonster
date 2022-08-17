@@ -1,4 +1,4 @@
-- Jakt NES Monster
+# Jakt NES Monster
 
 Creating a NES emulator in the [jakt]() programming language.
 
