@@ -1429,6 +1429,7 @@ class CPU {
         let negative = false
         if (operand < 0) {
             offset = (operand * -1) as! u8
+            negative = true
         } else {
             offset = operand as! u8
         }
