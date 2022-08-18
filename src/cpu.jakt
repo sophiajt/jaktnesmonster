@@ -1426,10 +1426,10 @@ class CPU {
         .pc += 2
         
         let offset: u8 = 0
-        let negative = false
+        let negative_offset = false
         if (operand < 0) {
             offset = (operand * -1) as! u8
-            negative = true
+            negative_offset = true
         } else {
             offset = operand as! u8
         }
@@ -1437,7 +1437,7 @@ class CPU {
         let prev_page = .pc >> 8
         
         // TODO: please add a test for this
-        if (negative) {
+        if (negative_offset) {
             .pc = .pc - (offset as! u16)
         } else {
             .pc = .pc + (offset as! u16)
