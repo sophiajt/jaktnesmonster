@@ -1419,13 +1419,30 @@ class CPU {
 
     function branch(mut this) {
         let arg_address = .pc + 1
-        let address: i8 = .system.read_byte(address: arg_address) as! i8
-
+        let operand: i8 = .system.read_byte(address: arg_address) as! i8
+        
+        // The 6502 would have the PC on the next opcode now and everything is
+        // based upon that. Lets emulate that which also makes the code look cleaner
+        .pc += 2
+        
+        mut offset: u8 = 0
+        mut negative_offset = false
+        if (operand < 0) {
+            offset = (operand * -1i8) as! u8
+            negative_offset = true
+        } else {
+            offset = operand as! u8
+        }
+        
         let prev_page = .pc >> 8
-
+        
         // TODO: please add a test for this
-        .pc = (.pc as! i16 + address as! i16) as! u16
-
+        if (negative_offset) {
+            .pc = .pc - (offset as! u16)
+        } else {
+            .pc = .pc + (offset as! u16)
+        }
+        
         let new_page = .pc >> 8
 
         if prev_page != new_page {
