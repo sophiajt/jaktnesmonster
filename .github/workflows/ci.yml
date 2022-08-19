@@ -20,4 +20,4 @@ jobs:
           sudo apt-get install libsdl2-dev
       - uses: alimpfard/setup-jakt@v1
       - run: mkdir build
-      - run: jakt src/main.jakt -l SDL2 -I /usr/local/include -R $JAKT_RUNTIME -O -o jakt_nes
+      - run: jakt src/main.jakt -l SDL2 -I /usr/include/SDL2 -R $JAKT_RUNTIME -O -o jakt_nes
