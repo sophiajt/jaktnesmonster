@@ -13,5 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v3
       - uses: alimpfard/setup-jakt@v1
       - run: jakt src/main.jakt -l SDL2 -R $JAKT_RUNTIME -O -o jakt_nes
