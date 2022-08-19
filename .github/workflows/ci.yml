@@ -1,0 +1,17 @@
+on:
+  pull_request:
+  push: # Run CI on the main branch after every merge. This is important to fill the GitHub Actions cache in a way that pull requests can see it
+    branches:
+      - main
+
+name: continuous-integration
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: alimpfard/setup-jakt@v1
+      - run: jakt src/main.jakt -l SDL2 -R $JAKT_RUNTIME -O -o jakt_nes
