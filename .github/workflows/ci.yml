@@ -14,6 +14,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: install_dependencies
+        run: |
+          sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu `lsb_release -sc` main universe restricted multiverse"
+          sudo apt-get update -y -qq
+          sudo apt-get install libsdl2-dev
       - uses: alimpfard/setup-jakt@v1
       - run: mkdir build
       - run: jakt src/main.jakt -l SDL2 -R $JAKT_RUNTIME -O -o jakt_nes
