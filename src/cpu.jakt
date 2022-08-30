@@ -1542,7 +1542,8 @@ class CPU {
     }
 
     function jsr(mut this) {
-        .push_word(value: .pc + 2)
+        // .pc is at the current opcode, so next pc is + 3
+        .push_word(value: .pc + 3)
 
         .clock += 6
 
