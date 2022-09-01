@@ -23,7 +23,8 @@ class SDL {
     public function init_video(mut this, width: i64, height: i64) {
         unsafe {
             cpp {
-                "SDL_Init(SDL_INIT_VIDEO);
+                "SDL_SetMainReady();
+                SDL_Init(SDL_INIT_VIDEO);
                 SDL_CreateWindowAndRenderer(width, height, 0, (SDL_Window **)&this->window, (SDL_Renderer **)&this->renderer);"
             }
         }
