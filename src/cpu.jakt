@@ -393,216 +393,199 @@ class CPU {
         .test_nz_flags(value: .a)
     }
 
-    function adc(mut this, opcode: u8) {
-        let carry_value = match .carry {
-            true => 1i16
-            else => 0i16
-        }
+    function adder(mut this, accumulator: u8, operand: u8, carry: bool) -> u8 {
+        // TODO: decimal mode
+        let a = accumulator as! u16;
+        let b = operand as! u16;
+        let c = carry as! u16;
+        let intermediate = a + b + c
+        .carry = intermediate > 0xFF
+        let result: u8 = as_truncated(intermediate)
+        .test_nz_flags(value: result)
+        return result
+    }
 
-        let intermediate = match opcode {
+    function adder_with_overflow(mut this, accumulator: u8, operand: u8, carry: bool) -> u8 {
+        let result = .adder(accumulator, operand, carry);
+        .overflow = ((result ^ accumulator) & (result ^ operand) & 0x80) != 0
+        return result
+    }
+
+    function adc(mut this, opcode: u8) {
+        let operand = match opcode {
             0x69 => {
-                let tmp = .a as! i16 + .immediate() as! i16 + carry_value
+                let tmp = .immediate()
                 .clock += 2
                 .pc += 2
                 yield tmp
             }
             0x65 => {
-                let tmp = .a as! i16 + .zero_page() as! i16 + carry_value
+                let tmp = .zero_page()
                 .clock += 3
                 .pc += 2
                 yield tmp
             }
             0x75 => {
-                let tmp = .a as! i16 + .zero_page_x() as! i16 + carry_value
+                let tmp = .zero_page_x()
                 .clock += 4
                 .pc += 2
-
                 yield tmp
             }
             0x61 => {
-                let tmp = .a as! i16 + .indirect_zero_page_x() as! i16 + carry_value
+                let tmp = .indirect_zero_page_x()
                 .clock += 6
                 .pc += 2
-
                 yield tmp
             }
             0x71 => {
-                let tmp = .a as! i16 + .indirect_zero_page_y(check_extra_clock: true) as! i16 + carry_value
+                let tmp = .indirect_zero_page_y(check_extra_clock: true)
                 .clock += 5
                 .pc += 2
-
                 yield tmp
             }
             0x6d => {
-                let tmp = .a as! i16 + .absolute() as! i16 + carry_value
+                let tmp = .absolute()
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             0x7d => {
-                let tmp = .a as! i16 + .absolute_x(check_extra_clock: true) as! i16 + carry_value
+                let tmp = .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             0x79 => {
-                let tmp = .a as! i16 + .absolute_y(check_extra_clock: true) as! i16 + carry_value
+                let tmp = .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             else => {
                 eprintln("unknown opcode")
-                yield 0i16
+                yield 0
             }
         }
-        // TODO: decimal mode
-        .overflow = intermediate < -128i16 or intermediate > 127i16
-        .carry = (intermediate as! u16 & 0xff00) != 0
-        .test_nz_flags(value: .a)
+        // Perform subtraction with carry: a + b + c
+        .a = .adder_with_overflow(accumulator: .a, operand, carry: .carry)
     }
 
     function sbc(mut this, opcode: u8) {
-        let carry_value = match .carry {
-            true => 0i16
-            else => 1i16
-        }
-
-        let intermediate = match opcode {
+        let operand = match opcode {
             0xe9 => {
-                let tmp = .a as! i16 - .immediate() as! i16 - carry_value
+                let tmp = .immediate()
                 .clock += 2
                 .pc += 2
-
                 yield tmp
             }
             0xe5 => {
-                let tmp = .a as! i16 - .zero_page() as! i16 - carry_value
+                let tmp = .zero_page()
                 .clock += 3
                 .pc += 2
-
                 yield tmp
             }
             0xf5 => {
-                let tmp = .a as! i16 - .zero_page_x() as! i16 - carry_value
+                let tmp = .zero_page_x()
                 .clock += 4
                 .pc += 2
-
                 yield tmp
             }
             0xe1 => {
-                let tmp = .a as! i16 - .indirect_zero_page_x() as! i16 - carry_value
+                let tmp = .indirect_zero_page_x()
                 .clock += 6
                 .pc += 2
-
                 yield tmp
             }
             0xf1 => {
-                let tmp = .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16 - carry_value
+                let tmp = .indirect_zero_page_y(check_extra_clock: true)
                 .clock += 5
                 .pc += 2
-
                 yield tmp
             }
             0xed => {
-                let tmp = .a as! i16 - .absolute() as! i16 - carry_value
+                let tmp = .absolute()
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             0xfd => {
-                let tmp = .a as! i16 - .absolute_x(check_extra_clock: true) as! i16 - carry_value
+                let tmp = .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             0xf9 => {
-                let tmp = .a as! i16 - .absolute_y(check_extra_clock: true) as! i16 - carry_value
+                let tmp = .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             else => {
                 eprintln("unknown opcode")
-                yield 0i16
+                yield 0
             }
         }
-        // TODO: double check the logic here
-        .overflow = intermediate < -128i16 or intermediate > 127i16
-        .carry = (intermediate as! u16 & 0xff00) != 0
-        .test_nz_flags(value: .a)
+        // Perform subtraction with borrow: a - b - ~c
+        .a = .adder_with_overflow(accumulator: .a, operand: ~operand, carry: .carry)
     }
 
     function cmp(mut this, opcode: u8) {
-        let intermediate = match opcode {
+        let operand = match opcode {
             0xc9 => {
-                let tmp = .a as! i16 - .immediate() as! i16
+                let tmp = .immediate()
                 .clock += 2
                 .pc += 2
                 yield tmp
             }
             0xc5 => {
-                let tmp = .a as! i16 - .zero_page() as! i16
+                let tmp = .zero_page()
                 .clock += 3
                 .pc += 2
                 yield tmp
             }
             0xd5 => {
-                let tmp = .a as! i16 - .zero_page_x() as! i16
+                let tmp = .zero_page_x()
                 .clock += 4
                 .pc += 2
                 yield tmp
             }
             0xc1 => {
-                let tmp = .a as! i16 - .indirect_zero_page_x() as! i16
+                let tmp = .indirect_zero_page_x()
                 .clock += 6
                 .pc += 2
-
                 yield tmp
             }
             0xd1 => {
-                let tmp = .a as! i16 - .indirect_zero_page_y(check_extra_clock: true) as! i16
+                let tmp = .indirect_zero_page_y(check_extra_clock: true)
                 .clock += 5
                 .pc += 2
-
                 yield tmp
             }
             0xcd => {
-                let tmp = .a as! i16 - .absolute() as! i16
+                let tmp = .absolute()
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             0xdd => {
-                let tmp = .a as! i16 - .absolute_x(check_extra_clock: true) as! i16
+                let tmp = .absolute_x(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             0xd9 => {
-                let tmp = .a as! i16 - .absolute_y(check_extra_clock: true) as! i16
+                let tmp = .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
-
                 yield tmp
             }
             else => {
                 eprintln("unknown opcode")
-                yield 0i16
+                yield 0
             }
         }
-
-        .carry = intermediate >= 0
-        .zero = intermediate == 0
-        .negative = (intermediate & 0x80) == 0x80
+        // Perform subtraction to set flags
+        .adder(accumulator: .a, operand: ~operand, carry: true)
     }
 
     function cpx(mut this, opcode: u8) {
@@ -1568,7 +1551,7 @@ class CPU {
         }
     }
 
-    function brk(mut this) {
+    function brk(mut this) -> void {
         .push_word(value: .pc)
 
         .clock += 7
