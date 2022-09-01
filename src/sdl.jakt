@@ -1,4 +1,4 @@
-import extern c "SDL2/SDL.h" {}
+import extern c "SDL.h" {}
 
 enum Key {
     Up

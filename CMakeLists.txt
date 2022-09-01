@@ -6,8 +6,8 @@ project(
     HOMEPAGE_URL "https://github.com/jntrnr/jaktnesmonster"
     LANGUAGES CXX)
 
-find_package(Jakt REQUIRED)
-find_package(SDL2 REQUIRED)
+find_package(Jakt CONFIG REQUIRED)
+find_package(SDL2 CONFIG REQUIRED)
 
 add_jakt_executable(jakt_nes
     MAIN_SOURCE src/main.jakt

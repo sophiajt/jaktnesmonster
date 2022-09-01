@@ -10,14 +10,44 @@ jobs:
   build:
     strategy:
       fail-fast: true
-    runs-on: ubuntu-latest
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
+      - run: git config --global core.autocrlf false
+        if: ${{ matrix.os == 'windows-latest' }}
       - uses: actions/checkout@v3
-      - name: install_dependencies
+
+      - name: Install Dependencies Ubuntu
         run: |
           sudo apt-get update -y -qq
           sudo apt-get install libsdl2-dev
+        if : ${{ matrix.os == 'ubuntu-22.04' }}
+
+      - name: Install Dependencies macOS
+        run: |
+          brew install SDL2
+        if: ${{ matrix.os == 'macos-latest' }}
+
+      - name: Install Dependencies Windows
+        shell: bash
+        run: |
+          ${VCPKG_INSTALLATION_ROOT}/vcpkg install sdl2:x64-windows
+        if: ${{ matrix.os == 'windows-latest' }}
+
       - uses: SerenityOS/setup-jakt@v1
-      - run: mkdir build
-      - run: jakt src/main.jakt -l SDL2 -I /usr/include/SDL2 -R $JAKT_RUNTIME -O -o jakt_nes
+
+      - name: Configure CMake Unix
+        run: |
+          cmake -GNinja -B build -DCMAKE_CXX_COMPILER=clang++
+        if: ${{ matrix.os != 'windows-latest' }}
+
+      - name: Configure CMake Windows
+        shell: bash
+        run: |
+          cmake -GNinja -B build -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        if: ${{ matrix.os == 'windows-latest' }}
+
+      - run: cmake --build build
