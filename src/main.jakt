@@ -21,7 +21,10 @@ function main(args: [String]) {
     match system {
         Success(system) => {
             mut cpu = CPU::init(system)
-            cpu.debug()
+            for _ in 1..100 {
+                cpu.debug()
+                cpu.run_opcode()
+            }
         }
         Error(msg) => {
             eprintln("Error: {}", msg)
