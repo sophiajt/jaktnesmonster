@@ -11,6 +11,13 @@ class Cart {
     public mapper: u8
     public prg_rom_pages: [[u8]]
     public chr_rom_pages: [[u8]]
+
+    public function info(this) {
+        println("prg_rom: {}", .prg_rom)
+        println("chr_rom: {}", .chr_rom)
+        println("mirroring: {}", .mirroring)
+        println("mapper: {}", .mapper)
+    }
 }
 
 enum CartLoadStatus {
@@ -31,8 +38,8 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     let chr_rom = buffer[5] as! usize
 
     let mirroring = match (buffer[6]) & 0x1 {
-        0u8 => Mirroring::Horizontal
-        1u8 => Mirroring::Vertical
+        0 => Mirroring::Horizontal
+        1 => Mirroring::Vertical
         else => Mirroring::Horizontal
     }
 
@@ -65,7 +72,11 @@ function load_cart(filename: String) throws -> CartLoadStatus {
         chr_rom_pages.push(current_page)
     }
 
-    return CartLoadStatus::Success(Cart(prg_rom, 
-        chr_rom, mirroring, battery_present, mapper, prg_rom_pages, chr_rom_pages))
+    let cart = Cart(prg_rom, 
+        chr_rom, mirroring, battery_present, mapper, prg_rom_pages, chr_rom_pages)
+
+    cart.info()
+
+    return CartLoadStatus::Success(cart)
 }
 

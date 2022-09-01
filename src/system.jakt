@@ -25,7 +25,14 @@ class System {
     }
 
     function mapper_read_byte(this, address: u16) -> u8 {
-        return 0
+        if address >= 0x8000 and address <= 0xbfff {
+            return .cart.prg_rom_pages[0][address - 0x8000]
+        } else if address >= 0xc000 {
+            return .cart.prg_rom_pages[.cart.prg_rom_pages.size() - 1][address - 0xc000]
+        } else {
+            println("we should not be here: mapper_read_byte")
+            return 0
+        }
     }
 
     function mapper_write_byte(this, address: u16, value: u8) {
