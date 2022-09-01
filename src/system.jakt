@@ -41,7 +41,6 @@ class System {
         } else {
             return .mapper_read_byte(address)
         }
-        return 0
     }
 
     public function read_word(this, address: u16) -> u16 {
