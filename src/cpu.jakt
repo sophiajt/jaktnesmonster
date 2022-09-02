@@ -10,23 +10,26 @@ function sxb(value: u8) -> u16 {
 }
 
 class CPU {
-    a: u8
-    x: u8
-    y: u8
+    // registers
+    public a: u8
+    public x: u8
+    public y: u8
     public pc: u16
-    s: u8
-    // flags
-    carry: bool
-    zero: bool
-    interrupt_disable: bool
-    decimal: bool
-    break_flag: bool
-    overflow: bool
-    negative: bool
-    system: System
-    clock: u64
+    public s: u8
 
-    public function init(system: System) throws -> CPU {
+    // flags
+    public carry: bool
+    public zero: bool
+    public interrupt_disable: bool
+    public decimal: bool
+    public break_flag: bool
+    public overflow: bool
+    public negative: bool
+
+    public system: System
+    public clock: u64
+
+    public function init(mut system: System) throws -> CPU {
         let reset_vector = system.read_word(address: 0xfffc)
 
         return CPU (
@@ -45,45 +48,6 @@ class CPU {
             system
             clock: 0
         )
-    }
-
-    public function debug(this) {
-        print("a: {:0>2x}  x: {:0>2x}  y: {:0>2x}  pc: {:0>4x}  s: {:0>2x}  flags: ", .a, .x, .y, .pc, .s)
-        if .negative {
-            print("N")
-        } else {
-            print("-")
-        }
-        if .overflow {
-            print("V")
-        } else {
-            print("-")
-        }
-        if .break_flag {
-            print("B")
-        } else {
-            print("-")
-        }
-        if .decimal {
-            print("D")
-        } else {
-            print("-")
-        }
-        if .interrupt_disable {
-            print("I")
-        } else {
-            print("-")
-        }
-        if .zero {
-            print("Z")
-        } else {
-            print("-")
-        }
-        if .carry {
-            println("C")
-        } else {
-            println("-")
-        }
     }
 
     public function run_opcode(mut this) {
@@ -121,7 +85,7 @@ class CPU {
             0x31 => .and_opcode(opcode)
             0x35 => .and_opcode(opcode)
             0x36 => .rol(opcode)
-            0x3e => .sec()
+            0x38 => .sec()
             0x39 => .and_opcode(opcode)
             0x3d => .and_opcode(opcode)
             0x3e => .rol(opcode)
@@ -242,9 +206,19 @@ class CPU {
             0xfe => .inc(opcode)
 
             else => {
-                println("unknown opcode: {}", opcode)
+                eprintln("{:0>4x}: unknown opcode: {:0>2x}", .pc, opcode)
             }
         }
+    }
+
+    // Interrupts
+    public function nmi(mut this) {
+        let nmi_vector = .system.read_word(address: 0xfffa)
+
+        .push_word(value: .pc)
+        .push_status()
+
+        .pc = nmi_vector
     }
 
     // Addressing modes
@@ -415,7 +389,7 @@ class CPU {
                 .pc += 3
             }
             else => {
-                eprintln("unknown opcode")
+                eprintln("{:0>4x}: unknown opcode", .pc)
             }
         }
         .test_nz_flags(value: .a)
@@ -464,7 +438,7 @@ class CPU {
                 .pc += 3
             }
             else => {
-                eprintln("unknown opcode")
+                eprintln("{:0>4x}: unknown opcode", .pc)
             }
         }
         .test_nz_flags(value: .a)
@@ -513,7 +487,7 @@ class CPU {
                 .pc += 3
             }
             else => {
-                eprintln("unknown opcode")
+                eprintln("{:0>4x}: unknown opcode", .pc)
             }
         }
         .test_nz_flags(value: .a)
@@ -1144,7 +1118,7 @@ class CPU {
                 yield tmp
             }
             0xb9 => {
-                let tmp = .absolute_x(check_extra_clock: true)
+                let tmp = .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
 

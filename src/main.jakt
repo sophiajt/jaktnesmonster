@@ -2,6 +2,7 @@ import sdl { SDL }
 import video { draw_frame }
 import system { System }
 import cpu { CPU }
+import debugger { Debugger }
 
 function main(args: [String]) {
     // mut sdl = SDL::construct()
@@ -16,14 +17,28 @@ function main(args: [String]) {
 
     let filename = args[1]
 
-    let system = System::init(filename)
+    mut system = System::init(filename)
 
     match system {
         Success(system) => {
             mut cpu = CPU::init(system)
-            for _ in 1..100 {
-                cpu.debug()
+            mut debugger = Debugger::init(cpu)
+            for _ in 1..50000 {
+                debugger.dump_cpu_state()
+                let in_vblank_before = system.ppu.in_vblank
+
+                let cpu_clocks_before = cpu.clock
                 cpu.run_opcode()
+                let cpu_clocks_after = cpu.clock
+
+                mut ppu = system.ppu
+                ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
+                let in_vblank_after = system.ppu.in_vblank
+
+                if not in_vblank_before and in_vblank_after and ppu.nmi_on_vblank {
+                    println("==NMI==")
+                    cpu.nmi()
+                }
             }
         }
         Error(msg) => {

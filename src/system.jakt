@@ -9,7 +9,7 @@ enum SystemLoadStatus {
 
 class System {
     scratch_ram: [u8]
-    ppu: PPU
+    public ppu: PPU
     apu: APU
     cart: Cart
 
@@ -38,7 +38,7 @@ class System {
     function mapper_write_byte(this, address: u16, value: u8) {
     }
 
-    public function read_byte(this, address: u16) -> u8 {
+    public function read_byte(mut this, address: u16) -> u8 {
         if address < 0x2000 {
             return .scratch_ram[address & 0x7ff]
         } else if address < 0x4000 {
@@ -50,7 +50,7 @@ class System {
         }
     }
 
-    public function read_word(this, address: u16) -> u16 {
+    public function read_word(mut this, address: u16) -> u16 {
         mut output = 0u16
         output += .read_byte(address: address + 1) as! u16
         output = output << 8
