@@ -1448,13 +1448,38 @@ class CPU {
 
         .s = .x
     }
+    
+    function push_byte(mut this, value: u8) {
+        .system.write_byte(address: (0x100u16 + .s as! u16), value)
+        .s -= 1
+    }
+
+    function push_word(mut this, value: u16) {       
+
+        let first_byte = (value && 0xff00) as! u8
+        .push_byte(value: first_byte)
+
+        let second_byte = (value & 0x00ff) as! u8
+        .push_byte(value: second_byte)
+    }
+    
+    function pull_byte(mut this) -> u8 {
+        .s += 1
+        return .system.read_byte(address: (0x100u16 + .s as! u16))
+    }
+    
+    function pull_word(mut this) -> u16 {
+        .s += 1
+        let value = .system.read_word(address: 0x100u16 + .s as! u16)
+        .s += 1
+        return value
+    }
 
     function pla(mut this) {
         .pc += 1
         .clock += 4
 
-        .s += 1
-        let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
+        let intermediate = .pull_byte()
 
         // set the flags
         .test_nz_flags(value: intermediate)
@@ -1465,13 +1490,11 @@ class CPU {
         .pc += 1
         .clock += 3
 
-        .system.write_byte(address: 0x100u16 + .s as! u16, value: .a)
-        .s -= 1
+        .push_byte(value: .a)
     }
 
     function pull_status(mut this) {
-        .s += 1
-        let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
+        let intermediate = .pull_byte()
 
         .negative = ((intermediate & 0x80) == 0x80)
         .overflow = ((intermediate & 0x40) == 0x40)
@@ -1479,12 +1502,6 @@ class CPU {
         .interrupt_disable = ((intermediate & 0x04) == 0x04)
         .zero = ((intermediate & 0x02) == 0x02)
         .carry = ((intermediate & 0x01) == 0x01)
-    }
-
-    function pull_pc(mut this) {
-        .s += 1
-        .pc = .system.read_word(address: 0x100u16 + .s as! u16)
-        .s += 1
     }
 
     function plp(mut this) {
@@ -1521,19 +1538,7 @@ class CPU {
             intermediate |= 0x1
         }
 
-        .system.write_byte(address: 0x100u16 + .s as! u16, value: intermediate)
-        .s -= 1
-    }
-
-    function push_word(mut this, value: u16) {
-        // TODO: What order do we push our bytes?
-
-        let first_byte = (value >> 8) as! u8
-        .system.write_byte(address: (0x100u16 + .s as! u16), value: first_byte)
-        .s -= 1
-
-        let second_byte = (value & 0xff) as! u8
-        .system.write_byte(address: (0x100u16 + .s as! u16), value: second_byte)
+        .push_byte(value: intermediate)
         .s -= 1
     }
 
@@ -1649,7 +1654,7 @@ class CPU {
         .clock += 6
 
         .pull_status()
-        .pull_pc()
+        .pc = .pull_word()
     }
 
     function jsr(mut this) {
@@ -1664,8 +1669,7 @@ class CPU {
 
     function rts(mut this) {
         .clock += 6
-        .pull_pc()
-        .pc += 1
+        .pc = .pull_word() + 1
     }
 
     function jmp(mut this, opcode: u8) {
