@@ -1641,13 +1641,17 @@ class CPU {
     }
 
     function brk(mut this) -> void {
-        .push_word(value: .pc)
+        // BRK increments pc, then pushes the pc,
+        // so our total PC offset to be pushed is 2.
+        // The break flag is also supposed to be set during the PC push 
+        .break_flag = true
+        .push_word(value: .pc + 2)
+        .push_status()
 
         .clock += 7
-
-        .pc = .system.read_word(address: 0xfffe)
-        .break_flag = true
         .interrupt_disable = true
+        
+        .pc = .system.read_word(address: 0xfffe)
     }
 
     function rti(mut this) {
