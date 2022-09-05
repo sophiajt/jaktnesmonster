@@ -18,8 +18,13 @@ class PPU {
     oam: [u8]
     vram_page_0000: [u8]
     vram_page_1000: [u8]
+    public video_buffer: [RGB]
 
     public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
+        mut video_buffer: [RGB] = []
+        for _ in 0..(256*240) {
+            video_buffer.push(rgb(0, 0, 0))
+        }
         return PPU(
             base_table_address: 0x2000
             vram_address_increment: 1
@@ -34,10 +39,11 @@ class PPU {
             oam: [0; 256]
             vram_page_0000
             vram_page_1000
+            video_buffer
         )
     }
 
-    public function tick(mut this, cycles: u64) {
+    public function tick(mut this, cycles: u64) throws {
         for x in (.clock)..(.clock + cycles) {
             .render_pixel()
             .clock += 1
@@ -53,7 +59,7 @@ class PPU {
         }
     }
 
-    function render_pixel(mut this) {
+    function render_pixel(mut this) throws {
         // BACKGROUND
 
         // Where are we on the screen
@@ -70,7 +76,7 @@ class PPU {
 
         // Which tile
         let vertical_tile: u16 = vertical_pixel / 8
-        let horizontal_tile: u16 = horizontal_pixel % 32
+        let horizontal_tile: u16 = horizontal_pixel / 8
 
         // Fetch nametable entry
         let nametable_entry = .vram[.base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
@@ -78,19 +84,35 @@ class PPU {
         let vertical_attr = vertical_tile / 4
         let horizontal_attr = horizontal_tile / 4
 
+        // 0000
+        // ^^^^  
+        // | ||
+        // | | plane 0
+        // | plane 1
+        // attr (2 bits)
+
         let attr = .vram[0x3c0 + vertical_attr * 8 + horizontal_attr] // subtract 0x2000 because of chr rom
 
-        let horizontal_box_pos = (horizontal_tile / horizontal_attr) / 2
-        let vertical_box_pos = (vertical_tile / vertical_attr) / 2
+        let horizontal_box_pos = (horizontal_tile % 4) / 2
+        let vertical_box_pos = (vertical_tile % 4) / 2
 
         let color_bits = (attr >> ((horizontal_box_pos * 2) + (vertical_box_pos * 4))) & 0x3
 
-        let first_plane_bit = .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + horizontal_pixel % 8]
-        let second_plane_bit = .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + horizontal_pixel % 8 + 8]
+        let first_plane_byte = .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8]
+        let second_plane_byte = .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + 8]
+
+        let first_plane_bit = first_plane_byte >> (7 - horizontal_pixel % 8) & 0x1
+        let second_plane_bit = second_plane_byte >> (7 - horizontal_pixel % 8) & 0x1
 
         let palette_entry = first_plane_bit + (second_plane_bit * 2) + (color_bits * 4)
 
-        print("{:0>2x}", nametable_entry)
+        let rgb = .look_up_palette_entry_bg(palette_entry)
+
+        // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
+        //     println("{}, {} is {} {:0>2x}", horizontal_pixel, vertical_pixel, rgb, nametable_entry)
+        // }
+        .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+        // print("{:0>2x}", nametable_entry)
     }
 
     function look_up_palette_entry_bg(mut this, palette_entry: u8) throws -> RGB {
@@ -99,7 +121,7 @@ class PPU {
             return RGB(red: 0, green: 0, blue: 0)
         }
         guard palette_entry < 16 else {
-            println("ERROR: incorrect palette entry")
+            println(format("ERROR: incorrect palette entry: {}", palette_entry))
             return RGB(red: 0, green: 0, blue: 0)
         }
         let bg_palette = .vram[0x1f00 + palette_entry as! u64]
