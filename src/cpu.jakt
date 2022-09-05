@@ -1459,7 +1459,7 @@ class CPU {
 
     function push_word(mut this, value: u16) {       
 
-        let first_byte = (value && 0xff00) as! u8
+        let first_byte = (value >> 8) as! u8
         .push_byte(value: first_byte)
 
         let second_byte = (value & 0x00ff) as! u8
@@ -1542,7 +1542,6 @@ class CPU {
         }
 
         .push_byte(value: intermediate)
-        .s -= 1
     }
 
     function php(mut this) {
