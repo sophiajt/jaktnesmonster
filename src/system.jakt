@@ -19,8 +19,18 @@ class System {
             return SystemLoadStatus::Error("not a valid ROM file")
         }
 
+        let vram_page_0000 = cart.chr_rom_pages[0]
+        let vram_page_1000 = cart.chr_rom_pages.last()!
+
         return SystemLoadStatus::Success(
-            System(scratch_ram: [0u8; 0x800], ppu: PPU::init(), apu: APU::init(), cart)
+            System(scratch_ram: [0u8; 0x800] 
+                ppu: PPU::init(
+                    vram_page_0000
+                    vram_page_1000
+                )
+                apu: APU::init()
+                cart
+            )
         )
     }
 

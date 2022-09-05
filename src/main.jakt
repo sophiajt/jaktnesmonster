@@ -23,8 +23,8 @@ function main(args: [String]) {
         Success(system) => {
             mut cpu = CPU::init(system)
             mut debugger = Debugger::init(cpu)
-            for _ in 1..50000 {
-                debugger.dump_cpu_state()
+            for _ in 1..30000 {
+                // debugger.dump_cpu_state()
                 let in_vblank_before = system.ppu.in_vblank
 
                 let cpu_clocks_before = cpu.clock
