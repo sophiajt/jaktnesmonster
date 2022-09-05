@@ -1653,8 +1653,8 @@ class CPU {
     }
 
     function jsr(mut this) {
-        // .pc is at the current opcode, so next pc is + 3
-        .push_word(value: .pc + 3)
+        // We push the address just before the next opcode, which is pc + 2
+        .push_word(value: .pc + 2)
 
         .clock += 6
 
@@ -1665,6 +1665,7 @@ class CPU {
     function rts(mut this) {
         .clock += 6
         .pull_pc()
+        .pc += 1
     }
 
     function jmp(mut this, opcode: u8) {
