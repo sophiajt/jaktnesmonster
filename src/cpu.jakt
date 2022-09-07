@@ -1470,10 +1470,7 @@ class CPU {
     }
     
     function pull_word(mut this) -> u16 {
-        .s += 1
-        let value = .system.read_word(address: 0x100u16 + .s as! u16)
-        .s += 1
-        return value
+        return .pull_byte() + (.pull_byte() << 8)
     }
 
     function pla(mut this) {
