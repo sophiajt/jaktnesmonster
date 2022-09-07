@@ -241,25 +241,25 @@ class CPU {
 
     function zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         return .system.read_byte(address)
     }
 
     function zero_page_x_set(mut this, value: u8) {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         .system.write_byte(address, value)
     }
 
     function zero_page_y(mut this) -> u8 {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .y) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
         return .system.read_byte(address)        
     }
 
     function indirect_zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         let new_address = .system.read_word(address)
 
         return .system.read_byte(address: new_address)
@@ -271,11 +271,9 @@ class CPU {
 
         let pre_index = .system.read_word(address)
         let page = pre_index >> 8
-        
-        
-        
-        let new_address: u16 = ((pre_index as! u32 + .y as! u32) && 0xffff)
-       
+
+        //let new_address: u16 = ((pre_index as! u32 + .y as! u32) && 0xffff)
+        let new_address: u16 = unchecked_add<u16>(pre_index, .y as! u16)   
 
         let new_page = new_address >> 8
 
@@ -306,7 +304,7 @@ class CPU {
 
         let page = address >> 8
 
-        address += .x as! u16
+        address = unchecked_add<u16>(.x as! u16, address)
         let new_page = address >> 8
 
         // Example of crossing pages:
@@ -322,7 +320,7 @@ class CPU {
         let arg_address = .pc + 1
         mut address = .system.read_word(address: arg_address)
 
-        address += .x as! u16
+        address = unchecked_add<u16>(.x as! u16, address)
 
         .system.write_byte(address, value)
     }
