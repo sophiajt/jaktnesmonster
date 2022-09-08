@@ -1470,7 +1470,10 @@ class CPU {
     }
     
     function pull_word(mut this) -> u16 {
-        return .pull_byte() + (.pull_byte() << 8)
+        mut value: u16 = .pull_byte() as! u16
+        value += (.pull_byte() as! u16) << 8
+        return value
+        
     }
 
     function pla(mut this) {
@@ -1671,22 +1674,32 @@ class CPU {
     function rts(mut this) {
         .clock += 6
         .pc = .pull_word() + 1
+        eprintln("RTS, continuing at {:0>4x}", .pc)
     }
 
     function jmp(mut this, opcode: u8) {
-        let arg_address = .pc + 1
+        let low_byte_arg = .system.read_byte(address: .pc + 1)
+        let high_byte_arg = .system.read_byte(address: .pc + 2) as! u16
+        let arg = (high_byte_arg << 8) + low_byte_arg as! u16
+        eprintln("JMP, arg is {:0>4x}", arg)
+        // let arg_address = .pc + 1
+        
+        
 
         match opcode {
             0x4c => {
-                let address = .system.read_word(address: arg_address)
+                let address = arg
+                eprintln("Absolute JMP, new PC is {:0>4x}", address)
                 .clock += 3
                 .pc = address
             }
             0x6c => {
-                let indirect_address = .system.read_word(address: arg_address)
-                let address = .system.read_word(address: indirect_address)
+                let low_byte = .system.read_byte(address: arg)
+                let high_byte_address = (high_byte_arg << 8) + unchecked_add<u8>(low_byte_arg, 1u8) as! u16
+                let high_byte = .system.read_byte(address: high_byte_address)
                 .clock += 5
-                .pc = address
+                .pc = (high_byte as! u16 << 8) + low_byte as! u16
+                eprintln("Indirect JMP, new PC is {:0>4x}", .pc)
             }
             else => {
                 eprintln("unknown opcode")
