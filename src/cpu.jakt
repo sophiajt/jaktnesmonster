@@ -260,7 +260,7 @@ class CPU {
     function zero_page_y_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
-        .system.write_byte(address)        
+        .system.write_byte(address, value)        
     }
 
     function indirect_zero_page_x(mut this) -> u8 {
@@ -341,7 +341,7 @@ class CPU {
         let arg_address = .pc + 1
         let address = .system.read_word(address: arg_address)
 
-        .system.write_byte(unchecked_add<u16>(.x as! u16, address), value)
+        .system.write_byte(address: unchecked_add<u16>(.x as! u16, address), value)
     }
 
     function absolute_y(mut this, check_extra_clock: bool) -> u8 {
@@ -365,7 +365,7 @@ class CPU {
         let arg_address = .pc + 1
         let address = .system.read_word(address: arg_address)
 
-        .system.write_byte(unchecked_add<u16>(.y as! u16, address), value)
+        .system.write_byte(address: unchecked_add<u16>(.y as! u16, address), value)
     }
 
     function test_nz_flags(mut this, value: u8) {
@@ -1459,7 +1459,6 @@ class CPU {
     }
 
     function push_word(mut this, value: u16) {       
-
         let first_byte = (value >> 8) as! u8
         .push_byte(value: first_byte)
 
