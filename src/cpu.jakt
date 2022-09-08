@@ -330,7 +330,7 @@ class CPU {
         mut address = .system.read_word(address: arg_address)
         let page = address >> 8
 
-        address += .y as! u16
+        address = unchecked_add<u16>(.y as! u16, address)
         let new_page = address >> 8
 
         // Example of crossing pages:
@@ -1270,7 +1270,7 @@ class CPU {
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .x) as! u16, value: .a)
+                .system.write_byte(address: unchecked_add<u8>(address, .x) as! u16, value: .a)
             }
             0x8d => {
                 // Absolute
@@ -1286,7 +1286,7 @@ class CPU {
                 .pc += 3
 
                 let address = .system.read_word(address: arg_address)
-                .system.write_byte(address: address + .x as! u16, value: .a)
+                .system.write_byte(address: unchecked_add<u16>(address, .x as! u16), value: .a)
             }
             0x99 => {
                 // Absolute, Y
@@ -1294,7 +1294,7 @@ class CPU {
                 .pc += 3
 
                 let address = .system.read_word(address: arg_address)
-                .system.write_byte(address: address + .y as! u16, value: .a)
+                .system.write_byte(address: unchecked_add<u16>(address, .y as! u16), value: .a)
             }
             0x81 => {
                 // Indirect, X
@@ -1342,7 +1342,7 @@ class CPU {
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .y) as! u16, value: .x)
+                .system.write_byte(address: unchecked_add<u8>(address, .y) as! u16, value: .x)
             }
             0x8e => {
                 // Absolute
@@ -1376,8 +1376,8 @@ class CPU {
                 .pc += 2
 
                 let address = .system.read_byte(address: arg_address)
-                // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .x) as! u16, value: .y)
+                // We wrap around the zero page
+                .system.write_byte(address: unchecked_add<u8>(address, .x) as! u16, value: .y)
             }
             0x8c => {
                 // Absolute
