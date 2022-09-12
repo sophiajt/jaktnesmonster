@@ -1,13 +1,288 @@
+class RGB {
+    public red: u8
+    public green: u8
+    public blue: u8
+}
+
 class PPU {
-    public function init() throws -> PPU {
-        return PPU()
+    base_table_address: u16
+    vram_address_increment: u16
+    sprite_table_address: u16
+    background_table_address: u16
+    sprite_size_8x8: bool
+    public nmi_on_vblank: bool
+    clock: u64
+    public in_vblank: bool
+    vram: [u8]
+    vram_rw_addr: u16
+    oam: [u8]
+    vram_page_0000: [u8]
+    vram_page_1000: [u8]
+
+    public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
+        return PPU(
+            base_table_address: 0x2000
+            vram_address_increment: 1
+            sprite_table_address: 0x0000
+            background_table_address: 0x0000
+            sprite_size_8x8: true
+            nmi_on_vblank: false
+            clock: 0
+            in_vblank: false
+            vram: [0; 0x2000]
+            vram_rw_addr: 0
+            oam: [0; 256]
+            vram_page_0000
+            vram_page_1000
+        )
     }
 
-    public function read_ppu_addr(this, address: u16) -> u8 {
-        return 0
+    public function tick(mut this, cycles: u64) {
+        for x in (.clock)..(.clock + cycles) {
+            .render_pixel()
+            .clock += 1
+        }
+
+        let clock_in_current_frame = .clock % (341u64 * 262u64)
+        if clock_in_current_frame > (341u64 * 241u64) and not .in_vblank {
+            println("Setting vblank to true")
+            .in_vblank = true
+        } else if clock_in_current_frame <= (341u64 * 241u64) and .in_vblank {
+            .in_vblank = false
+            .clock -= (341u64 * 262u64)
+        }
     }
 
-    public function write_ppu_addr(this, address: u16, value: u8) {
+    function render_pixel(mut this) {
+        // BACKGROUND
 
+        // Where are we on the screen
+        let horizontal_pixel = .clock % 341
+        let vertical_pixel = .clock / 341
+
+        guard horizontal_pixel < 256 else {
+            return
+        }
+
+        guard vertical_pixel < 240 else {
+            return
+        }
+
+        // Which tile
+        let vertical_tile: u16 = vertical_pixel / 8
+        let horizontal_tile: u16 = horizontal_pixel % 32
+
+        // Fetch nametable entry
+        let nametable_entry = .vram[.base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
+        
+        let vertical_attr = vertical_tile / 4
+        let horizontal_attr = horizontal_tile / 4
+
+        let attr = .vram[0x3c0 + vertical_attr * 8 + horizontal_attr] // subtract 0x2000 because of chr rom
+
+        let horizontal_box_pos = (horizontal_tile / horizontal_attr) / 2
+        let vertical_box_pos = (vertical_tile / vertical_attr) / 2
+
+        let color_bits = (attr >> ((horizontal_box_pos * 2) + (vertical_box_pos * 4))) & 0x3
+
+        let first_plane_bit = .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + horizontal_pixel % 8]
+        let second_plane_bit = .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + horizontal_pixel % 8 + 8]
+
+        let palette_entry = first_plane_bit + (second_plane_bit * 2) + (color_bits * 4)
+
+        print("{:0>2x}", nametable_entry)
+    }
+
+    function look_up_palette_entry_bg(mut this, palette_entry: u8) throws -> RGB {
+        if palette_entry == 0 {
+            // TODO use actual background color
+            return RGB(red: 0, green: 0, blue: 0)
+        }
+        guard palette_entry < 16 else {
+            println("ERROR: incorrect palette entry")
+            return RGB(red: 0, green: 0, blue: 0)
+        }
+        let bg_palette = .vram[0x1f00 + palette_entry as! u64]
+
+        return convert_palette_to_rgb(bg_palette)
+    }
+
+    function ppu_ctrl(mut this, value: u8) {
+        match value & 0x3 {
+            0 => {
+                .base_table_address = 0x2000
+            }
+            1 => {
+                .base_table_address = 0x2400
+            }
+            2 => {
+                .base_table_address = 0x2800
+            }
+            3 => {
+                .base_table_address = 0x2c00
+            }
+            else => {}
+        }
+        if (value & 0x4) == 0x4 {
+            .vram_address_increment = 32
+        } else {
+            .vram_address_increment = 1
+        }
+        if (value & 0x8) == 0x8 {
+            .sprite_table_address = 0x1000
+        } else {
+            .sprite_table_address = 0x0000
+        }
+        if (value & 0x10) == 0x10 {
+            .background_table_address = 0x1000
+        } else {
+            .background_table_address = 0x0000
+        }
+        if (value & 0x20) == 0x20 {
+            .sprite_size_8x8 = false
+        } else {
+            .sprite_size_8x8 = true
+        }
+        if (value & 0x80) == 0x80 {
+            .nmi_on_vblank = true
+        } else {
+            .nmi_on_vblank = false
+        }
+
+        println("base_table_address: {:0>4x}", .base_table_address)
+        println("vram_address_increment: {}", .vram_address_increment)
+        println("sprite_table_address: {:0>4x}", .sprite_table_address)
+        println("background_table_address: {:0>4x}", .background_table_address)
+        println("sprite size 8x8: {}", .sprite_size_8x8)
+        println("nmi_on_vblank: {}", .nmi_on_vblank)
+    }
+
+    function ppu_mask(mut this, value: u8) {
+        // TODO: implement
+    }
+
+    function ppu_addr(mut this, value: u8) {
+        .vram_rw_addr <<= 8
+        .vram_rw_addr += value as! u16
+    }
+
+    function ppu_data_write(mut this, value: u8) {
+        // TODO: add support for various mirroring
+        println("VRAM: {:0>4x} write {:0>2x}", .vram_rw_addr, value)
+        .vram[.vram_rw_addr - 0x2000] = value
+        .vram_rw_addr += .vram_address_increment
+    }
+
+    function ppu_data_read(mut this) -> u8 {
+        let value = .vram[.vram_rw_addr - 0x2000]
+        .vram_rw_addr += .vram_address_increment
+        return value
+    }
+
+    function ppu_status(mut this) -> u8 {
+        mut status = 0
+        if .in_vblank {
+            println("Reading vblank status")
+            status |= 0x80
+        }
+
+        .in_vblank = false
+        .vram_rw_addr = 0
+        return status
+    }
+
+    public function write_ppu_addr(mut this, address: u16, value: u8) {
+        match address {
+            0x2000 => .ppu_ctrl(value)
+            0x2001 => .ppu_mask(value)
+            0x2006 => .ppu_addr(value)
+            0x2007 => .ppu_data_write(value)
+            else => {}
+        }
+    }
+
+    public function read_ppu_addr(mut this, address: u16) -> u8 {
+        return match address {
+            0x2002 => .ppu_status()
+            0x2007 => .ppu_data_read()
+            else => 0
+        }
+    }
+}
+
+function rgb(anon red: u8, anon green: u8, anon blue: u8) throws -> RGB {
+    return RGB(red, green, blue)
+}
+
+function convert_palette_to_rgb(anon value: u8) throws -> RGB {
+    return match value {
+        0x00 => rgb(101 101 101)
+        0x01 => rgb(0    45 105)
+        0x02 => rgb(19   31 127)
+        0x03 => rgb(69   19 124)
+        0x04 => rgb(96   11  98)
+        0x05 => rgb(115  10  55)
+        0x06 => rgb(113  15   7)
+        0x07 => rgb(90   26   0)
+        0x08 => rgb(52   40   0)
+        0x09 => rgb(11   52   0)
+        0x0a => rgb(0   60    0)    
+        0x0b => rgb(0   61   16)    
+        0x0c => rgb(0   56   64)
+        0x0d => rgb(0    0    0)
+        0x0e => rgb(0    0    0)
+        0x0f => rgb(0    0    0)
+        0x10 => rgb(174 174 174)
+        0x11 => rgb(15   99 179)
+        0x12 => rgb(64   81 208)
+        0x13 => rgb(120  65 204)
+        0x14 => rgb(167  54 169)
+        0x15 => rgb(192  52 112)
+        0x16 => rgb(189  60  48)
+        0x17 => rgb(159  74   0)
+        0x18 => rgb(109  92   0)
+        0x19 => rgb(54  109   0)
+        0x1a => rgb(7   119   4)
+        0x1b => rgb(0   121  61)
+        0x1c => rgb(0   114 125)
+        0x1d => rgb(0     0   0)
+        0x1e => rgb(0     0   0)
+        0x1f => rgb(0     0   0)
+        0x20 => rgb(254 254 255)
+        0x21 => rgb(93  179 255)
+        0x22 => rgb(143 161 255)
+        0x23 => rgb(200 144 255)
+        0x24 => rgb(247 133 250)
+        0x25 => rgb(255 131 192)
+        0x26 => rgb(255 139 127)
+        0x27 => rgb(239 154  73)
+        0x28 => rgb(189 172  44)
+        0x29 => rgb(133 188  47)
+        0x2a => rgb(85  199  83)    
+        0x2b => rgb(60  201 140)    
+        0x2c => rgb(62  194 205)
+        0x2d => rgb(78   78  78)
+        0x2e => rgb(0     0   0)
+        0x2f => rgb(0     0   0)
+        0x30 => rgb(254 254 255)
+        0x31 => rgb(188 223 255)
+        0x32 => rgb(209 216 255)
+        0x33 => rgb(232 209 255)
+        0x34 => rgb(251 205 253)
+        0x35 => rgb(255 204 229)
+        0x36 => rgb(255 207 202)
+        0x37 => rgb(248 213 180)
+        0x38 => rgb(228 220 168)
+        0x39 => rgb(204 227 169)
+        0x3a => rgb(185 232 184)    
+        0x3b => rgb(174 232 208)    
+        0x3c => rgb(175 229 234)
+        0x3d => rgb(182 182 182)
+        0x3e => rgb(0    0    0)
+        0x3f => rgb(0    0    0)
+        else => {
+            println("ERROR: incorrect palette for rgb")
+            yield rgb(0, 0, 0)
+        }
     }
 }

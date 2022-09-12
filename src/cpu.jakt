@@ -10,23 +10,26 @@ function sxb(value: u8) -> u16 {
 }
 
 class CPU {
-    a: u8
-    x: u8
-    y: u8
+    // registers
+    public a: u8
+    public x: u8
+    public y: u8
     public pc: u16
-    s: u8
-    // flags
-    carry: bool
-    zero: bool
-    interrupt_disable: bool
-    decimal: bool
-    break_flag: bool
-    overflow: bool
-    negative: bool
-    system: System
-    clock: u64
+    public s: u8
 
-    public function init(system: System) throws -> CPU {
+    // flags
+    public carry: bool
+    public zero: bool
+    public interrupt_disable: bool
+    public decimal: bool
+    public break_flag: bool
+    public overflow: bool
+    public negative: bool
+
+    public system: System
+    public clock: u64
+
+    public function init(mut system: System) throws -> CPU {
         let reset_vector = system.read_word(address: 0xfffc)
 
         return CPU (
@@ -45,45 +48,6 @@ class CPU {
             system
             clock: 0
         )
-    }
-
-    public function debug(this) {
-        print("a: {:0>2x}  x: {:0>2x}  y: {:0>2x}  pc: {:0>4x}  s: {:0>2x}  flags: ", .a, .x, .y, .pc, .s)
-        if .negative {
-            print("N")
-        } else {
-            print("-")
-        }
-        if .overflow {
-            print("V")
-        } else {
-            print("-")
-        }
-        if .break_flag {
-            print("B")
-        } else {
-            print("-")
-        }
-        if .decimal {
-            print("D")
-        } else {
-            print("-")
-        }
-        if .interrupt_disable {
-            print("I")
-        } else {
-            print("-")
-        }
-        if .zero {
-            print("Z")
-        } else {
-            print("-")
-        }
-        if .carry {
-            println("C")
-        } else {
-            println("-")
-        }
     }
 
     public function run_opcode(mut this) {
@@ -121,7 +85,7 @@ class CPU {
             0x31 => .and_opcode(opcode)
             0x35 => .and_opcode(opcode)
             0x36 => .rol(opcode)
-            0x3e => .sec()
+            0x38 => .sec()
             0x39 => .and_opcode(opcode)
             0x3d => .and_opcode(opcode)
             0x3e => .rol(opcode)
@@ -242,9 +206,19 @@ class CPU {
             0xfe => .inc(opcode)
 
             else => {
-                println("unknown opcode: {}", opcode)
+                eprintln("{:0>4x}: unknown opcode: {:0>2x}", .pc, opcode)
             }
         }
+    }
+
+    // Interrupts
+    public function nmi(mut this) {
+        let nmi_vector = .system.read_word(address: 0xfffa)
+
+        .push_word(value: .pc)
+        .push_status()
+
+        .pc = nmi_vector
     }
 
     // Addressing modes
@@ -267,28 +241,42 @@ class CPU {
 
     function zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         return .system.read_byte(address)
     }
 
     function zero_page_x_set(mut this, value: u8) {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         .system.write_byte(address, value)
     }
 
     function zero_page_y(mut this) -> u8 {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .y) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
         return .system.read_byte(address)        
+    }
+    
+    function zero_page_y_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
+        .system.write_byte(address, value)        
     }
 
     function indirect_zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
-        let address = (.system.read_byte(address: arg_address) + .x) as! u16
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         let new_address = .system.read_word(address)
 
         return .system.read_byte(address: new_address)
+    }
+    
+    function indirect_zero_page_x_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
+        let new_address = .system.read_word(address)
+
+        .system.write_byte(address: new_address, value)
     }
 
     function indirect_zero_page_y(mut this, check_extra_clock: bool) -> u8 {
@@ -298,8 +286,7 @@ class CPU {
         let pre_index = .system.read_word(address)
         let page = pre_index >> 8
 
-        let new_address = pre_index + .y as! u16
-
+        let new_address: u16 = unchecked_add<u16>(pre_index, .y as! u16)   
         let new_page = new_address >> 8
 
         // Example of crossing pages:
@@ -309,6 +296,16 @@ class CPU {
         }
 
         return .system.read_byte(address: new_address)
+    }
+    
+    function indirect_zero_page_y_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = (.system.read_byte(address: arg_address)) as! u16
+
+        let pre_index = .system.read_word(address)
+        let new_address: u16 = unchecked_add<u16>(pre_index, .y as! u16)
+
+        .system.write_byte(address: new_address, value)
     }
 
     function absolute(mut this) -> u8 {
@@ -326,10 +323,9 @@ class CPU {
     function absolute_x(mut this, check_extra_clock: bool) -> u8 {
         let arg_address = .pc + 1
         mut address = .system.read_word(address: arg_address)
-
         let page = address >> 8
 
-        address += .x as! u16
+        address = unchecked_add<u16>(.x as! u16, address)
         let new_page = address >> 8
 
         // Example of crossing pages:
@@ -343,11 +339,9 @@ class CPU {
 
     function absolute_x_set(mut this, value: u8) {
         let arg_address = .pc + 1
-        mut address = .system.read_word(address: arg_address)
+        let address = .system.read_word(address: arg_address)
 
-        address += .x as! u16
-
-        .system.write_byte(address, value)
+        .system.write_byte(address: unchecked_add<u16>(.x as! u16, address), value)
     }
 
     function absolute_y(mut this, check_extra_clock: bool) -> u8 {
@@ -355,7 +349,7 @@ class CPU {
         mut address = .system.read_word(address: arg_address)
         let page = address >> 8
 
-        address += .y as! u16
+        address = unchecked_add<u16>(.y as! u16, address)
         let new_page = address >> 8
 
         // Example of crossing pages:
@@ -365,6 +359,13 @@ class CPU {
         }
 
         return .system.read_byte(address)
+    }
+    
+    function absolute_y_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = .system.read_word(address: arg_address)
+
+        .system.write_byte(address: unchecked_add<u16>(.y as! u16, address), value)
     }
 
     function test_nz_flags(mut this, value: u8) {
@@ -415,7 +416,7 @@ class CPU {
                 .pc += 3
             }
             else => {
-                eprintln("unknown opcode")
+                eprintln("{:0>4x}: unknown opcode", .pc)
             }
         }
         .test_nz_flags(value: .a)
@@ -464,7 +465,7 @@ class CPU {
                 .pc += 3
             }
             else => {
-                eprintln("unknown opcode")
+                eprintln("{:0>4x}: unknown opcode", .pc)
             }
         }
         .test_nz_flags(value: .a)
@@ -513,7 +514,7 @@ class CPU {
                 .pc += 3
             }
             else => {
-                eprintln("unknown opcode")
+                eprintln("{:0>4x}: unknown opcode", .pc)
             }
         }
         .test_nz_flags(value: .a)
@@ -1144,7 +1145,7 @@ class CPU {
                 yield tmp
             }
             0xb9 => {
-                let tmp = .absolute_x(check_extra_clock: true)
+                let tmp = .absolute_y(check_extra_clock: true)
                 .clock += 4
                 .pc += 3
 
@@ -1284,63 +1285,49 @@ class CPU {
                 // Zero page
                 .clock += 3
                 .pc += 2
-
-                let address = .system.read_byte(address: arg_address)
-                .system.write_byte(address: address as! u16, value: .a)
+                
+                .zero_page_set(value: .a)
             }
             0x95 => {
                 // Zero page, x
                 .clock += 4
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address)
-                // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .x) as! u16, value: .a)
+                .zero_page_x_set(value: .a)
             }
             0x8d => {
                 // Absolute
                 .clock += 4
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                .system.write_byte(address, value: .a)
+                .absolute_set(value: .a)
             }
             0x9d => {
                 // Absolute, X
                 .clock += 5
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                .system.write_byte(address: address + .x as! u16, value: .a)
+                .absolute_x_set(value: .a)
             }
             0x99 => {
                 // Absolute, Y
                 .clock += 5
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                .system.write_byte(address: address + .y as! u16, value: .a)
+                .absolute_y_set(value: .a)
             }
             0x81 => {
                 // Indirect, X
                 .clock += 6
                 .pc += 2
 
-                let address = (.system.read_byte(address: arg_address) + .x) as! u16
-                .system.write_byte(address, value: .a)
+                .indirect_zero_page_x_set(value: .a)
             }
             0x91 => {
                 // Indirect, Y
                 .clock += 6
                 .pc += 2
-
-                let address = (.system.read_byte(address: arg_address)) as! u16
-
-                let pre_index = .system.read_word(address)
-
-                let new_address = pre_index + .y as! u16
-
-                .system.write_byte(address: new_address, value: .a)
+                .indirect_zero_page_y_set(value: .a)
             }
             else => {
                 eprintln("unknown opcode")
@@ -1357,25 +1344,20 @@ class CPU {
                 .clock += 3
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address)
-                .system.write_byte(address: address as! u16, value: .x)
+                .zero_page_set(value: .x)
             }
             0x96 => {
                 // Zero page, Y
                 .clock += 4
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address)
-                // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .y) as! u16, value: .x)
+                .zero_page_y_set(value: .x)
             }
             0x8e => {
                 // Absolute
                 .clock += 4
                 .pc += 3
-
-                let address = .system.read_word(address: arg_address)
-                .system.write_byte(address, value: .x)
+                .absolute_set(value: .x)
             }
             else => {
                 eprintln("unknown opcode")
@@ -1392,25 +1374,21 @@ class CPU {
                 .clock += 3
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address)
-                .system.write_byte(address: address as! u16, value: .y)
+                .zero_page_set(value: .y)
             }
             0x94 => {
                 // Zero page, X
                 .clock += 4
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address)
-                // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .x) as! u16, value: .y)
+                .zero_page_x_set(value: .y)
             }
             0x8c => {
                 // Absolute
                 .clock += 4
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                .system.write_byte(address, value: .y)
+                .absolute_set(value: .y)
             }
             else => {
                 eprintln("unknown opcode")
@@ -1474,13 +1452,37 @@ class CPU {
 
         .s = .x
     }
+    
+    function push_byte(mut this, value: u8) {
+        .system.write_byte(address: (0x100u16 + .s as! u16), value)
+        .s -= 1
+    }
+
+    function push_word(mut this, value: u16) {       
+        let first_byte = (value >> 8) as! u8
+        .push_byte(value: first_byte)
+
+        let second_byte = (value & 0x00ff) as! u8
+        .push_byte(value: second_byte)
+    }
+    
+    function pull_byte(mut this) -> u8 {
+        .s += 1
+        return .system.read_byte(address: (0x100u16 + .s as! u16))
+    }
+    
+    function pull_word(mut this) -> u16 {
+        mut value: u16 = .pull_byte() as! u16
+        value += (.pull_byte() as! u16) << 8
+        return value
+        
+    }
 
     function pla(mut this) {
         .pc += 1
         .clock += 4
 
-        .s += 1
-        let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
+        let intermediate = .pull_byte()
 
         // set the flags
         .test_nz_flags(value: intermediate)
@@ -1491,13 +1493,11 @@ class CPU {
         .pc += 1
         .clock += 3
 
-        .system.write_byte(address: 0x100u16 + .s as! u16, value: .a)
-        .s -= 1
+        .push_byte(value: .a)
     }
 
     function pull_status(mut this) {
-        .s += 1
-        let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
+        let intermediate = .pull_byte()
 
         .negative = ((intermediate & 0x80) == 0x80)
         .overflow = ((intermediate & 0x40) == 0x40)
@@ -1505,12 +1505,6 @@ class CPU {
         .interrupt_disable = ((intermediate & 0x04) == 0x04)
         .zero = ((intermediate & 0x02) == 0x02)
         .carry = ((intermediate & 0x01) == 0x01)
-    }
-
-    function pull_pc(mut this) {
-        .s += 1
-        .pc = .system.read_word(address: 0x100u16 + .s as! u16)
-        .s += 1
     }
 
     function plp(mut this) {
@@ -1547,20 +1541,7 @@ class CPU {
             intermediate |= 0x1
         }
 
-        .system.write_byte(address: 0x100u16 + .s as! u16, value: intermediate)
-        .s -= 1
-    }
-
-    function push_word(mut this, value: u16) {
-        // TODO: What order do we push our bytes?
-
-        let first_byte = (value >> 8) as! u8
-        .system.write_byte(address: (0x100u16 + .s as! u16), value: first_byte)
-        .s -= 1
-
-        let second_byte = (value & 0xff) as! u8
-        .system.write_byte(address: (0x100u16 + .s as! u16), value: second_byte)
-        .s -= 1
+        .push_byte(value: intermediate)
     }
 
     function php(mut this) {
@@ -1662,25 +1643,29 @@ class CPU {
     }
 
     function brk(mut this) -> void {
-        .push_word(value: .pc)
+        // BRK increments pc, then pushes the pc,
+        // so our total PC offset to be pushed is 2.
+        // The break flag is also supposed to be set during the PC push 
+        .break_flag = true
+        .push_word(value: .pc + 2)
+        .push_status()
 
         .clock += 7
-
-        .pc = .system.read_word(address: 0xfffe)
-        .break_flag = true
         .interrupt_disable = true
+        
+        .pc = .system.read_word(address: 0xfffe)
     }
 
     function rti(mut this) {
         .clock += 6
 
         .pull_status()
-        .pull_pc()
+        .pc = .pull_word()
     }
 
     function jsr(mut this) {
-        // .pc is at the current opcode, so next pc is + 3
-        .push_word(value: .pc + 3)
+        // We push the address just before the next opcode, which is pc + 2
+        .push_word(value: .pc + 2)
 
         .clock += 6
 
@@ -1690,23 +1675,28 @@ class CPU {
 
     function rts(mut this) {
         .clock += 6
-        .pull_pc()
+        .pc = .pull_word() + 1
     }
 
     function jmp(mut this, opcode: u8) {
-        let arg_address = .pc + 1
-
+        let low_byte_arg = .system.read_byte(address: .pc + 1)
+        let high_byte_arg = .system.read_byte(address: .pc + 2) as! u16
+        let arg = (high_byte_arg << 8) + low_byte_arg as! u16
+        // let arg_address = .pc + 1
+        
         match opcode {
             0x4c => {
-                let address = .system.read_word(address: arg_address)
+                let address = arg
                 .clock += 3
                 .pc = address
             }
             0x6c => {
-                let indirect_address = .system.read_word(address: arg_address)
-                let address = .system.read_word(address: indirect_address)
+                // Indirect jumps wrap the current page if read starts on the last byte of the page
+                let low_byte = .system.read_byte(address: arg)
+                let high_byte_address = (high_byte_arg << 8) + unchecked_add<u8>(low_byte_arg, 1u8) as! u16
+                let high_byte = .system.read_byte(address: high_byte_address)
                 .clock += 5
-                .pc = address
+                .pc = (high_byte as! u16 << 8) + low_byte as! u16
             }
             else => {
                 eprintln("unknown opcode")
@@ -1722,17 +1712,13 @@ class CPU {
                 .clock += 3
                 .pc += 2
 
-                let address = .system.read_byte(address: arg_address)
-                let value = .system.read_byte(address: address as! u16)
-                yield value
+                yield .zero_page()
             }
             0x2c => {
                 .clock += 4
                 .pc += 3
 
-                let address = .system.read_word(address: arg_address)
-                let value = .system.read_byte(address: address)
-                yield value
+                yield .absolute()
             }
             else => {
                 eprintln("unknown opcode")

@@ -1,0 +1,980 @@
+import cpu { CPU, sxb }
+
+class Debugger {
+    cpu: CPU
+
+    public function init(cpu: CPU) throws -> Debugger {
+        return Debugger(cpu)
+    }
+
+    public function dump_cpu_state(mut this) {
+        print("{:0>4x}: a: {:0>2x} x: {:0>2x} y: {:0>2x} s: {:0>2x} flags: ", 
+          .cpu.pc
+          .cpu.a
+          .cpu.x
+          .cpu.y
+          .cpu.s
+        )
+
+        if .cpu.negative {
+            print("N")
+        } else {
+            print("-")
+        }
+        if .cpu.overflow {
+            print("V")
+        } else {
+            print("-")
+        }
+        if .cpu.break_flag {
+            print("B")
+        } else {
+            print("-")
+        }
+        if .cpu.decimal {
+            print("D")
+        } else {
+            print("-")
+        }
+        if .cpu.interrupt_disable {
+            print("I")
+        } else {
+            print("-")
+        }
+        if .cpu.zero {
+            print("Z")
+        } else {
+            print("-")
+        }
+        if .cpu.carry {
+            print("C")
+        } else {
+            print("-")
+        }
+
+        print("  ")
+        .dump_opcode()
+    }
+
+    function immediate(mut this) {
+        let imm = .cpu.system.read_byte(address: .cpu.pc + 1)
+        println("#${:0>2x}", imm)
+    }
+
+    function zero_page(mut this)  {
+        let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
+        println("${:0>2x}", zero_page)
+    }
+
+    function zero_page_x(mut this)  {
+        let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
+        println("${:0>2x}, x({:0>2x})", zero_page, .cpu.x)
+    }
+
+    function zero_page_y(mut this)  {
+        let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
+        println("${:0>2x}, y({:0>2x})", zero_page, .cpu.y)
+    }
+
+    function indirect_zero_page_x(mut this)  {
+        let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
+        println("(${:0>2x}, x({:0>2x}))", zero_page, .cpu.x)
+    }
+
+    function indirect_zero_page_y(mut this)  {
+        let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
+        println("(${:0>2x}, y({:0>2x}))", zero_page, .cpu.y)
+    }
+
+    function absolute(mut this)  {
+        let abs = .cpu.system.read_word(address: .cpu.pc + 1)
+        println("#${:0>4x}", abs)
+    }
+
+    function absolute_x(mut this)  {
+        let abs = .cpu.system.read_word(address: .cpu.pc + 1)
+        println("#${:0>4x}, x({:0>2x})", abs, .cpu.x)
+    }
+
+    function absolute_y(mut this)  {
+        let abs = .cpu.system.read_word(address: .cpu.pc + 1)
+        println("#${:0>4x}, y({:0>2x})", abs, .cpu.y)
+    }
+
+    function branch(mut this)  {
+        let arg_address = .cpu.pc + 1
+        let offset = .cpu.system.read_byte(address: arg_address)
+
+        let addr = unchecked_add(.cpu.pc, sxb(value: offset)) + 2
+        println("${:0>4x}", addr)
+    }
+
+    function asl(mut this, opcode: u8)  {
+        print("asl ")
+        match opcode {
+            0x0a => {
+                println("A")
+            }
+            0x06 => {
+                .zero_page()
+            }
+            0x16 => {
+                .zero_page_x()
+            }
+            0x0e => {
+                .absolute()
+            }
+            0x1e => {
+                .absolute_x()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function bpl(mut this)  {
+        print("bpl ")
+        .branch()
+    }
+
+    function bmi(mut this)  {
+        print("bmi ")
+        .branch()
+    }
+
+    function bvc(mut this)  {
+        print("bvc ")
+        .branch()
+    }
+
+    function bvs(mut this)  {
+        print("bvs ")
+        .branch()
+    }
+
+    function bcc(mut this)  {
+        print("bcc ")
+        .branch()
+    }
+
+    function bcs(mut this)  {
+        print("bcs ")
+        .branch()
+    }
+
+    function bne(mut this)  {
+        print("bne ")
+        .branch()
+    }
+
+    function beq(mut this)  {
+        print("beq ")
+        .branch()
+    }
+
+    function brk(mut this)  -> void {
+        println("brk")
+    }
+
+    function rti(mut this)  {
+        println("rti")
+    }
+
+    function rts(mut this)  {
+        println("rts")
+    }
+
+    function jsr(mut this)  {
+        print("jsr ")
+
+        let arg_address = .cpu.pc + 1
+        let addr = .cpu.system.read_word(address: arg_address)
+        println("${:0>4x}", addr)
+    }
+
+    function jmp(mut this, opcode: u8) {
+        print("jmp ")
+
+        match opcode {
+            0x4c => {
+                let arg_address = .cpu.pc + 1
+                let addr = .cpu.system.read_word(address: arg_address)
+                println("{:0>4x}", addr)
+            }
+            0x6c => {
+                let arg_address = .cpu.pc + 1
+                let addr = .cpu.system.read_word(address: arg_address)
+                println("({:0>4x})", addr)
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function ora(mut this, opcode: u8)  {
+        print("ora ")
+        match opcode {
+            0x09 => {
+                .immediate()
+            }
+            0x05 => {
+                .zero_page()
+            }
+            0x15 => {
+                .zero_page_x()
+            }
+            0x01 => {
+                .indirect_zero_page_x()
+            }
+            0x11 => {
+                .indirect_zero_page_y()
+            }
+            0x0d => {
+                .absolute()
+            }
+            0x1d => {
+                .absolute_x()
+            }
+            0x19 => {
+                .absolute_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function php(mut this)  {
+        println("php")
+    }
+
+    function clc(mut this)  {
+        println("clc")
+    }
+
+    function and_opcode(mut this, opcode: u8)  {
+        print("and ")
+        match opcode {
+            0x29 => {
+                .immediate()
+            }
+            0x25 => {
+                .zero_page()
+            }
+            0x35 => {
+                .zero_page_x()
+            }
+            0x21 => {
+                .indirect_zero_page_x()
+            }
+            0x31 => {
+                .indirect_zero_page_y()
+            }
+            0x2d => {
+                .absolute()
+            }
+            0x3d => {
+                .absolute_x()
+            }
+            0x39 => {
+                .absolute_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function eor(mut this, opcode: u8)  {
+        print("eor ")
+        match opcode {
+            0x49 => {
+                .immediate()
+            }
+            0x45 => {
+                .zero_page()
+            }
+            0x55 => {
+                .zero_page_x()
+            }
+            0x41 => {
+                .indirect_zero_page_x()
+            }
+            0x51 => {
+                .indirect_zero_page_y()
+            }
+            0x4d => {
+                .absolute()
+            }
+            0x5d => {
+                .absolute_x()
+            }
+            0x59 => {
+                .absolute_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function bit(mut this, opcode: u8)  {
+        print("bit ")
+        match opcode {
+            0x24 => {
+                .zero_page()
+            }
+            0x2c => {
+                .absolute()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function rol(mut this, opcode: u8)  {
+        print("rol ")
+        match opcode {
+            0x2a => {
+                println("A")
+            }
+            0x26 => {
+                .zero_page()
+            }
+            0x36 => {
+                .zero_page_x()
+            }
+            0x2e => {
+                .absolute()
+            }
+            0x3e => {
+                .absolute_x()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function lsr(mut this, opcode: u8)  {
+        print("lsr ")
+        match opcode {
+            0x4a => {
+                println("A")
+            }
+            0x46 => {
+                .zero_page()
+            }
+            0x56 => {
+                .zero_page_x()
+            }
+            0x4e => {
+                .absolute()
+            }
+            0x5e => {
+                .absolute_x()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function ror(mut this, opcode: u8)  {
+        print("ror ")
+
+        match opcode {
+            0x6a => {
+                println("A")
+            }
+            0x66 => {
+                .zero_page()
+            }
+            0x76 => {
+                .zero_page_x()
+            }
+            0x6e => {
+                .absolute()
+            }
+            0x7e => {
+                .absolute_x()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    public function lda(mut this, opcode: u8)  {
+        print("lda ")
+        match opcode {
+            0xa9 => {
+                .immediate()
+            }
+            0xa5 => {
+                .zero_page()
+            }
+            0xb5 => {
+                .zero_page_x()
+            }
+            0xad => {
+                .absolute()
+            }
+            0xbd => {
+                .absolute_x()
+            }
+            0xb9 => {
+                .absolute_y()
+            }
+            0xa1 => {
+                .indirect_zero_page_x()
+            }
+            0xb1 => {
+                .indirect_zero_page_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    public function ldx(mut this, opcode: u8) {
+        print("ldx ")
+        match opcode {
+            0xa2 => {
+                .immediate()
+            }
+            0xa6 => {
+                .zero_page()
+            }
+            0xb6 => {
+                .zero_page_y()
+            }
+            0xae => {
+                .absolute()
+            }
+            0xbe => {
+                .absolute_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }           
+        }
+    }
+
+    public function ldy(mut this, opcode: u8) {
+        print("ldy ")
+
+        match opcode {
+            0xa0 => {
+                .immediate()
+            }
+            0xa4 => {
+                .zero_page()
+            }
+            0xb4 => {
+                .zero_page_x()
+            }
+            0xac => {
+                .absolute()
+            }
+            0xbc => {
+                .absolute_x()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }           
+        }
+    }
+
+    function sta(mut this, opcode: u8) {
+        print("sta ")
+
+        match opcode {
+            0x85 => {
+                .zero_page()
+            }
+            0x95 => {
+                .zero_page_x()
+            }
+            0x8d => {
+                .absolute()
+            }
+            0x9d => {
+                .absolute_x()
+            }
+            0x99 => {
+                .absolute_y()
+            }
+            0x81 => {
+                .indirect_zero_page_x()
+            }
+            0x91 => {
+                .indirect_zero_page_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function stx(mut this, opcode: u8) {
+        print("stx ")
+
+        match opcode {
+            0x86 => {
+                .zero_page()
+            }
+            0x96 => {
+                .zero_page_y()
+            }
+            0x8e => {
+                .absolute()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function sty(mut this, opcode: u8) {
+        print("sty ")
+
+        match opcode {
+            0x84 => {
+                .zero_page()
+            }
+            0x94 => {
+                .zero_page_x()
+            }
+            0x8c => {
+                .absolute()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function plp(mut this) {
+        println("plp")
+    }
+
+    function sec(mut this) {
+        println("sec")
+    }
+
+    function pha(mut this) {
+        println("pha")
+    }
+
+    function cli(mut this) {
+        println("cli")
+    }
+
+    function adc(mut this, opcode: u8) {
+        print("adc ")
+        match opcode {
+            0x69 => {
+                .immediate()
+            }
+            0x65 => {
+                .zero_page()
+            }
+            0x75 => {
+                .zero_page_x()
+            }
+            0x61 => {
+                .indirect_zero_page_x()
+            }
+            0x71 => {
+                .indirect_zero_page_y()
+            }
+            0x6d => {
+                .absolute()
+            }
+            0x7d => {
+                .absolute_x()
+            }
+            0x79 => {
+                .absolute_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function sbc(mut this, opcode: u8) {
+        print("sbc ")
+        match opcode {
+            0xe9 => {
+                .immediate()
+            }
+            0xe5 => {
+                .zero_page()
+            }
+            0xf5 => {
+                .zero_page_x()
+            }
+            0xe1 => {
+                .indirect_zero_page_x()
+            }
+            0xf1 => {
+                .indirect_zero_page_y()
+            }
+            0xed => {
+                .absolute()
+            }
+            0xfd => {
+                .absolute_x()
+            }
+            0xf9 => {
+                .absolute_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function pla(mut this) {
+        println("pla")
+    }
+
+    function sei(mut this) {
+        println("sei")
+    }
+
+    function txa(mut this) {
+        println("txa")
+    }
+
+    function tya(mut this) {
+        println("tya")
+    }
+
+    function txs(mut this) {
+        println("txs")
+    }
+
+    function tax(mut this) {
+        println("tax")
+    }
+
+    function tay(mut this) {
+        println("tay")
+    }
+
+    function tsx(mut this) {
+        println("tsx")
+    }
+
+    function clv(mut this) {
+        println("clv")
+    }
+
+    function cmp(mut this, opcode: u8) {
+        print("cmp ")
+        match opcode {
+            0xc9 => {
+                .immediate()
+            }
+            0xc5 => {
+                .zero_page()
+            }
+            0xd5 => {
+                .zero_page_x()
+            }
+            0xc1 => {
+                .indirect_zero_page_x()
+            }
+            0xd1 => {
+                .indirect_zero_page_y()
+            }
+            0xcd => {
+                .absolute()
+            }
+            0xdd => {
+                .absolute_x()
+            }
+            0xd9 => {
+                .absolute_y()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function cpx(mut this, opcode: u8) {
+        print("cpx ")
+        match opcode {
+            0xe0 => {
+                .immediate()
+            }
+            0xe4 => {
+                .zero_page()
+            }
+            0xec => {
+                .absolute()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function cpy(mut this, opcode: u8) {
+        print("cpy ")
+        match opcode {
+            0xc0 => {
+                .immediate()
+            }
+            0xc4 => {
+                .zero_page()
+            }
+            0xcc => {
+                .absolute()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }
+        }
+    }
+
+    function dec(mut this, opcode: u8) {
+        print("dec ")
+        match opcode {
+            0xc6 => {
+                .zero_page()
+            }
+            0xd6 => {
+                .zero_page_x()
+            }
+            0xce => {
+                .absolute()
+            }
+            0xde => {
+                .absolute_x()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }            
+        }
+    }
+
+    function dex(mut this) {
+        println("dex")
+    }
+
+    function dey(mut this) {
+        println("dey")
+    }
+
+    function inc(mut this, opcode: u8) {
+        print("inc ")
+        match opcode {
+            0xe6 => {
+                .zero_page()
+            }
+            0xf6 => {
+                .zero_page_x()
+            }
+            0xee => {
+                .absolute()
+            }
+            0xfe => {
+                .absolute_x()
+            }
+            else => {
+                eprintln("unknown opcode")
+            }            
+        }
+    }
+
+    function inx(mut this) {
+        println("inx")
+    }
+
+    function iny(mut this) {
+        println("iny")
+    }
+
+    function cld(mut this) {
+        println("cld")
+    }
+
+    function sed(mut this) {
+        println("sed")
+    }
+
+    function nop(mut this) {
+        println("nop")
+    }
+
+    public function dump_opcode(mut this) {
+        let opcode = .cpu.system.read_byte(address: .cpu.pc)
+        match opcode {
+            0x00 => .brk()
+            0x01 => .ora(opcode)
+            0x05 => .ora(opcode)
+            0x06 => .asl(opcode)
+            0x08 => .php()
+            0x09 => .ora(opcode)
+            0x0a => .asl(opcode)
+            0x0d => .ora(opcode)
+            0x0e => .asl(opcode)
+            0x10 => .bpl()
+            0x11 => .ora(opcode)
+            0x15 => .ora(opcode)
+            0x16 => .asl(opcode)
+            0x18 => .clc()
+            0x19 => .ora(opcode)
+            0x1d => .ora(opcode)
+            0x1e => .asl(opcode)
+            0x20 => .jsr()
+            0x21 => .and_opcode(opcode)
+            0x24 => .bit(opcode)
+            0x25 => .and_opcode(opcode)
+            0x26 => .rol(opcode)
+            0x28 => .plp()
+            0x29 => .and_opcode(opcode)
+            0x2a => .rol(opcode)
+            0x2c => .bit(opcode)
+            0x2d => .and_opcode(opcode)
+            0x2e => .rol(opcode)
+            0x30 => .bmi()
+            0x31 => .and_opcode(opcode)
+            0x35 => .and_opcode(opcode)
+            0x36 => .rol(opcode)
+            0x38 => .sec()
+            0x39 => .and_opcode(opcode)
+            0x3d => .and_opcode(opcode)
+            0x3e => .rol(opcode)
+            0x40 => .rti()
+            0x41 => .eor(opcode)
+            0x45 => .eor(opcode)
+            0x46 => .lsr(opcode)
+            0x48 => .pha()
+            0x49 => .eor(opcode)
+            0x4a => .lsr(opcode)
+            0x4c => .jmp(opcode)
+            0x4d => .eor(opcode)
+            0x4e => .lsr(opcode)
+            0x50 => .bvc()
+            0x51 => .eor(opcode)
+            0x55 => .eor(opcode)
+            0x56 => .lsr(opcode)
+            0x58 => .cli()
+            0x59 => .eor(opcode)
+            0x5d => .eor(opcode)
+            0x5e => .lsr(opcode)
+            0x60 => .rts()
+            0x61 => .adc(opcode)
+            0x65 => .adc(opcode)
+            0x66 => .ror(opcode)
+            0x68 => .pla()
+            0x69 => .adc(opcode)
+            0x6a => .ror(opcode)
+            0x6c => .jmp(opcode)
+            0x6d => .adc(opcode)
+            0x6e => .ror(opcode)
+            0x70 => .bvs()
+            0x71 => .adc(opcode)
+            0x75 => .adc(opcode)
+            0x76 => .ror(opcode)
+            0x78 => .sei()
+            0x79 => .adc(opcode)
+            0x7d => .adc(opcode)
+            0x7e => .ror(opcode)
+            0x81 => .sta(opcode)
+            0x84 => .sty(opcode)
+            0x85 => .sta(opcode)
+            0x86 => .stx(opcode)
+            0x88 => .dey()
+            0x8a => .txa()
+            0x8c => .sty(opcode)
+            0x8d => .sta(opcode)
+            0x8e => .stx(opcode)
+            0x90 => .bcc()
+            0x91 => .sta(opcode)
+            0x94 => .sty(opcode)
+            0x95 => .sta(opcode)
+            0x96 => .stx(opcode)
+            0x98 => .tya()
+            0x99 => .sta(opcode)
+            0x9a => .txs()
+            0x9d => .sta(opcode)
+            0xa0 => .ldy(opcode)
+            0xa1 => .lda(opcode)
+            0xa2 => .ldx(opcode)
+            0xa4 => .ldy(opcode)
+            0xa5 => .lda(opcode)
+            0xa6 => .ldx(opcode)
+            0xa8 => .tay()
+            0xa9 => .lda(opcode)
+            0xaa => .tax()
+            0xac => .ldy(opcode)
+            0xad => .lda(opcode)
+            0xae => .ldx(opcode)
+            0xb0 => .bcs()
+            0xb1 => .lda(opcode)
+            0xb4 => .ldy(opcode)
+            0xb5 => .lda(opcode)
+            0xb6 => .ldx(opcode)
+            0xb8 => .clv()
+            0xb9 => .lda(opcode)
+            0xba => .tsx()
+            0xbc => .ldy(opcode)
+            0xbd => .lda(opcode)
+            0xbe => .ldx(opcode)
+            0xc0 => .cpy(opcode)
+            0xc1 => .cmp(opcode)
+            0xc4 => .cpy(opcode)
+            0xc5 => .cmp(opcode)
+            0xc6 => .dec(opcode)
+            0xc8 => .iny()
+            0xc9 => .cmp(opcode)
+            0xca => .dex()
+            0xcc => .cpy(opcode)
+            0xcd => .cmp(opcode)
+            0xce => .dec(opcode)
+            0xd0 => .bne()
+            0xd1 => .cmp(opcode)
+            0xd5 => .cmp(opcode)
+            0xd6 => .dec(opcode)
+            0xd8 => .cld()
+            0xd9 => .cmp(opcode)
+            0xdd => .cmp(opcode)
+            0xde => .dec(opcode)
+            0xe0 => .cpx(opcode)
+            0xe1 => .sbc(opcode)
+            0xe4 => .cpx(opcode)
+            0xe5 => .sbc(opcode)
+            0xe6 => .inc(opcode)
+            0xe8 => .inx()
+            0xe9 => .sbc(opcode)
+            0xea => .nop()
+            0xec => .cpx(opcode)
+            0xed => .sbc(opcode)
+            0xee => .inc(opcode)
+            0xf0 => .beq()
+            0xf1 => .sbc(opcode)
+            0xf5 => .sbc(opcode)
+            0xf6 => .inc(opcode)
+            0xf8 => .sed()
+            0xf9 => .sbc(opcode)
+            0xfd => .sbc(opcode)
+            0xfe => .inc(opcode)
+
+            else => {
+                println("unknown opcode: {}", opcode)
+            }
+        }
+    }
+}
+
