@@ -1,4 +1,22 @@
-import extern c "SDL.h" {}
+import extern c "SDL.h" {
+    extern struct SDL_Renderer {}
+    extern struct SDL_Window {}
+
+    extern function SDL_SetMainReady() -> void
+    extern function SDL_Init(flags: u32) -> c_int
+    extern function SDL_CreateWindowAndRenderer(width: c_int
+                                                height: c_int
+                                                window_flags: u32
+                                                window: raw raw SDL_Window
+                                                renderer: raw raw SDL_Renderer) -> c_int
+    extern function SDL_SetRenderDrawColor(renderer: raw SDL_Renderer, r: u8, g: u8, b: u8, a: u8) -> c_int
+    extern function SDL_RenderClear(renderer: raw SDL_Renderer) -> c_int
+    extern function SDL_RenderPresent(renderer: raw SDL_Renderer) -> c_int
+    extern function SDL_RenderDrawPoint(renderer: raw SDL_Renderer, x: c_int, y: c_int) -> c_int
+    extern function SDL_DestroyRenderer(renderer: raw SDL_Renderer) -> void
+    extern function SDL_DestroyWindow(window: raw SDL_Window) -> void
+    extern function SDL_Quit() -> void
+}
 
 enum Key {
     Up
@@ -12,53 +30,58 @@ enum SDLEvent {
     KeyDown(key: Key)
 }
 
+// TODO: nullptr constant anyone?
+function null<T>() -> raw T {
+    unsafe {
+        cpp {
+            "return nullptr;"
+        }
+    }
+    abort()
+}
+
 class SDL {
-    renderer: usize
-    window: usize
+    renderer: raw SDL_Renderer
+    window: raw SDL_Window
 
     public function construct() throws -> SDL {
-        return SDL(renderer: 0, window: 0)
+        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>())
     }
 
     public function init_video(mut this, width: i64, height: i64) {
+        let sdl_init_video : u32 = 0x20
         unsafe {
-            cpp {
-                "SDL_SetMainReady();
-                SDL_Init(SDL_INIT_VIDEO);
-                SDL_CreateWindowAndRenderer(width, height, 0, (SDL_Window **)&this->window, (SDL_Renderer **)&this->renderer);"
-            }
+            SDL_SetMainReady();
+            SDL_Init(flags: sdl_init_video);
+            SDL_CreateWindowAndRenderer(width: width as! c_int
+                                        height: height as! c_int
+                                        window_flags: 0
+                                        window: &raw .window
+                                        renderer: &raw .renderer)
         }
     }
 
     public function set_render_draw_color(this, red: u8, green: u8, blue: u8, alpha: u8) {
         unsafe {
-            cpp {
-                "SDL_SetRenderDrawColor((SDL_Renderer *)this->renderer, red, green, blue, alpha);"
-            }
+            SDL_SetRenderDrawColor(renderer: .renderer, r: red, g: green, b: blue, a: alpha);
         }
     }
 
     public function render_clear(this) {
         unsafe {
-            cpp {
-                "SDL_RenderClear((SDL_Renderer *)this->renderer);"
-            }
+            SDL_RenderClear(renderer: .renderer)
         }
     }
 
     public function render_draw_point(this, x: u64, y: u64) {
         unsafe {
-            cpp {
-                "SDL_RenderDrawPoint((SDL_Renderer *)this->renderer, x, y);"
-            }
+            SDL_RenderDrawPoint(renderer: .renderer, x: x as! c_int, y: y as! c_int);
         }
     }
 
     public function render_present(this) {
         unsafe {
-            cpp {
-                "SDL_RenderPresent((SDL_Renderer *)this->renderer);"
-            }
+            SDL_RenderPresent(renderer: .renderer)
         }
     }
 
@@ -93,11 +116,9 @@ class SDL {
 
     public function quit(this) {
         unsafe {
-            cpp {
-                "SDL_DestroyRenderer((SDL_Renderer *)this->renderer);
-                SDL_DestroyWindow((SDL_Window *)this->window);
-                SDL_Quit();"
-            }
+            SDL_DestroyRenderer(renderer: .renderer)
+            SDL_DestroyWindow(window: .window)
+            SDL_Quit()
         }
     }
 }
