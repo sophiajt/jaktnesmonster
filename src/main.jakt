@@ -5,10 +5,8 @@ import cpu { CPU }
 import debugger { Debugger }
 
 function main(args: [String]) {
-    // mut sdl = SDL::construct()
-    // sdl.init_video(width: 600, height: 600)
-    // draw_frame(sdl)
-    // sdl.quit()
+    mut sdl = SDL::construct()
+    sdl.init_video(width: 256, height: 240)
 
     guard args.size() > 1 else {
         eprintln("usage: jakt_nes <rom file>")
@@ -35,6 +33,10 @@ function main(args: [String]) {
                 ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
                 let in_vblank_after = system.ppu.in_vblank
 
+                if not in_vblank_before and in_vblank_after {
+                    // We're just now in the vblank
+                    draw_frame(sdl, buffer: ppu.video_buffer)
+                }
                 if not in_vblank_before and in_vblank_after and ppu.nmi_on_vblank {
                     println("==NMI==")
                     cpu.nmi()
@@ -43,9 +45,47 @@ function main(args: [String]) {
         }
         Error(msg) => {
             eprintln("Error: {}", msg)
+            sdl.quit()
             return 2
         }
     }
 
+    while true {
+        mut event = sdl.poll_event()
+        if event.has_value() {
+            match event! {
+                Quit => {
+                    break
+                }
+                else => {}
+                // KeyDown(key) => {
+                //     match key {
+                //         Up => {
+                //             user_y -= 1
+                //             sdl.render_draw_point(x: user_x, y: user_y)
+                //             sdl.render_present()
+                //         }
+                //         Down => {
+                //             user_y += 1
+                //             sdl.render_draw_point(x: user_x, y: user_y)
+                //             sdl.render_present()
+                //         }
+                //         Left => {
+                //             user_x -= 1
+                //             sdl.render_draw_point(x: user_x, y: user_y)
+                //             sdl.render_present()
+                //         }
+                //         Right => {
+                //             user_x += 1
+                //             sdl.render_draw_point(x: user_x, y: user_y)
+                //             sdl.render_present()
+                //         }
+                //     }
+                // }
+            }
+        }
+    }
+
+    sdl.quit()
     return 0
 }
