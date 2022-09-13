@@ -207,6 +207,8 @@ class CPU {
 
             else => {
                 eprintln("{:0>4x}: unknown opcode: {:0>2x}", .pc, opcode)
+                .pc += 1
+                .clock += 2
             }
         }
     }
@@ -622,6 +624,7 @@ class CPU {
             }
         }
         // Perform subtraction with borrow: a - b - ~c
+
         .a = .adder_with_overflow(accumulator: .a, operand: ~operand, carry: .carry)
     }
 
@@ -1265,7 +1268,7 @@ class CPU {
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .x) as! u16, value: .a)
+                .system.write_byte(address: unchecked_add<u8>(address, .x) as! u16, value: .a)
             }
             0x8d => {
                 // Absolute
@@ -1296,7 +1299,7 @@ class CPU {
                 .clock += 6
                 .pc += 2
 
-                let address = (.system.read_byte(address: arg_address) + .x) as! u16
+                let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
                 .system.write_byte(address, value: .a)
             }
             0x91 => {
@@ -1337,7 +1340,7 @@ class CPU {
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .y) as! u16, value: .x)
+                .system.write_byte(address: unchecked_add<u8>(address, .y) as! u16, value: .x)
             }
             0x8e => {
                 // Absolute
@@ -1372,7 +1375,7 @@ class CPU {
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
-                .system.write_byte(address: (address + .x) as! u16, value: .y)
+                .system.write_byte(address: unchecked_add<u8>(address, .x) as! u16, value: .y)
             }
             0x8c => {
                 // Absolute

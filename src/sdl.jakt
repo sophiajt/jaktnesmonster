@@ -23,11 +23,16 @@ enum Key {
     Down
     Left
     Right
+    Return
+    Z
+    X
+    Tab
 }
 
 enum SDLEvent {
     Quit
     KeyDown(key: Key)
+    KeyUp(key: Key)
 }
 
 // TODO: nullptr constant anyone?
@@ -105,6 +110,44 @@ class SDL {
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT) {
                         const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Right());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Tab());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_RETURN) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Return());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_Z) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Z());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_X) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::X());
+                        return event;
+                    }
+                } else if (has_event && event.type == SDL_KEYUP) {
+                    if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Up());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_DOWN) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Down());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_LEFT) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Left());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Right());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Tab());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_RETURN) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Return());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_Z) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Z());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_X) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::X());
                         return event;
                     }
                 }"

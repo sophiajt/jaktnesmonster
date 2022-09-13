@@ -51,7 +51,7 @@ class PPU {
 
         let clock_in_current_frame = .clock % (341u64 * 262u64)
         if clock_in_current_frame > (341u64 * 241u64) and not .in_vblank {
-            println("Setting vblank to true")
+            // println("Setting vblank to true")
             .in_vblank = true
         } else if clock_in_current_frame <= (341u64 * 241u64) and .in_vblank {
             .in_vblank = false
@@ -171,12 +171,12 @@ class PPU {
             .nmi_on_vblank = false
         }
 
-        println("base_table_address: {:0>4x}", .base_table_address)
-        println("vram_address_increment: {}", .vram_address_increment)
-        println("sprite_table_address: {:0>4x}", .sprite_table_address)
-        println("background_table_address: {:0>4x}", .background_table_address)
-        println("sprite size 8x8: {}", .sprite_size_8x8)
-        println("nmi_on_vblank: {}", .nmi_on_vblank)
+        // println("base_table_address: {:0>4x}", .base_table_address)
+        // println("vram_address_increment: {}", .vram_address_increment)
+        // println("sprite_table_address: {:0>4x}", .sprite_table_address)
+        // println("background_table_address: {:0>4x}", .background_table_address)
+        // println("sprite size 8x8: {}", .sprite_size_8x8)
+        // println("nmi_on_vblank: {}", .nmi_on_vblank)
     }
 
     function ppu_mask(mut this, value: u8) {
@@ -190,7 +190,7 @@ class PPU {
 
     function ppu_data_write(mut this, value: u8) {
         // TODO: add support for various mirroring
-        println("VRAM: {:0>4x} write {:0>2x}", .vram_rw_addr, value)
+        // println("VRAM: {:0>4x} write {:0>2x}", .vram_rw_addr, value)
         .vram[.vram_rw_addr - 0x2000] = value
         .vram_rw_addr += .vram_address_increment
     }
@@ -204,7 +204,7 @@ class PPU {
     function ppu_status(mut this) -> u8 {
         mut status = 0
         if .in_vblank {
-            println("Reading vblank status")
+            // println("Reading vblank status")
             status |= 0x80
         }
 

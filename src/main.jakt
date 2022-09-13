@@ -3,6 +3,7 @@ import video { draw_frame }
 import system { System }
 import cpu { CPU }
 import debugger { Debugger }
+import joypad { Joypad }
 
 function main(args: [String]) {
     mut sdl = SDL::construct()
@@ -21,8 +22,9 @@ function main(args: [String]) {
         Success(system) => {
             mut cpu = CPU::init(system)
             mut debugger = Debugger::init(cpu)
-            for _ in 1..60000 {
-                // debugger.dump_cpu_state()
+            mut joypad = system.joypad
+
+            loop {
                 let in_vblank_before = system.ppu.in_vblank
 
                 let cpu_clocks_before = cpu.clock
@@ -36,9 +38,74 @@ function main(args: [String]) {
                 if not in_vblank_before and in_vblank_after {
                     // We're just now in the vblank
                     draw_frame(sdl, buffer: ppu.video_buffer)
+                    mut event = sdl.poll_event()
+                    if event.has_value() {
+                        match event! {
+                            Quit => {
+                                break
+                            }
+                            KeyDown(key) => {
+                                match key {
+                                    Up => {
+                                        joypad.press_up()
+                                    }
+                                    Down => {
+                                        joypad.press_down()
+                                    }
+                                    Left => {
+                                        joypad.press_left()
+                                    }
+                                    Right => {
+                                        joypad.press_right()
+                                    }
+                                    Return => {
+                                        joypad.press_start()
+                                    }
+                                    Tab => {
+                                        joypad.press_select()
+                                    }
+                                    Z => {
+                                        joypad.press_a()
+                                    }
+                                    X => {
+                                        joypad.press_b()
+                                    }
+                                }
+                            }
+                            KeyUp(key) => {
+                                match key {
+                                    Up => {
+                                        joypad.release_up()
+                                    }
+                                    Down => {
+                                        joypad.release_down()
+                                    }
+                                    Left => {
+                                        joypad.release_left()
+                                    }
+                                    Right => {
+                                        joypad.release_right()
+                                    }
+                                    Return => {
+                                        joypad.release_start()
+                                    }
+                                    Tab => {
+                                        joypad.release_select()
+                                    }
+                                    Z => {
+                                        joypad.release_a()
+                                    }
+                                    X => {
+                                        joypad.release_b()
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+            
                 if not in_vblank_before and in_vblank_after and ppu.nmi_on_vblank {
-                    println("==NMI==")
+                    // println("==NMI==")
                     cpu.nmi()
                 }
             }
@@ -47,42 +114,6 @@ function main(args: [String]) {
             eprintln("Error: {}", msg)
             sdl.quit()
             return 2
-        }
-    }
-
-    while true {
-        mut event = sdl.poll_event()
-        if event.has_value() {
-            match event! {
-                Quit => {
-                    break
-                }
-                else => {}
-                // KeyDown(key) => {
-                //     match key {
-                //         Up => {
-                //             user_y -= 1
-                //             sdl.render_draw_point(x: user_x, y: user_y)
-                //             sdl.render_present()
-                //         }
-                //         Down => {
-                //             user_y += 1
-                //             sdl.render_draw_point(x: user_x, y: user_y)
-                //             sdl.render_present()
-                //         }
-                //         Left => {
-                //             user_x -= 1
-                //             sdl.render_draw_point(x: user_x, y: user_y)
-                //             sdl.render_present()
-                //         }
-                //         Right => {
-                //             user_x += 1
-                //             sdl.render_draw_point(x: user_x, y: user_y)
-                //             sdl.render_present()
-                //         }
-                //     }
-                // }
-            }
         }
     }
 
