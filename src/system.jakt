@@ -14,6 +14,7 @@ class System {
     apu: APU
     cart: Cart
     public joypad: Joypad
+    public debug: bool
 
     public function init(filename: String) throws -> SystemLoadStatus {
         let status = load_cart(filename)
@@ -33,6 +34,7 @@ class System {
                 apu: APU::init()
                 cart
                 joypad: Joypad::init()
+                debug: false
             )
         )
     }
@@ -44,7 +46,8 @@ class System {
             return .cart.prg_rom_pages[.cart.prg_rom_pages.size() - 1][address - 0xc000]
         } else {
             println("we should not be here: mapper_read_byte")
-            return 0
+            abort()
+            // return 0
         }
     }
 
@@ -89,5 +92,13 @@ class System {
         } else {
             .mapper_write_byte(address, value)
         }
+    }
+
+    public function debug_enable(mut this) {
+        .debug = true
+    }
+
+    public function debug_disable(mut this) {
+        .debug = false
     }
 }

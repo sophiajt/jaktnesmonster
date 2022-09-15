@@ -20,7 +20,8 @@ function main(args: [String]) {
     mut system = System::init(filename)
 
     match system {
-        Success(system) => {
+        Success(sys) => {
+            mut system = sys
             mut cpu = CPU::init(system)
             mut debugger = Debugger::init(cpu)
             mut joypad = system.joypad
@@ -31,6 +32,10 @@ function main(args: [String]) {
                 let cpu_clocks_before = cpu.clock
                 cpu.run_opcode()
                 let cpu_clocks_after = cpu.clock
+
+                if system.debug {
+                    debugger.dump_cpu_state()
+                }
 
                 mut ppu = system.ppu
                 ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
@@ -71,6 +76,9 @@ function main(args: [String]) {
                                     X => {
                                         joypad.press_b()
                                     }
+                                    D => {
+                                        system.debug_enable()
+                                    }
                                 }
                             }
                             KeyUp(key) => {
@@ -98,6 +106,9 @@ function main(args: [String]) {
                                     }
                                     X => {
                                         joypad.release_b()
+                                    }
+                                    D => {
+                                        system.debug_disable()
                                     }
                                 }
                             }

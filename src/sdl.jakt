@@ -28,6 +28,7 @@ enum Key {
     Z
     X
     Tab
+    D
 }
 
 enum SDLEvent {
@@ -130,6 +131,9 @@ class SDL {
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_X) {
                         const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::X());
                         return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_D) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::D());
+                        return event;
                     }
                 } else if (has_event && event.type == SDL_KEYUP) {
                     if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
@@ -155,6 +159,9 @@ class SDL {
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_X) {
                         const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::X());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_D) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::D());
                         return event;
                     }
                 }"

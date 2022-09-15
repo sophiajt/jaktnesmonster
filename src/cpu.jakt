@@ -209,6 +209,7 @@ class CPU {
                 eprintln("{:0>4x}: unknown opcode: {:0>2x}", .pc, opcode)
                 .pc += 1
                 .clock += 2
+                abort()
             }
         }
     }
@@ -1636,7 +1637,8 @@ class CPU {
     }
 
     function brk(mut this) -> void {
-        .push_word(value: .pc)
+        .push_word(value: .pc + 2)
+        .push_status()
 
         .clock += 7
 
@@ -1678,10 +1680,18 @@ class CPU {
                 .pc = address
             }
             0x6c => {
-                let indirect_address = .system.read_word(address: arg_address)
-                let address = .system.read_word(address: indirect_address)
+                mut indirect_address = .system.read_word(address: arg_address)
+
+                let address_l = .system.read_byte(address: indirect_address)
+
+                let indirect_address_h = indirect_address >> 8
+                indirect_address += 1
+                indirect_address = (indirect_address_h << 8) + (indirect_address & 0xff)
+
+                let address_h = .system.read_byte(address: indirect_address)
+
                 .clock += 5
-                .pc = address
+                .pc = (address_h as! u16 << 8) + (address_l as! u16)
             }
             else => {
                 eprintln("unknown opcode")
