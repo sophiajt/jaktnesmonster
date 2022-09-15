@@ -7,7 +7,8 @@ import joypad { Joypad }
 
 function main(args: [String]) {
     mut sdl = SDL::construct()
-    sdl.init_video(width: 256, height: 240)
+    sdl.init_video(width: 256 * 2, height: 240 * 2)
+    sdl.set_scale(scale: 2.0f32)
 
     guard args.size() > 1 else {
         eprintln("usage: jakt_nes <rom file>")

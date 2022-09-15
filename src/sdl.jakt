@@ -13,6 +13,7 @@ import extern c "SDL.h" {
     extern function SDL_RenderClear(renderer: raw SDL_Renderer) -> c_int
     extern function SDL_RenderPresent(renderer: raw SDL_Renderer) -> c_int
     extern function SDL_RenderDrawPoint(renderer: raw SDL_Renderer, x: c_int, y: c_int) -> c_int
+    extern function SDL_RenderSetScale(renderer: raw SDL_Renderer, scaleX: f32, scaleY: f32) -> c_int
     extern function SDL_DestroyRenderer(renderer: raw SDL_Renderer) -> void
     extern function SDL_DestroyWindow(window: raw SDL_Window) -> void
     extern function SDL_Quit() -> void
@@ -63,6 +64,12 @@ class SDL {
                                         window_flags: 0
                                         window: &raw .window
                                         renderer: &raw .renderer)
+        }
+    }
+
+    public function set_scale(this, scale: f32) -> c_int {
+        unsafe {
+            return SDL_RenderSetScale(renderer: .renderer, scaleX: scale, scaleY: scale)
         }
     }
 
