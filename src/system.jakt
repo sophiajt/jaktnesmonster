@@ -1,6 +1,7 @@
 import ppu { PPU }
 import apu { APU }
 import cart { load_cart, Cart }
+import joypad { Joypad }
 
 enum SystemLoadStatus {
     Success(System)
@@ -12,6 +13,7 @@ class System {
     public ppu: PPU
     apu: APU
     cart: Cart
+    public joypad: Joypad
 
     public function init(filename: String) throws -> SystemLoadStatus {
         let status = load_cart(filename)
@@ -30,6 +32,7 @@ class System {
                 )
                 apu: APU::init()
                 cart
+                joypad: Joypad::init()
             )
         )
     }
@@ -53,6 +56,8 @@ class System {
             return .scratch_ram[address & 0x7ff]
         } else if address < 0x4000 {
             return .ppu.read_ppu_addr(address)
+        } else if address == 0x4016 {
+            return .joypad.read_joypad()
         } else if address < 0x4020 {
             return .apu.read_apu_addr(address)
         } else {
@@ -75,6 +80,10 @@ class System {
             .scratch_ram[address & 0x7ff] = value
         } else if address < 0x4000 {
             .ppu.write_ppu_addr(address, value)
+        } else if address == 0x4016 {
+            if (value & 0x1) == 0x1 {
+                .joypad.poll_joypad()
+            }
         } else if address < 0x4020 {
             .apu.write_apu_addr(address, value)
         } else {
