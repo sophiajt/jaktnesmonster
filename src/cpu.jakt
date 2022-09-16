@@ -263,7 +263,10 @@ class CPU {
     function indirect_zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
-        let new_address = .system.read_word(address)
+        let new_address = .system.read_word_wrapped(address)
+
+        // 0xff, x (where x is 1)
+        // reads: 00, 01 for the address
 
         return .system.read_byte(address: new_address)
     }
@@ -272,7 +275,7 @@ class CPU {
         let arg_address = .pc + 1
         let address = (.system.read_byte(address: arg_address)) as! u16
 
-        let pre_index = .system.read_word(address)
+        let pre_index = .system.read_word_wrapped(address)
         let page = pre_index >> 8
 
         let new_address: u16 = unchecked_add<u16>(pre_index, .y as! u16)   
@@ -1680,18 +1683,11 @@ class CPU {
                 .pc = address
             }
             0x6c => {
-                mut indirect_address = .system.read_word(address: arg_address)
+                let indirect_address = .system.read_word(address: arg_address)
 
-                let address_l = .system.read_byte(address: indirect_address)
-
-                let indirect_address_h = indirect_address >> 8
-                indirect_address += 1
-                indirect_address = (indirect_address_h << 8) + (indirect_address & 0xff)
-
-                let address_h = .system.read_byte(address: indirect_address)
-
+                let address = .system.read_word_wrapped(address: indirect_address)
                 .clock += 5
-                .pc = (address_h as! u16 << 8) + (address_l as! u16)
+                .pc = address
             }
             else => {
                 eprintln("unknown opcode")
