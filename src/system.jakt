@@ -78,6 +78,20 @@ class System {
         return output
     }
 
+    public function read_word_wrapped(mut this, address: u16) -> u16 {
+        mut addr = address
+        let address_l = .read_byte(address: addr)
+
+        let indirect_address_h = address >> 8
+        // TODO: should this be an unchecked_add?
+        addr += 1
+        addr = (indirect_address_h << 8) + (addr & 0xff)
+
+        let address_h = .read_byte(address: addr)
+
+        return (address_h as! u16 << 8) + (address_l as! u16)
+    }
+
     public function write_byte(mut this, address: u16, value: u8) {
         if address < 0x2000 {
             .scratch_ram[address & 0x7ff] = value
