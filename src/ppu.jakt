@@ -196,9 +196,20 @@ class PPU {
     }
 
     function ppu_data_read(mut this) -> u8 {
-        let value = .vram[.vram_rw_addr - 0x2000]
-        .vram_rw_addr += .vram_address_increment
-        return value
+        if .vram_rw_addr < 0x1000 {
+            let value = .vram_page_0000[.vram_rw_addr]
+            .vram_rw_addr += .vram_address_increment
+            return value
+
+        } else if .vram_rw_addr < 0x2000 {
+            let value = .vram_page_1000[.vram_rw_addr - 0x1000]
+            .vram_rw_addr += .vram_address_increment
+            return value
+        } else {
+            let value = .vram[.vram_rw_addr - 0x2000]
+            .vram_rw_addr += .vram_address_increment
+            return value
+        }
     }
 
     function ppu_status(mut this) -> u8 {

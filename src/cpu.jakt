@@ -908,7 +908,7 @@ class CPU {
                 tmp = tmp << 1
                 .test_nz_flags(value: tmp)
                 .absolute_x_set(value: tmp)
-                .pc += 2
+                .pc += 3
                 .clock += 7
             }
             else => {
@@ -964,7 +964,7 @@ class CPU {
                 tmp = (tmp << 1) + carry_value
                 .test_nz_flags(value: tmp)
                 .absolute_x_set(value: tmp)
-                .pc += 2
+                .pc += 3
                 .clock += 7
             }
             else => {
@@ -1015,7 +1015,7 @@ class CPU {
                 tmp = tmp >> 1
                 .test_nz_flags(value: tmp)
                 .absolute_x_set(value: tmp)
-                .pc += 2
+                .pc += 3
                 .clock += 7
             }
             else => {
@@ -1071,7 +1071,7 @@ class CPU {
                 tmp = (tmp >> 1) + carry_value
                 .test_nz_flags(value: tmp)
                 .absolute_x_set(value: tmp)
-                .pc += 2
+                .pc += 3
                 .clock += 7
             }
             else => {
