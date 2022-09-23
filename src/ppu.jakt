@@ -131,12 +131,17 @@ class PPU {
 
         let palette_entry = first_plane_bit + (second_plane_bit * 2) + (color_bits * 4)
 
-        let rgb = .look_up_palette_entry_bg(palette_entry)
+        if (first_plane_bit == 0) and (second_plane_bit == 0) {
+            let rgb = .look_up_palette_entry_bg(palette_entry: 0)
+            .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+        } else {
+            let rgb = .look_up_palette_entry_bg(palette_entry)
+            .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+        }
 
         // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
         //     println("{}, {} is {} {:0>2x}", horizontal_pixel, vertical_pixel, rgb, nametable_entry)
         // }
-        .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
         // print("{:0>2x}", nametable_entry)
     }
 
@@ -239,7 +244,11 @@ class PPU {
 
     function ppu_data_write(mut this, value: u8) {
         // TODO: add support for various mirroring
-        // println("VRAM: {:0>4x} write {:0>2x}", .vram_rw_addr, value)
+        if .vram_rw_addr >= 0x4000 {
+            println("bad ppu addr")
+            abort()
+        }
+
         .vram[.vram_rw_addr - 0x2000] = value
         .vram_rw_addr += .vram_address_increment
     }
