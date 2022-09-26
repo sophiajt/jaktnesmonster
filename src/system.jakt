@@ -97,6 +97,8 @@ class System {
             .scratch_ram[address & 0x7ff] = value
         } else if address < 0x4000 {
             .ppu.write_ppu_addr(address, value)
+        } else if address == 0x4014 {
+            .oam_dma(value)
         } else if address == 0x4016 {
             if (value & 0x1) == 0x1 {
                 .joypad.poll_joypad()
@@ -105,6 +107,14 @@ class System {
             .apu.write_apu_addr(address, value)
         } else {
             .mapper_write_byte(address, value)
+        }
+    }
+
+    public function oam_dma(mut this, value: u8) {
+        let address = 0x100u16 * (value as! u16)
+
+        for addr in address..(address + 256) {
+            .ppu.oam[addr - address] = .read_byte(address: addr)
         }
     }
 
