@@ -66,10 +66,16 @@ function load_cart(filename: String) throws -> CartLoadStatus {
 
     for page in 0..chr_rom {
         mut current_page: [u8] = []
-        for offset in 0..chr_rom_page_size {
+        for offset in 0..0x1000uz {
             current_page.push(buffer[current_start + page * chr_rom_page_size + offset])            
         }
         chr_rom_pages.push(current_page)
+        
+        mut current_page_part_2: [u8] = []
+        for offset in 0x1000uz..0x2000uz {
+            current_page_part_2.push(buffer[current_start + page * chr_rom_page_size + offset])            
+        }
+        chr_rom_pages.push(current_page_part_2)
     }
 
     let cart = Cart(prg_rom, 
