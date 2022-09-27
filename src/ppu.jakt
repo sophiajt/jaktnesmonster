@@ -63,21 +63,21 @@ class PPU {
         for x in (.clock)..(.clock + cycles) {
             .render_pixel()
             .clock += 1
-        }
 
-        let clock_in_current_frame = .clock % (341u64 * 262u64)
-        if clock_in_current_frame > (341u64 * 241u64) and not .in_vblank {
-            .in_vblank = true
-        } else if .clock > (341u64 * 262u64) {
-            .in_vblank = false
-            .sprite_zero_hit = false
-            .clock -= (341u64 * 262u64)
+            if .clock == (341u64 * 241u64 + 1) {
+                .in_vblank = true
+            } else if .clock == (341u64 * 261u64) {
+                .in_vblank = false
+                .sprite_zero_hit = false
+            } else if .clock == (341u64 * 262u64) {
+                .clock = 0
+            }
         }
     }
 
     function render_bg_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64) throws -> bool {
         mut virtual_horizontal_pixel = horizontal_pixel + .scroll_x as! u64
-        // vertical_pixel += .scroll_y as! u64
+        mut virtual_vertical_pixel = vertical_pixel + .scroll_y as! u64
 
         mut base_table_address = .base_table_address
 
@@ -87,8 +87,13 @@ class PPU {
             virtual_horizontal_pixel -= 256
         }
 
+        if virtual_vertical_pixel >= 240 {
+            base_table_address ^= 0x800
+            virtual_vertical_pixel -= 240
+        }
+
         // Which tile
-        let vertical_tile: u16 = vertical_pixel / 8
+        let vertical_tile: u16 = virtual_vertical_pixel / 8
         let horizontal_tile: u16 = virtual_horizontal_pixel / 8
 
         // Fetch nametable entry
@@ -113,12 +118,12 @@ class PPU {
         let color_bits = (attr >> ((horizontal_box_pos * 2) + (vertical_box_pos * 4))) & 0x3
 
         let first_plane_byte = match .background_table_address {
-            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8]
-            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8]
+            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
+            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
         }
         let second_plane_byte = match .background_table_address {
-            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + 8]
-            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + 8]
+            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
+            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
         }
 
         let first_plane_bit = first_plane_byte >> (7 - virtual_horizontal_pixel % 8) & 0x1
@@ -318,7 +323,7 @@ class PPU {
             .nmi_on_vblank = false
         }
 
-        //println("base_table_address: {:0>4x}", .base_table_address)
+        println("base_table_address: {:0>4x} (vtick: {})", .base_table_address, .clock)
         // println("vram_address_increment: {}", .vram_address_increment)
         // println("sprite_table_address: {:0>4x}", .sprite_table_address)
         // println("background_table_address: {:0>4x}", .background_table_address)
@@ -343,7 +348,7 @@ class PPU {
     }
 
     function ppu_scroll(mut this, value: u8) {
-        // println("PPU scroll: {:0>2x} {}", value, .scroll_toggle)
+        println("PPU scroll: {:0>2x} {}", value, .scroll_toggle)
 
         if not .scroll_toggle {
             .scroll_x = value
