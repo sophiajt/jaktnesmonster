@@ -24,11 +24,8 @@ class PPU {
     scroll_toggle: bool
     background_visible: bool
     sprites_visible: bool
-<<<<<<< HEAD
     buffered_read: u8
     sprite_zero_hit: bool
-=======
->>>>>>> main
 
     public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
         mut video_buffer: [RGB] = []
