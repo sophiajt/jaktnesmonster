@@ -5,7 +5,7 @@ class RGB {
 }
 
 class PPU {
-    base_table_address: u16
+    // base_table_address: u16
     vram_address_increment: u16
     sprite_table_address: u16
     background_table_address: u16
@@ -14,19 +14,25 @@ class PPU {
     clock: u64
     public in_vblank: bool
     vram: [u8]
-    public vram_rw_addr: u16
+    // public vram_rw_addr: u16
     public oam: [u8]
     vram_page_0000: [u8]
     vram_page_1000: [u8]
     public video_buffer: [RGB]
-    scroll_x: u8
-    scroll_y: u8
-    scroll_toggle: bool
+    // scroll_x: u8
+    // scroll_y: u8
+    // scroll_toggle: bool
     background_visible: bool
     sprites_visible: bool
     buffered_read: u8
     sprite_zero_hit: bool
     public debug: bool
+
+    // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
+    v: u16
+    t: u16
+    x: u8
+    w: u8
 
     public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
         mut video_buffer: [RGB] = []
@@ -34,7 +40,6 @@ class PPU {
             video_buffer.push(rgb(0, 0, 0))
         }
         return PPU(
-            base_table_address: 0x2000
             vram_address_increment: 1
             sprite_table_address: 0x0000
             background_table_address: 0x0000
@@ -43,19 +48,21 @@ class PPU {
             clock: 0
             in_vblank: false
             vram: [0; 0x2000]
-            vram_rw_addr: 0
             oam: [0; 256]
             vram_page_0000
             vram_page_1000
             video_buffer
-            scroll_x: 0
-            scroll_y: 0
-            scroll_toggle: false
             background_visible: false
             sprites_visible: false
             buffered_read: 0
             sprite_zero_hit: false
             debug: false
+
+            // internal PPU registers
+            v: 0
+            t: 0
+            x: 0
+            w: 0
         )
     }
 
@@ -75,11 +82,26 @@ class PPU {
         }
     }
 
-    function render_bg_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64) throws -> bool {
-        mut virtual_horizontal_pixel = horizontal_pixel + .scroll_x as! u64
-        mut virtual_vertical_pixel = vertical_pixel + .scroll_y as! u64
+    function read_vram(this, anon addr: u16) -> u8 {
+        return .vram[addr]
+    }
 
-        mut base_table_address = .base_table_address
+    function render_bg_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64) throws -> bool {
+        let scroll_x = (.v & 0x1f) * 8 + .x as! u16
+        let scroll_y = ((.v >> 5) & 0x1f) * 8 + (.v >> 12)
+
+        mut virtual_horizontal_pixel = horizontal_pixel + scroll_x as! u64
+        mut virtual_vertical_pixel = vertical_pixel + scroll_y as! u64
+
+        let base_table_select = (.v >> 10) & 0x3
+
+        mut base_table_address: u16 = match base_table_select {
+            0 => 0x2000
+            1 => 0x2400
+            2 => 0x2800
+            3 => 0x2c00
+            else => {abort()}
+        }
 
         if virtual_horizontal_pixel >= 256 {
             // FIXME: we're assuming vertical mirroring
@@ -97,7 +119,7 @@ class PPU {
         let horizontal_tile: u16 = virtual_horizontal_pixel / 8
 
         // Fetch nametable entry
-        let nametable_entry = .vram[base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
+        let nametable_entry = .read_vram(base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile)
         // let nametable_entry = .vram[.base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
         
         let vertical_attr = vertical_tile / 4
@@ -110,7 +132,7 @@ class PPU {
         // | plane 1
         // attr (2 bits)
 
-        let attr = .vram[base_table_address - 0x2000 + 0x3c0 + vertical_attr * 8 + horizontal_attr] // subtract 0x2000 because of chr rom
+        let attr = .read_vram(base_table_address - 0x2000 + 0x3c0 + vertical_attr * 8 + horizontal_attr) // subtract 0x2000 because of chr rom
 
         let horizontal_box_pos = (horizontal_tile % 4) / 2
         let vertical_box_pos = (vertical_tile % 4) / 2
@@ -205,12 +227,75 @@ class PPU {
         return false
     }
 
+    function coarse_x_increment(mut this) {
+        // if ((v & 0x001F) == 31) // if coarse X == 31
+        //     v &= ~0x001F          // coarse X = 0
+        //     v ^= 0x0400           // switch horizontal nametable
+        // else
+        //     v += 1                // increment coarse X
+
+        if (.v & 0x001f) == 31 {
+            .v &= ~0x001fu16
+            .v ^= 0x400
+        } else {
+            .v += 1
+        }
+    }
+
+    function y_increment(mut this) {
+        // if ((v & 0x7000) != 0x7000)        // if fine Y < 7
+        //   v += 0x1000                      // increment fine Y
+        // else
+        //   v &= ~0x7000                     // fine Y = 0
+        //   int y = (v & 0x03E0) >> 5        // let y = coarse Y
+        //   if (y == 29)
+        //     y = 0                          // coarse Y = 0
+        //     v ^= 0x0800                    // switch vertical nametable
+        //   else if (y == 31)
+        //     y = 0                          // coarse Y = 0, nametable not switched
+        //   else
+        //     y += 1                         // increment coarse Y
+        //   v = (v & ~0x03E0) | (y << 5)     // put coarse Y back into v
+
+        if (.v & 0x7000) != 0x7000 {
+            .v += 0x1000
+        } else {
+            .v &= ~0x7000u16
+            mut y = (.v & 0x3e0) >> 5
+            if y == 29 {
+                y = 0
+                .v ^= 0x800
+            } else if y == 31 {
+                y = 0
+            } else {
+                y += 1
+            }
+            .v = (.v & ~0x03e0u16) | (y << 5)
+        }
+    }
     function render_pixel(mut this) throws {
         // BACKGROUND
 
         // Where are we on the screen
         let horizontal_pixel = .clock % 341
         let vertical_pixel = .clock / 341
+
+        if horizontal_pixel == 256 and .background_visible {
+            .y_increment()
+        }
+
+        if horizontal_pixel == 257 and .background_visible {
+            let abcdef = .t & 0x41f
+            .v = .v & 0xbe0
+            .v = .v | abcdef
+        }
+
+        if (horizontal_pixel >= 280) and (horizontal_pixel <= 304) and (vertical_pixel == 262) and .background_visible {
+            // GHIA.BC DEF.....
+            let ghiabcdef = .t & 0x7be0
+            .v = .v & 0x41f
+            .v = .v | ghiabcdef
+        }
 
         guard horizontal_pixel < 256 else {
             return
@@ -282,21 +367,11 @@ class PPU {
     }
 
     function ppu_ctrl(mut this, value: u8) {
-        match value & 0x3 {
-            0 => {
-                .base_table_address = 0x2000
-            }
-            1 => {
-                .base_table_address = 0x2400
-            }
-            2 => {
-                .base_table_address = 0x2800
-            }
-            3 => {
-                .base_table_address = 0x2c00
-            }
-            else => {}
-        }
+        let gh = value & 0x3
+
+        .t = .t & 0xf3ff
+        .t = .t | ((gh as! u16) << 10)
+
         if (value & 0x4) == 0x4 {
             .vram_address_increment = 32
         } else {
@@ -323,7 +398,7 @@ class PPU {
             .nmi_on_vblank = false
         }
 
-        println("base_table_address: {:0>4x} (vtick: {})", .base_table_address, .clock)
+        // println("base_table_address: {:0>4x} (vtick: {})", .base_table_address, .clock)
         // println("vram_address_increment: {}", .vram_address_increment)
         // println("sprite_table_address: {:0>4x}", .sprite_table_address)
         // println("background_table_address: {:0>4x}", .background_table_address)
@@ -348,68 +423,84 @@ class PPU {
     }
 
     function ppu_scroll(mut this, value: u8) {
-        println("PPU scroll: {:0>2x} {}", value, .scroll_toggle)
+        // println("PPU scroll: {:0>2x} {}", value, .scroll_toggle)
 
-        if not .scroll_toggle {
-            .scroll_x = value
-            .scroll_toggle = true
+        if .w == 0 {
+            let abcde = value >> 3
+            .t = .t & 0xffe0
+            .t = .t | abcde
+            .x = value & 0x7
+            .w = 1
         } else {
-            .scroll_y = value
-            .scroll_toggle = false
+            let abcde = value >> 3
+            let fgh = value & 0x7
+            .t = .t & 0xc1f
+            .t = .t | ((fgh as! u16) << 12)
+            .t = .t | ((abcde as! u16) << 5)
+            .w = 0
         }
     }
 
     function ppu_addr(mut this, value: u8) {
-        .vram_rw_addr <<= 8
-        .vram_rw_addr += value as! u16
+        if .w == 0 {
+            let cdefgh = value & 0x3f
+            .t = .t & 0xff
+            .t = .t | ((cdefgh as! u16) << 8)
+            .w = 1
+        } else {
+            .t = .t & 0xff00
+            .t = .t | (value as! u16)
+            .v = .t
+            .w = 0
+        }
     }
 
     function ppu_data_write(mut this, value: u8) {
         // TODO: add support for various mirroring
-        if .vram_rw_addr >= 0x4000 {
+        if .v >= 0x4000 {
             println("bad ppu addr")
             abort()
         }
 
-        if .vram_rw_addr == 0x3f10 {
+        if .v == 0x3f10 {
             .vram[0x1f00] = value
-        } else if .vram_rw_addr == 0x3f14 {
+        } else if .v == 0x3f14 {
             .vram[0x1f04] = value
-        } else if .vram_rw_addr == 0x3f18 {
+        } else if .v == 0x3f18 {
             .vram[0x1f08] = value
-        } else if .vram_rw_addr == 0x3f1c {
+        } else if .v == 0x3f1c {
             .vram[0x1f0c] = value
         } else {
-            .vram[.vram_rw_addr - 0x2000] = value
+            .vram[.v - 0x2000] = value
         }
-        .vram_rw_addr += .vram_address_increment
+        .v += .vram_address_increment
     }
 
     function ppu_data_read(mut this) -> u8 {
         mut output = 0u8
-        if .vram_rw_addr <= 0x3eff {
-            if .vram_rw_addr < 0x1000 {
-                let value = .vram_page_0000[.vram_rw_addr]
-                .vram_rw_addr += .vram_address_increment
+        if .v <= 0x3eff {
+            if .v < 0x1000 {
+                let value = .vram_page_0000[.v]
+                .v += .vram_address_increment
                 
                 output = .buffered_read
                 .buffered_read = value
-            } else if .vram_rw_addr < 0x2000 {
-                let value = .vram_page_1000[.vram_rw_addr - 0x1000]
-                .vram_rw_addr += .vram_address_increment
+            } else if .v < 0x2000 {
+                let value = .vram_page_1000[.v - 0x1000]
+                .v += .vram_address_increment
 
                 output = .buffered_read
                 .buffered_read = value
             } else {
-                let value = .vram[.vram_rw_addr - 0x2000]
-                .vram_rw_addr += .vram_address_increment
+                let value = .vram[.v - 0x2000]
+                .v += .vram_address_increment
 
                 output = .buffered_read
                 .buffered_read = value
             }
         } else {
-            let value = .vram[.vram_rw_addr - 0x2000]
-            .vram_rw_addr += .vram_address_increment
+            let value = .vram[.v - 0x2000]
+            .v += .vram_address_increment
 
             output = value
         }
@@ -427,12 +518,9 @@ class PPU {
             status |= 0x40
         }
 
-        // if (status & 0x40) == 0x40 {
-        //     println("read of sprite zero hit occurred")
-        // }
+        .w = 0
 
         .in_vblank = false
-        .vram_rw_addr = 0
         return status
     }
 
