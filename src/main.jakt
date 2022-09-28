@@ -27,10 +27,6 @@ function main(args: [String]) {
             mut joypad = system.joypad
 
             loop {
-                if cpu.pc == 0xc413 {
-                    println("ticks: {}", cpu.clock)
-                }
-            // for x in 1..100000 {
                 let in_vblank_before = system.ppu.in_vblank
 
                 let cpu_clocks_before = cpu.clock
