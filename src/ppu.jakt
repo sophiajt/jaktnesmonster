@@ -26,6 +26,7 @@ class PPU {
     sprites_visible: bool
     buffered_read: u8
     sprite_zero_hit: bool
+    public debug: bool
 
     public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
         mut video_buffer: [RGB] = []
@@ -54,6 +55,7 @@ class PPU {
             sprites_visible: false
             buffered_read: 0
             sprite_zero_hit: false
+            debug: false
         )
     }
 
@@ -65,9 +67,8 @@ class PPU {
 
         let clock_in_current_frame = .clock % (341u64 * 262u64)
         if clock_in_current_frame > (341u64 * 241u64) and not .in_vblank {
-            // println("Setting vblank to true")
             .in_vblank = true
-        } else if clock_in_current_frame <= (341u64 * 241u64) and .in_vblank {
+        } else if .clock > (341u64 * 262u64) {
             .in_vblank = false
             .sprite_zero_hit = false
             .clock -= (341u64 * 262u64)
@@ -75,12 +76,24 @@ class PPU {
     }
 
     function render_bg_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64) throws -> bool {
+        mut virtual_horizontal_pixel = horizontal_pixel + .scroll_x as! u64
+        // vertical_pixel += .scroll_y as! u64
+
+        mut base_table_address = .base_table_address
+
+        if virtual_horizontal_pixel >= 256 {
+            // FIXME: we're assuming vertical mirroring
+            base_table_address ^= 0x400
+            virtual_horizontal_pixel -= 256
+        }
+
         // Which tile
         let vertical_tile: u16 = vertical_pixel / 8
-        let horizontal_tile: u16 = horizontal_pixel / 8
+        let horizontal_tile: u16 = virtual_horizontal_pixel / 8
 
         // Fetch nametable entry
-        let nametable_entry = .vram[.base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
+        let nametable_entry = .vram[base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
+        // let nametable_entry = .vram[.base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
         
         let vertical_attr = vertical_tile / 4
         let horizontal_attr = horizontal_tile / 4
@@ -92,7 +105,7 @@ class PPU {
         // | plane 1
         // attr (2 bits)
 
-        let attr = .vram[0x3c0 + vertical_attr * 8 + horizontal_attr] // subtract 0x2000 because of chr rom
+        let attr = .vram[base_table_address - 0x2000 + 0x3c0 + vertical_attr * 8 + horizontal_attr] // subtract 0x2000 because of chr rom
 
         let horizontal_box_pos = (horizontal_tile % 4) / 2
         let vertical_box_pos = (vertical_tile % 4) / 2
@@ -108,12 +121,8 @@ class PPU {
             else => .vram_page_1000[nametable_entry as! u64 * 0x10 + vertical_pixel % 8 + 8]
         }
 
-        // if nametable_entry != 0x20 {
-        //     println("{:0>2x}({:0>4x}, {:0>4x}, {:0>2x})", nametable_entry, .background_table_address, nametable_entry as! u64 * 0x10 + vertical_pixel % 8, first_plane_byte)
-        // }
-
-        let first_plane_bit = first_plane_byte >> (7 - horizontal_pixel % 8) & 0x1
-        let second_plane_bit = second_plane_byte >> (7 - horizontal_pixel % 8) & 0x1
+        let first_plane_bit = first_plane_byte >> (7 - virtual_horizontal_pixel % 8) & 0x1
+        let second_plane_bit = second_plane_byte >> (7 - virtual_horizontal_pixel % 8) & 0x1
 
         let palette_entry = first_plane_bit + (second_plane_bit * 2) + (color_bits * 4)
 
@@ -128,17 +137,33 @@ class PPU {
         }
     }
 
-    function render_sprite_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64, bg_pixel_set: bool) throws {
-        for sprite in 0..64 {
+    function render_sprite_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64, is_behind: bool) throws -> bool {
+        for sprite in 63..-1 {
             let sprite_y = .oam[sprite * 4] as! u64
             let sprite_index = .oam[sprite * 4 + 1] as! u8
             let sprite_attr = .oam[sprite * 4 + 2] as! u8
             let sprite_x = .oam[sprite * 4 + 3] as! u64
 
+            if (sprite_attr & 0x20) == 0x20 and not is_behind {
+                continue
+            }
+
+            if (sprite_attr & 0x20) == 0x0 and is_behind {
+                continue
+            }
+
             // TODO: handle 8x16 sprites
-            if vertical_pixel >= sprite_y and vertical_pixel < (sprite_y + 8) and horizontal_pixel >= sprite_x and horizontal_pixel < (sprite_x + 8) {
-                let sprite_row = (vertical_pixel - sprite_y) as! u64
-                let sprite_col = (horizontal_pixel - sprite_x) as! u64
+            if (vertical_pixel >= sprite_y) and (vertical_pixel < (sprite_y + 8)) and (horizontal_pixel >= sprite_x) and (horizontal_pixel < (sprite_x + 8)) {
+                mut sprite_row = (vertical_pixel - sprite_y) as! u64
+                mut sprite_col = (horizontal_pixel - sprite_x) as! u64
+
+                if (sprite_attr & 0x80) == 0x80 {
+                    sprite_row = 7 - sprite_row
+                }
+
+                if (sprite_attr & 0x40) == 0x40 {
+                    sprite_col = 7 - sprite_col
+                }
 
                 let first_plane_byte = match .sprite_table_address {
                     0000 => .vram_page_0000[sprite_index as! u64 * 0x10 + sprite_row]
@@ -157,19 +182,22 @@ class PPU {
                 let palette_entry = first_plane_bit + (second_plane_bit * 2) + (color_bits * 4)
 
                 if (first_plane_bit == 0) and (second_plane_bit == 0) {
-                    // let rgb = .look_up_palette_entry_bg(palette_entry: 0)
-                    // .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+                    if is_behind {
+                        let rgb = .look_up_palette_entry_sprite(palette_entry: 0)
+                        .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+                    }
                 } else {
-                    let rgb = .look_up_palette_entry_bg(palette_entry)
+                    let rgb = .look_up_palette_entry_sprite(palette_entry)
                     .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
 
-                    if not .sprite_zero_hit and sprite == 0 and bg_pixel_set {
-                        println("sprite zero was hit")
-                        .sprite_zero_hit = true
+                    if not .sprite_zero_hit and sprite == 0 {
+                        return true
                     }
                 }
             }
         }
+
+        return false
     }
 
     function render_pixel(mut this) throws {
@@ -188,6 +216,11 @@ class PPU {
         }
 
         mut bg_pixel_set = false
+        mut sprite_zero_set = false
+
+        if .sprites_visible {
+            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel, vertical_pixel, is_behind: true)
+        }
 
         // FIXME: when we add support for sprites remove this
         if .background_visible {
@@ -195,7 +228,11 @@ class PPU {
         }
 
         if .sprites_visible {
-            .render_sprite_pixel(horizontal_pixel, vertical_pixel, bg_pixel_set)
+            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel, vertical_pixel, is_behind: false)
+        }
+
+        if bg_pixel_set and sprite_zero_set {
+            .sprite_zero_hit = true
         }
 
         // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
@@ -213,6 +250,30 @@ class PPU {
         let bg_palette = .vram[0x1f00 + palette_entry as! u64]
 
         return convert_palette_to_rgb(bg_palette)
+    }
+
+    function look_up_palette_entry_sprite(mut this, palette_entry: u8) throws -> RGB {
+        guard palette_entry < 16 else {
+            println(format("ERROR: incorrect palette entry: {}", palette_entry))
+            return RGB(red: 0, green: 0, blue: 0)
+        }
+
+        if palette_entry == 0 {
+            let sprite_palette = .vram[0x1f00]
+            return convert_palette_to_rgb(sprite_palette)
+        } else if palette_entry == 0x4 {
+            let sprite_palette = .vram[0x1f04]
+            return convert_palette_to_rgb(sprite_palette)
+        } else if palette_entry == 0x8 {
+            let sprite_palette = .vram[0x1f08]
+            return convert_palette_to_rgb(sprite_palette)
+        } else if palette_entry == 0xc {
+            let sprite_palette = .vram[0x1f0c]
+            return convert_palette_to_rgb(sprite_palette)
+        } else {
+            let sprite_palette = .vram[0x1f10 + palette_entry as! u64]
+            return convert_palette_to_rgb(sprite_palette)
+        }
     }
 
     function ppu_ctrl(mut this, value: u8) {
@@ -361,9 +422,9 @@ class PPU {
             status |= 0x40
         }
 
-        if (status & 0x40) == 0x40 {
-            println("read of sprite zero hit occurred")
-        }
+        // if (status & 0x40) == 0x40 {
+        //     println("read of sprite zero hit occurred")
+        // }
 
         .in_vblank = false
         .vram_rw_addr = 0
