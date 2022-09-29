@@ -218,6 +218,7 @@ class CPU {
     public function nmi(mut this) {
         let nmi_vector = .system.read_word(address: 0xfffa)
 
+        .clock += 7
         .push_word(value: .pc)
         .push_status()
 
@@ -1087,57 +1088,57 @@ class CPU {
         let intermediate: u8 = match opcode {
             0xa9 => {
                 let tmp = .immediate()
-                .clock += 2
                 .pc += 2
+                .clock += 2
 
                 yield tmp
             }
             0xa5 => {
                 let tmp = .zero_page()
-                .clock += 3
                 .pc += 2
+                .clock += 3
 
                 yield tmp
             }
             0xb5 => {
                 let tmp = .zero_page_x()
-                .clock += 4
                 .pc += 2
+                .clock += 4
 
                 yield tmp
             }
             0xad => {
                 let tmp = .absolute()
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 yield tmp
             }
             0xbd => {
                 let tmp = .absolute_x(check_extra_clock: true)
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 yield tmp
             }
             0xb9 => {
                 let tmp = .absolute_y(check_extra_clock: true)
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 yield tmp
             }
             0xa1 => {
                 let tmp = .indirect_zero_page_x()
-                .clock += 6
                 .pc += 2
+                .clock += 6
 
                 yield tmp
             }
             0xb1 => {
                 let tmp = .indirect_zero_page_y(check_extra_clock: true)
-                .clock += 6
                 .pc += 2
+                .clock += 5
 
                 yield tmp
             }
@@ -1164,29 +1165,29 @@ class CPU {
             }
             0xa6 => {
                 let tmp = .zero_page()
-                .clock += 3
                 .pc += 2
+                .clock += 3
 
                 yield tmp
             }
             0xb6 => {
                 let tmp = .zero_page_y()
-                .clock += 4
                 .pc += 2
+                .clock += 4
 
                 yield tmp
             }
             0xae => {
                 let tmp = .absolute()
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 yield tmp
             }
             0xbe => {
                 let tmp = .absolute_y(check_extra_clock: true)
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 yield tmp
             }
@@ -1208,36 +1209,36 @@ class CPU {
         let intermediate: u8 = match opcode {
             0xa0 => {
                 let tmp = .immediate()
-                .clock += 2
                 .pc += 2
+                .clock += 2
 
                 yield tmp
             }
             0xa4 => {
                 let tmp = .zero_page()
-                .clock += 3
                 .pc += 2
+                .clock += 3
 
                 yield tmp
             }
             0xb4 => {
                 let tmp = .zero_page_x()
-                .clock += 4
                 .pc += 2
+                .clock += 4
 
                 yield tmp
             }
             0xac => {
                 let tmp = .absolute()
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 yield tmp
             }
             0xbc => {
                 let tmp = .absolute_x(check_extra_clock: true)
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 yield tmp
             }
@@ -1259,16 +1260,16 @@ class CPU {
         match opcode {
             0x85 => {
                 // Zero page
-                .clock += 3
                 .pc += 2
+                .clock += 3
 
                 let address = .system.read_byte(address: arg_address)
                 .system.write_byte(address: address as! u16, value: .a)
             }
             0x95 => {
                 // Zero page, x
-                .clock += 4
                 .pc += 2
+                .clock += 4
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
@@ -1276,32 +1277,32 @@ class CPU {
             }
             0x8d => {
                 // Absolute
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 let address = .system.read_word(address: arg_address)
                 .system.write_byte(address, value: .a)
             }
             0x9d => {
                 // Absolute, X
-                .clock += 5
                 .pc += 3
+                .clock += 5
 
                 let address = .system.read_word(address: arg_address)
                 .system.write_byte(address: address + .x as! u16, value: .a)
             }
             0x99 => {
                 // Absolute, Y
-                .clock += 5
                 .pc += 3
+                .clock += 5
 
                 let address = .system.read_word(address: arg_address)
                 .system.write_byte(address: address + .y as! u16, value: .a)
             }
             0x81 => {
                 // Indirect, X
-                .clock += 6
                 .pc += 2
+                .clock += 6
 
                 let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
                 let new_address = .system.read_word_wrapped(address)
@@ -1309,8 +1310,8 @@ class CPU {
             }
             0x91 => {
                 // Indirect, Y
-                .clock += 6
                 .pc += 2
+                .clock += 6
 
                 let address = (.system.read_byte(address: arg_address)) as! u16
 
@@ -1332,16 +1333,16 @@ class CPU {
         match opcode {
             0x86 => {
                 // Zero page
-                .clock += 3
                 .pc += 2
+                .clock += 3
 
                 let address = .system.read_byte(address: arg_address)
                 .system.write_byte(address: address as! u16, value: .x)
             }
             0x96 => {
                 // Zero page, Y
-                .clock += 4
                 .pc += 2
+                .clock += 4
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
@@ -1349,8 +1350,8 @@ class CPU {
             }
             0x8e => {
                 // Absolute
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 let address = .system.read_word(address: arg_address)
                 .system.write_byte(address, value: .x)
@@ -1367,16 +1368,16 @@ class CPU {
         match opcode {
             0x84 => {
                 // Zero page
-                .clock += 3
                 .pc += 2
+                .clock += 3
 
                 let address = .system.read_byte(address: arg_address)
                 .system.write_byte(address: address as! u16, value: .y)
             }
             0x94 => {
                 // Zero page, X
-                .clock += 4
                 .pc += 2
+                .clock += 4
 
                 let address = .system.read_byte(address: arg_address)
                 // TODO: does this wrap around the zero page?
@@ -1384,8 +1385,8 @@ class CPU {
             }
             0x8c => {
                 // Absolute
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 let address = .system.read_word(address: arg_address)
                 .system.write_byte(address, value: .y)
@@ -1544,7 +1545,7 @@ class CPU {
 
     function php(mut this) {
         .pc += 1
-        .clock += 4
+        .clock += 3
 
         .push_status()
     }
@@ -1572,8 +1573,8 @@ class CPU {
         if not .negative {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1581,8 +1582,8 @@ class CPU {
         if .negative {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1590,8 +1591,8 @@ class CPU {
         if not .overflow {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1599,8 +1600,8 @@ class CPU {
         if .overflow {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1608,8 +1609,8 @@ class CPU {
         if not .carry {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1617,8 +1618,8 @@ class CPU {
         if .carry {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1626,8 +1627,8 @@ class CPU {
         if not .zero {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1635,8 +1636,8 @@ class CPU {
         if .zero {
             .branch()
         } else {
-            .clock += 2
             .pc += 2
+            .clock += 2
         }
     }
 
@@ -1701,16 +1702,16 @@ class CPU {
 
         let value = match opcode {
             0x24 => {
-                .clock += 3
                 .pc += 2
+                .clock += 3
 
                 let address = .system.read_byte(address: arg_address)
                 let value = .system.read_byte(address: address as! u16)
                 yield value
             }
             0x2c => {
-                .clock += 4
                 .pc += 3
+                .clock += 4
 
                 let address = .system.read_word(address: arg_address)
                 let value = .system.read_byte(address: address)
