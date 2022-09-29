@@ -4,8 +4,6 @@ Creating a NES emulator in the [jakt](https://github.com/SerenityOS/jakt) progra
 
 Make sure you have libsdl2+SDL2 headers installed, and build and install the jakt compiler into your PATH.
 
-**NOTE**: there were some recent breaking changes in the latest Jakt. For now, you may need to use SHA **[eea74430d5d57c1eccc9020c0741eca4d395d886](https://github.com/SerenityOS/jakt/commit/eea74430d5d57c1eccc9020c0741eca4d395d886)** from the main jakt repo to build a compatible Jakt.
-
 ## Building using jakt directly
 
 With jakt in your path and the install location of SDL2 known, you can build like so for Linux:
