@@ -15,6 +15,8 @@ add_jakt_executable(jakt_nes
         src/apu.jakt
         src/cart.jakt
         src/cpu.jakt
+        src/debugger.jakt
+        src/joypad.jakt
         src/ppu.jakt
         src/sdl.jakt
         src/system.jakt
