@@ -4,7 +4,7 @@ Creating a NES emulator in the [jakt](https://github.com/SerenityOS/jakt) progra
 
 ## Videos
 
-[JT](https://github.com/jntrnr) has documented a lot of his work on Jakt NES Monster in a [playlist](https://www.youtube.com/playlist?list=PLP2yfE2-FXdQBRpnZbcObTe33-eSeSRYl) on his YouTube channel, [Systems with JT](https://www.youtube.com/c/SystemswithJT/featured). 
+[JT](https://github.com/jntrnr) has documented a lot of their work on Jakt NES Monster in a [playlist](https://www.youtube.com/playlist?list=PLP2yfE2-FXdQBRpnZbcObTe33-eSeSRYl) on their YouTube channel, [Systems with JT](https://www.youtube.com/c/SystemswithJT/featured). 
 
 # Building
 
