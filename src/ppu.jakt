@@ -166,10 +166,7 @@ class PPU {
 
     function render_sprite_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64, is_behind: bool) throws -> bool {
         for sprite in 63..-1 {
-            let sprite_y = .oam[sprite * 4] as! u64
-            let sprite_index = .oam[sprite * 4 + 1] as! u8
-            let sprite_attr = .oam[sprite * 4 + 2] as! u8
-            let sprite_x = .oam[sprite * 4 + 3] as! u64
+            let sprite_attr = .oam[sprite * 4 + 2]
 
             if (sprite_attr & 0x20) == 0x20 and not is_behind {
                 continue
@@ -179,10 +176,16 @@ class PPU {
                 continue
             }
 
+            let sprite_y = .oam[sprite * 4] as! u64
+
+            let sprite_x = .oam[sprite * 4 + 3] as! u64
+
             // TODO: handle 8x16 sprites
             if (vertical_pixel >= sprite_y) and (vertical_pixel < (sprite_y + 8)) and (horizontal_pixel >= sprite_x) and (horizontal_pixel < (sprite_x + 8)) {
                 mut sprite_row = (vertical_pixel - sprite_y) as! u64
                 mut sprite_col = (horizontal_pixel - sprite_x) as! u64
+                                
+                let sprite_index = .oam[sprite * 4 + 1]
 
                 if (sprite_attr & 0x80) == 0x80 {
                     sprite_row = 7 - sprite_row
