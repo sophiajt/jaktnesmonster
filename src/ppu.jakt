@@ -27,6 +27,8 @@ class PPU {
     buffered_read: u8
     sprite_zero_hit: bool
     public debug: bool
+    rendering_enabled: bool
+    even_frame_flag: bool
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
     v: u16
@@ -47,7 +49,7 @@ class PPU {
             nmi_on_vblank: false
             clock: 0
             in_vblank: false
-            vram: [0; 0x2000]
+            vram: [0; 0x3FFF]
             oam: [0; 256]
             vram_page_0000
             vram_page_1000
@@ -57,6 +59,8 @@ class PPU {
             buffered_read: 0
             sprite_zero_hit: false
             debug: false
+            rendering_enabled: false
+            even_frame_flag: true
 
             // internal PPU registers
             v: 0
@@ -67,17 +71,26 @@ class PPU {
     }
 
     public function tick(mut this, cycles: u64) throws {
+        
+
         for x in (.clock)..(.clock + cycles) {
             .render_pixel()
             .clock += 1
 
             if .clock == (341u64 * 241u64 + 1) {
                 .in_vblank = true
-            } else if .clock == (341u64 * 261u64) {
+            } else if .clock == (341u64 * 261u64 + 1) {
                 .in_vblank = false
                 .sprite_zero_hit = false
-            } else if .clock == (341u64 * 262u64) {
+            } else if .clock == (341u64 * 262u64) and (.rendering_enabled == false) {
                 .clock = 0
+                .even_frame_flag != .even_frame_flag
+            } else if .clock == (339u64 * 261u64) and (.rendering_enabled == true) and (.even_frame_flag == false) {
+                .clock = 0
+                .even_frame_flag != .even_frame_flag
+            } else if .clock == (341u64 * 262u64) and (.rendering_enabled == true) and (.even_frame_flag == true) {
+                .clock = 0
+                .even_frame_flag != .even_frame_flag
             }
         }
     }
@@ -119,7 +132,7 @@ class PPU {
         let horizontal_tile: u16 = virtual_horizontal_pixel / 8
 
         // Fetch nametable entry
-        let nametable_entry = .read_vram(base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile)
+        let nametable_entry = .read_vram(base_table_address + vertical_tile * 32 + horizontal_tile)
         // let nametable_entry = .vram[.base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
         
         let vertical_attr = vertical_tile / 4
@@ -132,7 +145,7 @@ class PPU {
         // | plane 1
         // attr (2 bits)
 
-        let attr = .read_vram(base_table_address - 0x2000 + 0x3c0 + vertical_attr * 8 + horizontal_attr) // subtract 0x2000 because of chr rom
+        let attr = .read_vram(base_table_address + 0x3c0 + vertical_attr * 8 + horizontal_attr)
 
         let horizontal_box_pos = (horizontal_tile % 4) / 2
         let vertical_box_pos = (vertical_tile % 4) / 2
@@ -282,7 +295,7 @@ class PPU {
         // Where are we on the screen
         let horizontal_pixel = .clock % 341
         let vertical_pixel = .clock / 341
-
+        //println("Hpx: {}, Vpx: {}", horizontal_pixel, vertical_pixel)
         if horizontal_pixel == 256 and .background_visible {
             .y_increment()
         }
@@ -340,7 +353,7 @@ class PPU {
             return RGB(red: 0, green: 0, blue: 0)
         }
 
-        let bg_palette = .vram[0x1f00 + palette_entry as! u64]
+        let bg_palette = .vram[0x3f00 + palette_entry as! u64]
 
         return convert_palette_to_rgb(bg_palette)
     }
@@ -351,25 +364,35 @@ class PPU {
             return RGB(red: 0, green: 0, blue: 0)
         }
 
-        if palette_entry == 0 {
-            let sprite_palette = .vram[0x1f00]
-            return convert_palette_to_rgb(sprite_palette)
-        } else if palette_entry == 0x4 {
-            let sprite_palette = .vram[0x1f04]
-            return convert_palette_to_rgb(sprite_palette)
-        } else if palette_entry == 0x8 {
-            let sprite_palette = .vram[0x1f08]
-            return convert_palette_to_rgb(sprite_palette)
-        } else if palette_entry == 0xc {
-            let sprite_palette = .vram[0x1f0c]
-            return convert_palette_to_rgb(sprite_palette)
-        } else {
-            let sprite_palette = .vram[0x1f10 + palette_entry as! u64]
-            return convert_palette_to_rgb(sprite_palette)
+        match palette_entry {
+            0 => { return convert_palette_to_rgb(.vram[0x3f00]) }
+            0x4 => { return convert_palette_to_rgb(.vram[0x3f04]) }
+            0x8 => { return convert_palette_to_rgb(.vram[0x3f08]) }
+            0xc => { return convert_palette_to_rgb(.vram[0x3f0c]) }
+            else => { return convert_palette_to_rgb(.vram[0x3f10 + (palette_entry as! u64)]) }
         }
     }
 
     function ppu_ctrl(mut this, value: u8) {
+
+        // 7  bit  0
+        // ---- ----
+        // VPHB SINN
+        // |||| ||||
+        // |||| ||++- Base nametable address
+        // |||| ||    (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
+        // |||| |+--- VRAM address increment per CPU read/write of PPUDATA
+        // |||| |     (0: add 1, going across; 1: add 32, going down)
+        // |||| +---- Sprite pattern table address for 8x8 sprites
+        // ||||       (0: $0000; 1: $1000; ignored in 8x16 mode)
+        // |||+------ Background pattern table address (0: $0000; 1: $1000)
+        // ||+------- Sprite size (0: 8x8 pixels; 1: 8x16 pixels – see PPU OAM#Byte 1)
+        // |+-------- PPU master/slave select
+        // |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
+        // +--------- Generate an NMI at the start of the
+        //            vertical blanking interval (0: off; 1: on)
+
+
         let gh = value & 0x3
 
         .t = .t & 0xf3ff
@@ -411,17 +434,53 @@ class PPU {
 
     function ppu_mask(mut this, value: u8) {
         // TODO: implement
+
+        // 7  bit  0
+        // ---- ----
+        // BGRs bMmG
+        // |||| ||||
+        // |||| |||+- Greyscale (0: normal color, 1: produce a greyscale display)
+        // |||| ||+-- 1: Show background in leftmost 8 pixels of screen, 0: Hide
+        // |||| |+--- 1: Show sprites in leftmost 8 pixels of screen, 0: Hide
+        // |||| +---- 1: Show background
+        // |||+------ 1: Show sprites
+        // ||+------- Emphasize red (green on PAL/Dendy)
+        // |+-------- Emphasize green (red on PAL/Dendy)
+        // +--------- Emphasize blue
+
+        let PPU_GREYSCALE_MASK = 0b00000001 as! u8
+        let PPU_LEFT_BACKGROUND_MASK = 0b00000010 as! u8
+        let PPU_LEFT_SPRITE_MASK = 0b00000100 as! u8
+        let PPU_BACKGROUND_MASK = 0b00001000 as! u8
+        let PPU_SPRITE_MASK = 0b00010000 as! u8
+        let PPU_RED_EMPHASIZE_MASK = 0b00100000 as! u8
+        let PPU_GREEN_EMPHASIZE_MASK = 0b01000000 as! u8
+        let PPU_BLUE_EMPHASIZE_MASK = 0b10000000 as! u8
+
         // println("PPU mask: {:0>2x}", value)
-        if (value & 0x10) == 0x10 {
+
+        // TODO: Bool casts aren't working in Jakt, but the below should be a 
+        // quick way to set a flag once they are
+        //.sprites_visible = value << 6 >>> 7 as! bool
+        if (value & PPU_SPRITE_MASK) == PPU_SPRITE_MASK {
             .sprites_visible = true
         } else {
             .sprites_visible = false
         }
 
-        if (value & 0x8) == 0x8 {
+
+
+        if (value & PPU_BACKGROUND_MASK) == PPU_BACKGROUND_MASK {
             .background_visible = true
         } else {
             .background_visible = false
+        }
+
+        let render_bytes = (value << 3) >>> 6
+        if render_bytes == 0b00 {
+            .rendering_enabled = false
+        } else {
+            .rendering_enabled = true
         }
     }
 
@@ -460,54 +519,89 @@ class PPU {
 
     function ppu_data_write(mut this, value: u8) {
         // TODO: add support for various mirroring
-        if .v >= 0x4000 {
-            println("bad ppu addr")
-            abort()
-        }
 
-        if .v == 0x3f10 {
-            .vram[0x1f00] = value
-        } else if .v == 0x3f14 {
-            .vram[0x1f04] = value
-        } else if .v == 0x3f18 {
-            .vram[0x1f08] = value
-        } else if .v == 0x3f1c {
-            .vram[0x1f0c] = value
-        } else {
-            .vram[.v - 0x2000] = value
-        }
-        .v += .vram_address_increment
+        // Outside of rendering, reads from or writes to $2007 will add either 1 or 32 to v depending on the VRAM increment bit set via $2000. 
+        // During rendering (on the pre-render line and the visible lines 0-239, provided either background or sprite rendering is enabled), it 
+        // will update v in an odd way, triggering a coarse X increment and a Y increment simultaneously (with normal wrapping behavior). 
+        // Internally, this is caused by the carry inputs to various sections of v being set up for rendering, and the $2007 access triggering a 
+        // "load next value" signal for all of v (when not rendering, the carry inputs are set up to linearly increment v by either 1 or 32). 
+        // This behavior is not affected by the status of the increment bit. The Young Indiana Jones Chronicles uses this for some effects to 
+        // adjust the Y scroll during rendering, and also Burai Fighter (U) to draw the scorebar. If the $2007 access happens to coincide with a 
+        // standard VRAM address increment (either horizontal or vertical), it will presumably not double-increment the relevant counter.
+
+        // Address range 	Size 	Description
+        // $0000-$0FFF 	$1000 	Pattern table 0
+        // $1000-$1FFF 	$1000 	Pattern table 1
+        // $2000-$23FF 	$0400 	Nametable 0
+        // $2400-$27FF 	$0400 	Nametable 1
+        // $2800-$2BFF 	$0400 	Nametable 2
+        // $2C00-$2FFF 	$0400 	Nametable 3
+        // $3000-$3EFF 	$0F00 	Mirrors of $2000-$2EFF
+        // $3F00-$3F1F 	$0020 	Palette RAM indexes
+        // $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F 
+
+        // println("PPU data write rendering: {}, vblank: ", .rendering_enabled, .in_vblank)
+        //  if .rendering_enabled or .in_vblank {
+
+  //          println("PPU write: {:0>4x}", .v)
+
+            if .v >= 0x4000 {
+                println("bad ppu addr")
+                abort()
+            }
+
+            .vram[.v] = value
+            if (.v >= 0x2000) and (.v <= 0x2eff) {
+                .vram[.v + 0x1000] = value
+            }
+            if (.v >= 0x3000) and (.v <= 0x3eff) {   
+                .vram[.v - 0x1000] = value
+            }
+            if (.v >= 0x3f00) and (.v <= 0x3fff) {
+                let sub_address = (.v - 0x3f00) % 0x20
+                .vram[0x3f00 + sub_address] = value
+                .vram[0x3f00 + 0x20 as! u16 + sub_address] = value
+                .vram[0x3f00 + (0x20 * 2) as! u16 + sub_address] = value
+                .vram[0x3f00 + (0x20 * 3) as! u16 + sub_address] = value
+                .vram[0x3f00 + (0x20 * 4) as! u16 + sub_address] = value
+                .vram[0x3f00 + (0x20 * 5) as! u16 + sub_address] = value
+                .vram[0x3f00 + (0x20 * 6) as! u16 + sub_address] = value
+            }
+            match .v{
+                0x3f00 => { .vram[0x3f10] = value }
+                0x3f04 => { .vram[0x3f14] = value }
+                0x3f08 => { .vram[0x3f18] = value }
+                0x3f0C => { .vram[0x3f1C] = value }
+                0x3f10 => { .vram[0x3f00] = value }
+                0x3f14 => { .vram[0x3f04] = value }
+                0x3f18 => { .vram[0x3f08] = value }
+                0x3f1C => { .vram[0x3f0C] = value }
+                else => {}
+            }
+            .v += .vram_address_increment
     }
 
     function ppu_data_read(mut this) -> u8 {
         mut output = 0u8
+//        println("PPU read: {:0>4x}", .v)
+
         if .v <= 0x3eff {
+            mut value: u8 = 0
             if .v < 0x1000 {
-                let value = .vram_page_0000[.v]
-                .v += .vram_address_increment
-                
-                output = .buffered_read
-                .buffered_read = value
+                value = .vram_page_0000[.v]
             } else if .v < 0x2000 {
-                let value = .vram_page_1000[.v - 0x1000]
-                .v += .vram_address_increment
-
-                output = .buffered_read
-                .buffered_read = value
-            } else {
-                let value = .vram[.v - 0x2000]
-                .v += .vram_address_increment
-
-                output = .buffered_read
-                .buffered_read = value
+                value = .vram_page_1000[.v - 0x1000]
+            } else if (.v >= 0x2000) and (.v <= 0x2fff){
+                value = .vram[.v]
             }
-        } else {
-            let value = .vram[.v - 0x2000]
             .v += .vram_address_increment
-
-            output = value
+            output = .buffered_read
+            .buffered_read = value
+        } else {
+                let value = .vram[.v]
+                .v += .vram_address_increment
+                output = value
         }
-
         return output
     }
 
@@ -531,9 +625,12 @@ class PPU {
         match address {
             0x2000 => .ppu_ctrl(value)
             0x2001 => .ppu_mask(value)
-            0x2005 => .ppu_scroll(value)
-            0x2006 => .ppu_addr(value)
+            //0x2003 => .oam_addr(value) // TODO //From NESDEV wiki - most games write $00 here and use OAMDMA
+            //0x2004 => .oam_data(value) // TODO
+            0x2005 => .ppu_scroll(value) // Write twice
+            0x2006 => .ppu_addr(value) // Write twice
             0x2007 => .ppu_data_write(value)
+            //0x4014 => .oam_dma(value) // TODO?
             else => {}
         }
     }
@@ -541,6 +638,7 @@ class PPU {
     public function read_ppu_addr(mut this, address: u16) -> u8 {
         return match address {
             0x2002 => .ppu_status()
+            //0x2004 => .oam_data() // TODO?
             0x2007 => .ppu_data_read()
             else => 0
         }
