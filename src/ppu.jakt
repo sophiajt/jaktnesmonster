@@ -99,7 +99,8 @@ class PPU {
             if (.vertical_pixel == 261) and (.horizontal_pixel == 1){
                 .in_vblank = false
                 .sprite_zero_hit = false
-                .sprite_overflow = false
+                // TODO: Add support for sprite overflow
+                // .sprite_overflow = false
             }
             // Coarse X
             // if (.rendering_enabled) and (.horizontal_pixel % 8 == 0) and ((.horizontal_pixel <= 256) or (.horizontal_pixel > 328)) {
