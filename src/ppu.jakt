@@ -16,6 +16,7 @@ class PPU {
     vram: [u8]
     // public vram_rw_addr: u16
     public oam: [u8]
+    oam_addr: u8
     vram_page_0000: [u8]
     vram_page_1000: [u8]
     public video_buffer: [RGB]
@@ -53,6 +54,7 @@ class PPU {
             in_vblank: false
             vram: [0; 0x3FFF]
             oam: [0; 256]
+            oam_addr: 0x00
             vram_page_0000
             vram_page_1000
             video_buffer
@@ -85,6 +87,10 @@ class PPU {
             .render_pixel()
             .clock += 1
 
+            // 257-320 = sprite tile loading interval
+            if (.horizontal_pixel >= 257) and (.horizontal_pixel <= 320) and (((.vertical_pixel >= 1) and (.vertical_pixel <= 239)) or (.vertical_pixel == 261)) {
+                .oam_addr = 0x00
+            }
             // 240 is the post-render line, vblank is set in 241
             if (.vertical_pixel == 241) and (.horizontal_pixel == 1){
                 .in_vblank = true
@@ -633,7 +639,7 @@ class PPU {
         match mirrored_address {
             0x2000 => .ppu_ctrl(value)
             0x2001 => .ppu_mask(value)
-            //0x2003 => .oam_addr(value) // TODO //From NESDEV wiki - most games write $00 here and use OAMDMA
+            0x2003 => .oam_addr_write(value) //From NESDEV wiki - most games write $00 here and use OAMDMA
             //0x2004 => .oam_data(value) // TODO
             0x2005 => .ppu_scroll(value) // Write twice
             0x2006 => .ppu_addr(value) // Write twice
@@ -641,6 +647,10 @@ class PPU {
             //0x4014 => .oam_dma(value) // TODO?
             else => {}
         }
+    }
+
+    public function oam_addr_write(mut this, value: u8) {
+        .oam_addr = value
     }
 
     public function read_ppu_addr(mut this, address: u16) -> u8 {
