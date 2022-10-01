@@ -117,6 +117,8 @@ class System {
             .ppu.oam[addr - address] = .read_byte(address: addr)
         }
 
+        .ppu.oam_addr_write(value: 0x00)
+
         // println("{}", .ppu.oam)
     }
 
