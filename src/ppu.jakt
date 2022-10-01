@@ -85,21 +85,23 @@ class PPU {
             .render_pixel()
             .clock += 1
 
-            if .clock == (341u64 * 241u64 + 1) {
+            // 240 is the post-render line, vblank is set in 241
+            if (.vertical_pixel == 241) and (.horizontal_pixel == 1){
                 .in_vblank = true
-            } else if .clock == (341u64 * 261u64 + 1) {
+            }
+            // 261 is the pre-render line
+            if (.vertical_pixel == 261) and (.horizontal_pixel == 1){
                 .in_vblank = false
                 .sprite_zero_hit = false
-            } else if .clock == (341u64 * 262u64) and (.rendering_enabled == false) {
-                .clock = 0
-                .even_frame_flag != .even_frame_flag
-            } else if .clock == (339u64 * 261u64) and (.rendering_enabled == true) and (.even_frame_flag == false) {
-                .clock = 0
-                .even_frame_flag != .even_frame_flag
-            } else if .clock == (341u64 * 262u64) and (.rendering_enabled == true) and (.even_frame_flag == true) {
-                .clock = 0
-                .even_frame_flag != .even_frame_flag
+                .sprite_overflow = false
             }
+            // Coarse X
+            // if (.rendering_enabled) and (.horizontal_pixel % 8 == 0) and ((.horizontal_pixel <= 256) or (.horizontal_pixel > 328)) {
+            //    .v += 1
+            // }
+            if (.horizontal_pixel == 340) and (.vertical_pixel == 261) and (.rendering_enabled) and (.even_frame_flag == false) { .clock = 0 }
+            if (.horizontal_pixel == 340) and (.vertical_pixel == 261) { .clock = 0 }
+                .even_frame_flag != .even_frame_flag
         }
     }
 
