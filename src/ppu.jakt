@@ -29,6 +29,8 @@ class PPU {
     public debug: bool
     rendering_enabled: bool
     even_frame_flag: bool
+    horizontal_pixel: u64
+    vertical_pixel: u64
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
     v: u16
@@ -61,6 +63,8 @@ class PPU {
             debug: false
             rendering_enabled: false
             even_frame_flag: true
+            horizontal_pixel: 0
+            vertical_pixel: 0
 
             // internal PPU registers
             v: 0
@@ -74,6 +78,10 @@ class PPU {
         
 
         for x in (.clock)..(.clock + cycles) {
+            // Where are we on the screen
+            .horizontal_pixel = .clock % 341
+            .vertical_pixel = .clock / 341
+
             .render_pixel()
             .clock += 1
 
@@ -291,33 +299,29 @@ class PPU {
     }
     function render_pixel(mut this) throws {
         // BACKGROUND
-
-        // Where are we on the screen
-        let horizontal_pixel = .clock % 341
-        let vertical_pixel = .clock / 341
         //println("Hpx: {}, Vpx: {}", horizontal_pixel, vertical_pixel)
-        if horizontal_pixel == 256 and .background_visible {
+        if .horizontal_pixel == 256 and .rendering_enabled {
             .y_increment()
         }
 
-        if horizontal_pixel == 257 and .background_visible {
+        if .horizontal_pixel == 257 and .rendering_enabled {
             let abcdef = .t & 0x41f
             .v = .v & 0xbe0
             .v = .v | abcdef
         }
 
-        if (horizontal_pixel >= 280) and (horizontal_pixel <= 304) and (vertical_pixel == 262) and .background_visible {
+        if (.horizontal_pixel >= 280) and (.horizontal_pixel <= 304) and (.vertical_pixel == 262) and .rendering_enabled {
             // GHIA.BC DEF.....
             let ghiabcdef = .t & 0x7be0
             .v = .v & 0x41f
             .v = .v | ghiabcdef
         }
 
-        guard horizontal_pixel < 256 else {
+        guard .horizontal_pixel < 256 else {
             return
         }
 
-        guard vertical_pixel < 240 else {
+        guard .vertical_pixel < 240 else {
             return
         }
 
@@ -325,16 +329,16 @@ class PPU {
         mut sprite_zero_set = false
 
         if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel, vertical_pixel, is_behind: true)
+            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel:.horizontal_pixel, vertical_pixel:.vertical_pixel, is_behind: true)
         }
 
         // FIXME: when we add support for sprites remove this
         if .background_visible {
-            bg_pixel_set = .render_bg_pixel(horizontal_pixel, vertical_pixel)
+            bg_pixel_set = .render_bg_pixel(horizontal_pixel:.horizontal_pixel, vertical_pixel:.vertical_pixel)
         }
 
         if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel, vertical_pixel, is_behind: false)
+            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel:.horizontal_pixel, vertical_pixel:.vertical_pixel, is_behind: false)
         }
 
         if bg_pixel_set and sprite_zero_set {
