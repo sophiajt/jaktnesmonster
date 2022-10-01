@@ -4,6 +4,29 @@ class RGB {
     public blue: u8
 }
 
+class Sprite {
+    public hflip: bool
+    public mask: [u8]
+    public bg_sprite: bool
+    public sprite_x: u8
+    public sprite_zero: bool
+
+    public function get_sprite_pixel(this, x: u8) -> (bool, u8){
+        guard x >= .sprite_x and x < (.sprite_x + 8) else {
+            return(false, 0u8)
+        }
+
+        let shift_amount = match .hflip {
+            true => x - .sprite_x
+            else => 7 - (x - .sprite_x)
+        }
+
+        let entry = .mask[shift_amount]
+
+        return (true, entry)
+    }
+}
+
 class PPU {
     // base_table_address: u16
     vram_address_increment: u16
@@ -17,6 +40,7 @@ class PPU {
     // public vram_rw_addr: u16
     public oam: [u8]
     oam_addr: u8
+    second_oam: [Sprite]
     vram_page_0000: [u8]
     vram_page_1000: [u8]
     public video_buffer: [RGB]
@@ -55,6 +79,7 @@ class PPU {
             vram: [0; 0x3FFF]
             oam: [0; 256]
             oam_addr: 0x00
+            second_oam: []
             vram_page_0000
             vram_page_1000
             video_buffer
@@ -194,70 +219,29 @@ class PPU {
         }
     }
 
-    function render_sprite_pixel(mut this, is_behind: bool) throws -> bool {
-        for sprite in 63..-1 {
-            let sprite_attr = .oam[sprite * 4 + 2]
+    function render_sprite_pixel(mut this, horizontal_pixel: u8, vertical_pixel: u8, bg_set: bool) throws {
+        for sprite in .second_oam.iterator() {
+            let (valid, entry) = sprite.get_sprite_pixel(x: horizontal_pixel)
 
-            if (sprite_attr & 0x20) == 0x20 and not is_behind {
+            if not valid {
                 continue
             }
 
-            if (sprite_attr & 0x20) == 0x0 and is_behind {
-                continue
-            }
-
-            let sprite_y = .oam[sprite * 4] as! u64
-
-            let sprite_x = .oam[sprite * 4 + 3] as! u64
-
+            let transparent = (entry & 0x3) == 0
+            
             // TODO: handle 8x16 sprites
-            if (.vertical_pixel >= sprite_y) and (.vertical_pixel < (sprite_y + 8)) and (.horizontal_pixel >= sprite_x) and (.horizontal_pixel < (sprite_x + 8)) {
-                mut sprite_row = (.vertical_pixel - sprite_y) as! u64
-                mut sprite_col = (.horizontal_pixel - sprite_x) as! u64
-                                
-                let sprite_index = .oam[sprite * 4 + 1]
-
-                if (sprite_attr & 0x80) == 0x80 {
-                    sprite_row = 7 - sprite_row
+            if not transparent {
+        
+                if not sprite.bg_sprite or not bg_set {
+                    let rgb = .look_up_palette_entry_sprite(palette_entry: entry)
+                    .video_buffer[vertical_pixel as! u16 * 256u16 + horizontal_pixel as! u16] = rgb
                 }
-
-                if (sprite_attr & 0x40) == 0x40 {
-                    sprite_col = 7 - sprite_col
-                }
-
-                let first_plane_byte = match .sprite_table_address {
-                    0000 => .vram_page_0000[sprite_index as! u64 * 0x10 + sprite_row]
-                    else => .vram_page_1000[sprite_index as! u64 * 0x10 + sprite_row]
-                }
-                let second_plane_byte = match .sprite_table_address {
-                    0000 => .vram_page_0000[sprite_index as! u64 * 0x10 + sprite_row + 8]
-                    else => .vram_page_1000[sprite_index as! u64 * 0x10 + sprite_row + 8]
-                }
-
-                let first_plane_bit = first_plane_byte >> (7 - sprite_col) & 0x1
-                let second_plane_bit = second_plane_byte >> (7 - sprite_col) & 0x1
-
-                let color_bits = sprite_attr & 0x3
-
-                let palette_entry = first_plane_bit + (second_plane_bit * 2) + (color_bits * 4)
-
-                if (first_plane_bit == 0) and (second_plane_bit == 0) {
-                    if is_behind {
-                        let rgb = .look_up_palette_entry_sprite(palette_entry: 0)
-                        .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
-                    }
-                } else {
-                    let rgb = .look_up_palette_entry_sprite(palette_entry)
-                    .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
-
-                    if not .sprite_zero_hit and sprite == 0 {
-                        return true
-                    }
-                }
+                
+                // Sprite zero can be hit from the background too!
+                .sprite_zero_hit = (not .sprite_zero_hit) and sprite.sprite_zero 
             }
         }
 
-        return false
     }
 
     function coarse_x_increment(mut this) {
@@ -306,6 +290,54 @@ class PPU {
             .v = (.v & ~0x03e0u16) | (y << 5)
         }
     }
+
+    function find_sprites(this, scanline: u8) throws -> [Sprite]  {
+        mut result: [Sprite] = []
+        mut sprite_count = 0
+        let sprite_table = match .sprite_table_address {
+                    0000 => .vram_page_0000
+                    else => .vram_page_1000
+                }   
+        for sprite in (0u8..63u8).inclusive() {
+            if sprite_count >= 8 {
+                //println("Sprite overflow, {} entries in second OAM", result.size())
+                break
+            }
+            let sprite_addr = sprite * 4u8
+            let sprite_y = .oam[sprite_addr]
+            let sprite_x = .oam[sprite_addr + 3]
+	        
+            if scanline >= sprite_y and scanline < (sprite_y + 8)  {
+                let sprite_attr = .oam[sprite_addr + 2]
+                let vflip = (sprite_attr & 0x80) == 0x80
+                let tile_row = match vflip {
+                    false => (scanline - sprite_y)
+                    else => 7 - (scanline - sprite_y)
+                }
+                //let sprite_index = (tile_row & 0x7) | ((sprite_x & 0xf) << 4) | ((sprite_y & 0xf) << 8)
+                let sprite_index = .oam[sprite_addr + 1] as! u64 * 0x10 + tile_row as! u64
+                let first_plane = sprite_table[sprite_index]
+                let second_plane = sprite_table[sprite_index + 8]
+
+                mut mask = [0u8; 8]
+                for i in 0..8u8 {
+                    mask[i] = ((first_plane >> i) & 0x1) | (((second_plane >> i & 0x1) << 1)) | ((sprite_attr & 0x3) << 2)
+                }
+
+                result.push(Sprite(
+                    hflip: (sprite_attr & 0x40) == 0x40
+                    mask: mask
+                    bg_sprite: (sprite_attr & 0x20) == 0x20
+                    sprite_x: sprite_x
+                    sprite_zero: sprite == 0
+                ))
+                sprite_count += 1
+            }
+        }
+        return result
+    }
+
+
     function render_pixel(mut this) throws {
         // BACKGROUND
         //println("Hpx: {}, Vpx: {}", horizontal_pixel, vertical_pixel)
@@ -334,12 +366,16 @@ class PPU {
             return
         }
 
+        if horizontal_pixel == 0 {
+            .second_oam = .find_sprites(scanline: vertical_pixel as! u8)
+        }
+
         mut bg_pixel_set = false
         mut sprite_zero_set = false
 
-        if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(is_behind: true)
-        }
+        //if .sprites_visible {
+        //    sprite_zero_set |= .render_sprite_pixel(horizontal_pixel, vertical_pixel, is_behind: true)
+        //}
 
         // FIXME: when we add support for sprites remove this
         if .background_visible {
@@ -347,11 +383,7 @@ class PPU {
         }
 
         if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(is_behind: false)
-        }
-
-        if bg_pixel_set and sprite_zero_set {
-            .sprite_zero_hit = true
+            .render_sprite_pixel(horizontal_pixel: horizontal_pixel as! u8, vertical_pixel: vertical_pixel as! u8, bg_set: bg_pixel_set)
         }
 
         // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
