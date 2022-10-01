@@ -622,7 +622,9 @@ class PPU {
     }
 
     public function write_ppu_addr(mut this, address: u16, value: u8) {
-        match address {
+        // PPU registers are mirrored all the way to 3FFF, try to handle that
+        let mirrored_address = (address % 0x8) + 0x2000
+        match mirrored_address {
             0x2000 => .ppu_ctrl(value)
             0x2001 => .ppu_mask(value)
             //0x2003 => .oam_addr(value) // TODO //From NESDEV wiki - most games write $00 here and use OAMDMA
@@ -636,7 +638,8 @@ class PPU {
     }
 
     public function read_ppu_addr(mut this, address: u16) -> u8 {
-        return match address {
+        let mirrored_address = (address % 0x8) + 0x2000
+        return match mirrored_address {
             0x2002 => .ppu_status()
             //0x2004 => .oam_data() // TODO?
             0x2007 => .ppu_data_read()
