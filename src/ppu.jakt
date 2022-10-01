@@ -63,6 +63,8 @@ class PPU {
     x: u8
     w: u8
 
+    color_palette: [RGB]
+
     public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
         mut video_buffer: [RGB] = []
         for _ in 0..(256*240) {
@@ -98,6 +100,73 @@ class PPU {
             t: 0
             x: 0
             w: 0
+
+            color_palette: [
+                    rgb(101 101 101)
+                    rgb(0    45 105)
+                    rgb(19   31 127)
+                    rgb(69   19 124)
+                    rgb(96   11  98)
+                    rgb(115  10  55)
+                    rgb(113  15   7)
+                    rgb(90   26   0)
+                    rgb(52   40   0)
+                    rgb(11   52   0)
+                    rgb(0   60    0)    
+                    rgb(0   61   16)    
+                    rgb(0   56   64)
+                    rgb(0    0    0)
+                    rgb(0    0    0)
+                    rgb(0    0    0)
+                    rgb(174 174 174)
+                    rgb(15   99 179)
+                    rgb(64   81 208)
+                    rgb(120  65 204)
+                    rgb(167  54 169)
+                    rgb(192  52 112)
+                    rgb(189  60  48)
+                    rgb(159  74   0)
+                    rgb(109  92   0)
+                    rgb(54  109   0)
+                    rgb(7   119   4)
+                    rgb(0   121  61)
+                    rgb(0   114 125)
+                    rgb(0     0   0)
+                    rgb(0     0   0)
+                    rgb(0     0   0)
+                    rgb(254 254 255)
+                    rgb(93  179 255)
+                    rgb(143 161 255)
+                    rgb(200 144 255)
+                    rgb(247 133 250)
+                    rgb(255 131 192)
+                    rgb(255 139 127)
+                    rgb(239 154  73)
+                    rgb(189 172  44)
+                    rgb(133 188  47)
+                    rgb(85  199  83)    
+                    rgb(60  201 140)    
+                    rgb(62  194 205)
+                    rgb(78   78  78)
+                    rgb(0     0   0)
+                    rgb(0     0   0)
+                    rgb(254 254 255)
+                    rgb(188 223 255)
+                    rgb(209 216 255)
+                    rgb(232 209 255)
+                    rgb(251 205 253)
+                    rgb(255 204 229)
+                    rgb(255 207 202)
+                    rgb(248 213 180)
+                    rgb(228 220 168)
+                    rgb(204 227 169)
+                    rgb(185 232 184)    
+                    rgb(174 232 208)    
+                    rgb(175 229 234)
+                    rgb(182 182 182)
+                    rgb(0    0    0)
+                    rgb(0    0    0)
+                ]   
         )
     }
 
@@ -392,21 +461,23 @@ class PPU {
         // print("{:0>2x}", nametable_entry)
     }
 
-    function look_up_palette_entry_bg(mut this, palette_entry: u8) throws -> RGB {
+    function look_up_palette_entry_bg(mut this, palette_entry: u8) -> RGB {
         guard palette_entry < 16 else {
-            println(format("ERROR: incorrect palette entry: {}", palette_entry))
-            return RGB(red: 0, green: 0, blue: 0)
+            println("ERROR: incorrect palette entry: {}", palette_entry)
+            //return RGB(red: 0, green: 0, blue: 0)
+            abort()
         }
 
         let bg_palette = .vram[0x3f00 + palette_entry as! u64]
 
-        return convert_palette_to_rgb(bg_palette)
+        return .convert_palette_to_rgb(bg_palette)
     }
 
-    function look_up_palette_entry_sprite(mut this, palette_entry: u8) throws -> RGB {
+    function look_up_palette_entry_sprite(mut this, palette_entry: u8) -> RGB {
         guard palette_entry < 16 else {
-            println(format("ERROR: incorrect palette entry: {}", palette_entry))
-            return RGB(red: 0, green: 0, blue: 0)
+            println("ERROR: incorrect palette entry: {}", palette_entry)
+            //return RGB(red: 0, green: 0, blue: 0)
+            abort()
         }
 
         match palette_entry {
@@ -695,81 +766,17 @@ class PPU {
             else => 0
         }
     }
+
+    function convert_palette_to_rgb(this, anon value: u8) -> RGB {
+        if value > 63 {
+            eprintln("ERROR: incorrect palette for rgb: {}", value)
+            abort()
+        }
+        return .color_palette[value]
+    }
+
 }
 
 function rgb(anon red: u8, anon green: u8, anon blue: u8) throws -> RGB {
     return RGB(red, green, blue)
-}
-
-function convert_palette_to_rgb(anon value: u8) throws -> RGB {
-    return match value {
-        0x00 => rgb(101 101 101)
-        0x01 => rgb(0    45 105)
-        0x02 => rgb(19   31 127)
-        0x03 => rgb(69   19 124)
-        0x04 => rgb(96   11  98)
-        0x05 => rgb(115  10  55)
-        0x06 => rgb(113  15   7)
-        0x07 => rgb(90   26   0)
-        0x08 => rgb(52   40   0)
-        0x09 => rgb(11   52   0)
-        0x0a => rgb(0   60    0)    
-        0x0b => rgb(0   61   16)    
-        0x0c => rgb(0   56   64)
-        0x0d => rgb(0    0    0)
-        0x0e => rgb(0    0    0)
-        0x0f => rgb(0    0    0)
-        0x10 => rgb(174 174 174)
-        0x11 => rgb(15   99 179)
-        0x12 => rgb(64   81 208)
-        0x13 => rgb(120  65 204)
-        0x14 => rgb(167  54 169)
-        0x15 => rgb(192  52 112)
-        0x16 => rgb(189  60  48)
-        0x17 => rgb(159  74   0)
-        0x18 => rgb(109  92   0)
-        0x19 => rgb(54  109   0)
-        0x1a => rgb(7   119   4)
-        0x1b => rgb(0   121  61)
-        0x1c => rgb(0   114 125)
-        0x1d => rgb(0     0   0)
-        0x1e => rgb(0     0   0)
-        0x1f => rgb(0     0   0)
-        0x20 => rgb(254 254 255)
-        0x21 => rgb(93  179 255)
-        0x22 => rgb(143 161 255)
-        0x23 => rgb(200 144 255)
-        0x24 => rgb(247 133 250)
-        0x25 => rgb(255 131 192)
-        0x26 => rgb(255 139 127)
-        0x27 => rgb(239 154  73)
-        0x28 => rgb(189 172  44)
-        0x29 => rgb(133 188  47)
-        0x2a => rgb(85  199  83)    
-        0x2b => rgb(60  201 140)    
-        0x2c => rgb(62  194 205)
-        0x2d => rgb(78   78  78)
-        0x2e => rgb(0     0   0)
-        0x2f => rgb(0     0   0)
-        0x30 => rgb(254 254 255)
-        0x31 => rgb(188 223 255)
-        0x32 => rgb(209 216 255)
-        0x33 => rgb(232 209 255)
-        0x34 => rgb(251 205 253)
-        0x35 => rgb(255 204 229)
-        0x36 => rgb(255 207 202)
-        0x37 => rgb(248 213 180)
-        0x38 => rgb(228 220 168)
-        0x39 => rgb(204 227 169)
-        0x3a => rgb(185 232 184)    
-        0x3b => rgb(174 232 208)    
-        0x3c => rgb(175 229 234)
-        0x3d => rgb(182 182 182)
-        0x3e => rgb(0    0    0)
-        0x3f => rgb(0    0    0)
-        else => {
-            println("ERROR: incorrect palette for rgb")
-            yield rgb(0, 0, 0)
-        }
-    }
 }
