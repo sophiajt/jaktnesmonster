@@ -107,12 +107,12 @@ class PPU {
         return .vram[addr]
     }
 
-    function render_bg_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64) throws -> bool {
+    function render_bg_pixel(mut this) throws -> bool {
         let scroll_x = (.v & 0x1f) * 8 + .x as! u16
         let scroll_y = ((.v >> 5) & 0x1f) * 8 + (.v >> 12)
 
-        mut virtual_horizontal_pixel = horizontal_pixel + scroll_x as! u64
-        mut virtual_vertical_pixel = vertical_pixel + scroll_y as! u64
+        mut virtual_horizontal_pixel = .horizontal_pixel + scroll_x as! u64
+        mut virtual_vertical_pixel = .vertical_pixel + scroll_y as! u64
 
         let base_table_select = (.v >> 10) & 0x3
 
@@ -176,16 +176,16 @@ class PPU {
 
         if (first_plane_bit == 0) and (second_plane_bit == 0) {
             let rgb = .look_up_palette_entry_bg(palette_entry: 0)
-            .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+            .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
             return false
         } else {
             let rgb = .look_up_palette_entry_bg(palette_entry)
-            .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+            .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
             return true
         }
     }
 
-    function render_sprite_pixel(mut this, horizontal_pixel: u64, vertical_pixel: u64, is_behind: bool) throws -> bool {
+    function render_sprite_pixel(mut this, is_behind: bool) throws -> bool {
         for sprite in 63..-1 {
             let sprite_attr = .oam[sprite * 4 + 2]
 
@@ -202,9 +202,9 @@ class PPU {
             let sprite_x = .oam[sprite * 4 + 3] as! u64
 
             // TODO: handle 8x16 sprites
-            if (vertical_pixel >= sprite_y) and (vertical_pixel < (sprite_y + 8)) and (horizontal_pixel >= sprite_x) and (horizontal_pixel < (sprite_x + 8)) {
-                mut sprite_row = (vertical_pixel - sprite_y) as! u64
-                mut sprite_col = (horizontal_pixel - sprite_x) as! u64
+            if (.vertical_pixel >= sprite_y) and (.vertical_pixel < (sprite_y + 8)) and (.horizontal_pixel >= sprite_x) and (.horizontal_pixel < (sprite_x + 8)) {
+                mut sprite_row = (.vertical_pixel - sprite_y) as! u64
+                mut sprite_col = (.horizontal_pixel - sprite_x) as! u64
                                 
                 let sprite_index = .oam[sprite * 4 + 1]
 
@@ -235,11 +235,11 @@ class PPU {
                 if (first_plane_bit == 0) and (second_plane_bit == 0) {
                     if is_behind {
                         let rgb = .look_up_palette_entry_sprite(palette_entry: 0)
-                        .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+                        .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
                     }
                 } else {
                     let rgb = .look_up_palette_entry_sprite(palette_entry)
-                    .video_buffer[vertical_pixel * 256 + horizontal_pixel] = rgb
+                    .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
 
                     if not .sprite_zero_hit and sprite == 0 {
                         return true
@@ -329,16 +329,16 @@ class PPU {
         mut sprite_zero_set = false
 
         if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel:.horizontal_pixel, vertical_pixel:.vertical_pixel, is_behind: true)
+            sprite_zero_set |= .render_sprite_pixel(is_behind: true)
         }
 
         // FIXME: when we add support for sprites remove this
         if .background_visible {
-            bg_pixel_set = .render_bg_pixel(horizontal_pixel:.horizontal_pixel, vertical_pixel:.vertical_pixel)
+            bg_pixel_set = .render_bg_pixel()
         }
 
         if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(horizontal_pixel:.horizontal_pixel, vertical_pixel:.vertical_pixel, is_behind: false)
+            sprite_zero_set |= .render_sprite_pixel(is_behind: false)
         }
 
         if bg_pixel_set and sprite_zero_set {
