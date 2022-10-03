@@ -4,6 +4,29 @@ class RGB {
     public blue: u8
 }
 
+class Sprite {
+    public hflip: bool
+    public mask: [u8]
+    public bg_sprite: bool
+    public sprite_x: u8
+    public sprite_zero: bool
+
+    public function get_sprite_pixel(this, x: u8) -> (bool, u8){
+        guard x >= .sprite_x and x < (.sprite_x + 8) else {
+            return(false, 0u8)
+        }
+
+        let shift_amount = match .hflip {
+            true => x - .sprite_x
+            else => 7 - (x - .sprite_x)
+        }
+
+        let entry = .mask[shift_amount]
+
+        return (true, entry)
+    }
+}
+
 class PPU {
     // base_table_address: u16
     vram_address_increment: u16
@@ -17,6 +40,7 @@ class PPU {
     // public vram_rw_addr: u16
     public oam: [u8]
     oam_addr: u8
+    second_oam: [Sprite]
     vram_page_0000: [u8]
     vram_page_1000: [u8]
     public video_buffer: [RGB]
@@ -27,6 +51,7 @@ class PPU {
     sprites_visible: bool
     buffered_read: u8
     sprite_zero_hit: bool
+    sprite_overflow: bool
     public debug: bool
     rendering_enabled: bool
     even_frame_flag: bool
@@ -38,6 +63,8 @@ class PPU {
     t: u16
     x: u8
     w: u8
+
+    color_palette: [RGB]
 
     public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
         mut video_buffer: [RGB] = []
@@ -55,6 +82,7 @@ class PPU {
             vram: [0; 0x3FFF]
             oam: [0; 256]
             oam_addr: 0x00
+            second_oam: []
             vram_page_0000
             vram_page_1000
             video_buffer
@@ -62,6 +90,7 @@ class PPU {
             sprites_visible: false
             buffered_read: 0
             sprite_zero_hit: false
+            sprite_overflow: false
             debug: false
             rendering_enabled: false
             even_frame_flag: true
@@ -73,6 +102,73 @@ class PPU {
             t: 0
             x: 0
             w: 0
+
+            color_palette: [
+                    rgb(101 101 101)
+                    rgb(0    45 105)
+                    rgb(19   31 127)
+                    rgb(69   19 124)
+                    rgb(96   11  98)
+                    rgb(115  10  55)
+                    rgb(113  15   7)
+                    rgb(90   26   0)
+                    rgb(52   40   0)
+                    rgb(11   52   0)
+                    rgb(0   60    0)    
+                    rgb(0   61   16)    
+                    rgb(0   56   64)
+                    rgb(0    0    0)
+                    rgb(0    0    0)
+                    rgb(0    0    0)
+                    rgb(174 174 174)
+                    rgb(15   99 179)
+                    rgb(64   81 208)
+                    rgb(120  65 204)
+                    rgb(167  54 169)
+                    rgb(192  52 112)
+                    rgb(189  60  48)
+                    rgb(159  74   0)
+                    rgb(109  92   0)
+                    rgb(54  109   0)
+                    rgb(7   119   4)
+                    rgb(0   121  61)
+                    rgb(0   114 125)
+                    rgb(0     0   0)
+                    rgb(0     0   0)
+                    rgb(0     0   0)
+                    rgb(254 254 255)
+                    rgb(93  179 255)
+                    rgb(143 161 255)
+                    rgb(200 144 255)
+                    rgb(247 133 250)
+                    rgb(255 131 192)
+                    rgb(255 139 127)
+                    rgb(239 154  73)
+                    rgb(189 172  44)
+                    rgb(133 188  47)
+                    rgb(85  199  83)    
+                    rgb(60  201 140)    
+                    rgb(62  194 205)
+                    rgb(78   78  78)
+                    rgb(0     0   0)
+                    rgb(0     0   0)
+                    rgb(254 254 255)
+                    rgb(188 223 255)
+                    rgb(209 216 255)
+                    rgb(232 209 255)
+                    rgb(251 205 253)
+                    rgb(255 204 229)
+                    rgb(255 207 202)
+                    rgb(248 213 180)
+                    rgb(228 220 168)
+                    rgb(204 227 169)
+                    rgb(185 232 184)    
+                    rgb(174 232 208)    
+                    rgb(175 229 234)
+                    rgb(182 182 182)
+                    rgb(0    0    0)
+                    rgb(0    0    0)
+                ]   
         )
     }
 
@@ -88,8 +184,9 @@ class PPU {
             .clock += 1
 
             // 257-320 = sprite tile loading interval
-            if (.horizontal_pixel >= 257) and (.horizontal_pixel <= 320) and (((.vertical_pixel >= 1) and (.vertical_pixel <= 239)) or (.vertical_pixel == 261)) {
-                .oam_addr = 0x00
+            if (.horizontal_pixel >= 257) and (.horizontal_pixel <= 320) and ((.vertical_pixel >= 0) and (.vertical_pixel <= 239)) {
+                // .oam_addr = 0x00
+                .second_oam = .find_sprites(scanline: (.vertical_pixel + 1) as! u8)
             }
             // 240 is the post-render line, vblank is set in 241
             if (.vertical_pixel == 241) and (.horizontal_pixel == 1){
@@ -99,16 +196,16 @@ class PPU {
             if (.vertical_pixel == 261) and (.horizontal_pixel == 1){
                 .in_vblank = false
                 .sprite_zero_hit = false
-                // TODO: Add support for sprite overflow
-                // .sprite_overflow = false
+                .sprite_overflow = false
             }
             // Coarse X
             // if (.rendering_enabled) and (.horizontal_pixel % 8 == 0) and ((.horizontal_pixel <= 256) or (.horizontal_pixel > 328)) {
             //    .v += 1
             // }
-            if (.horizontal_pixel == 340) and (.vertical_pixel == 261) and (.rendering_enabled) and (.even_frame_flag == false) { .clock = 0 }
+            if (.horizontal_pixel == 339) and (.vertical_pixel == 261) and (.rendering_enabled) and (.even_frame_flag == false) { .clock = 0 }
             if (.horizontal_pixel == 340) and (.vertical_pixel == 261) { .clock = 0 }
-                .even_frame_flag != .even_frame_flag
+            
+            .even_frame_flag = not .even_frame_flag
         }
     }
 
@@ -194,70 +291,29 @@ class PPU {
         }
     }
 
-    function render_sprite_pixel(mut this, is_behind: bool) throws -> bool {
-        for sprite in 63..-1 {
-            let sprite_attr = .oam[sprite * 4 + 2]
+    function render_sprite_pixel(mut this, horizontal_pixel: u8, vertical_pixel: u8, bg_set: bool) throws {
+        for sprite in .second_oam.iterator() {
+            let (valid, entry) = sprite.get_sprite_pixel(x: horizontal_pixel)
 
-            if (sprite_attr & 0x20) == 0x20 and not is_behind {
+            if not valid {
                 continue
             }
 
-            if (sprite_attr & 0x20) == 0x0 and is_behind {
-                continue
-            }
-
-            let sprite_y = .oam[sprite * 4] as! u64
-
-            let sprite_x = .oam[sprite * 4 + 3] as! u64
-
+            let transparent = (entry & 0x3) == 0
+            
             // TODO: handle 8x16 sprites
-            if (.vertical_pixel >= sprite_y) and (.vertical_pixel < (sprite_y + 8)) and (.horizontal_pixel >= sprite_x) and (.horizontal_pixel < (sprite_x + 8)) {
-                mut sprite_row = (.vertical_pixel - sprite_y) as! u64
-                mut sprite_col = (.horizontal_pixel - sprite_x) as! u64
-                                
-                let sprite_index = .oam[sprite * 4 + 1]
-
-                if (sprite_attr & 0x80) == 0x80 {
-                    sprite_row = 7 - sprite_row
+            if not transparent {
+        
+                if not sprite.bg_sprite or not bg_set {
+                    let rgb = .look_up_palette_entry_sprite(palette_entry: entry)
+                    .video_buffer[vertical_pixel as! u16 * 256u16 + horizontal_pixel as! u16] = rgb
                 }
-
-                if (sprite_attr & 0x40) == 0x40 {
-                    sprite_col = 7 - sprite_col
-                }
-
-                let first_plane_byte = match .sprite_table_address {
-                    0000 => .vram_page_0000[sprite_index as! u64 * 0x10 + sprite_row]
-                    else => .vram_page_1000[sprite_index as! u64 * 0x10 + sprite_row]
-                }
-                let second_plane_byte = match .sprite_table_address {
-                    0000 => .vram_page_0000[sprite_index as! u64 * 0x10 + sprite_row + 8]
-                    else => .vram_page_1000[sprite_index as! u64 * 0x10 + sprite_row + 8]
-                }
-
-                let first_plane_bit = first_plane_byte >> (7 - sprite_col) & 0x1
-                let second_plane_bit = second_plane_byte >> (7 - sprite_col) & 0x1
-
-                let color_bits = sprite_attr & 0x3
-
-                let palette_entry = first_plane_bit + (second_plane_bit * 2) + (color_bits * 4)
-
-                if (first_plane_bit == 0) and (second_plane_bit == 0) {
-                    if is_behind {
-                        let rgb = .look_up_palette_entry_sprite(palette_entry: 0)
-                        .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
-                    }
-                } else {
-                    let rgb = .look_up_palette_entry_sprite(palette_entry)
-                    .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb
-
-                    if not .sprite_zero_hit and sprite == 0 {
-                        return true
-                    }
-                }
+                
+                // Sprite zero can be hit from the background too!
+                .sprite_zero_hit = (not .sprite_zero_hit) and sprite.sprite_zero 
             }
         }
 
-        return false
     }
 
     function coarse_x_increment(mut this) {
@@ -306,6 +362,56 @@ class PPU {
             .v = (.v & ~0x03e0u16) | (y << 5)
         }
     }
+
+    function find_sprites(mut this, scanline: u8) throws -> [Sprite]  {
+        mut result: [Sprite] = []
+        mut sprite_count = 0
+        let sprite_table = match .sprite_table_address {
+                    0000 => .vram_page_0000
+                    else => .vram_page_1000
+                }   
+        for sprite in (0u8..63u8).inclusive() {
+            let sprite_addr = sprite * 4u8
+            let sprite_y = .oam[sprite_addr]
+            let sprite_x = .oam[sprite_addr + 3]
+	        
+            if scanline >= sprite_y and scanline < (sprite_y + 8)  {
+                if sprite_count >= 8 {
+                    //println("Sprite overflow, {} entries in second OAM", result.size())
+                    // TODO: properly implement the sprite overflow bug
+                    .sprite_overflow = true
+                    break
+                }
+                let sprite_attr = .oam[sprite_addr + 2]
+                let vflip = (sprite_attr & 0x80) == 0x80
+                let tile_row = match vflip {
+                    false => (scanline - sprite_y)
+                    else => 7 - (scanline - sprite_y)
+                }
+                //let sprite_index = (tile_row & 0x7) | ((sprite_x & 0xf) << 4) | ((sprite_y & 0xf) << 8)
+                let sprite_index = .oam[sprite_addr + 1] as! u64 * 0x10 + tile_row as! u64
+                let first_plane = sprite_table[sprite_index]
+                let second_plane = sprite_table[sprite_index + 8]
+
+                mut mask = [0u8; 8]
+                for i in 0..8u8 {
+                    mask[i] = ((first_plane >> i) & 0x1) | (((second_plane >> i & 0x1) << 1)) | ((sprite_attr & 0x3) << 2)
+                }
+
+                result.push(Sprite(
+                    hflip: (sprite_attr & 0x40) == 0x40
+                    mask: mask
+                    bg_sprite: (sprite_attr & 0x20) == 0x20
+                    sprite_x: sprite_x
+                    sprite_zero: sprite == 0
+                ))
+                sprite_count += 1
+            }
+        }
+        return result
+    }
+
+
     function render_pixel(mut this) throws {
         // BACKGROUND
         //println("Hpx: {}, Vpx: {}", horizontal_pixel, vertical_pixel)
@@ -334,12 +440,16 @@ class PPU {
             return
         }
 
+        // if .horizontal_pixel == 0 {
+        //     .second_oam = .find_sprites(scanline: .vertical_pixel as! u8)  
+        // }
+
         mut bg_pixel_set = false
         mut sprite_zero_set = false
 
-        if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(is_behind: true)
-        }
+        //if .sprites_visible {
+        //    sprite_zero_set |= .render_sprite_pixel(horizontal_pixel, vertical_pixel, is_behind: true)
+        //}
 
         // FIXME: when we add support for sprites remove this
         if .background_visible {
@@ -347,11 +457,7 @@ class PPU {
         }
 
         if .sprites_visible {
-            sprite_zero_set |= .render_sprite_pixel(is_behind: false)
-        }
-
-        if bg_pixel_set and sprite_zero_set {
-            .sprite_zero_hit = true
+            .render_sprite_pixel(horizontal_pixel: .horizontal_pixel as! u8, vertical_pixel: .vertical_pixel as! u8, bg_set: bg_pixel_set)
         }
 
         // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
@@ -360,29 +466,31 @@ class PPU {
         // print("{:0>2x}", nametable_entry)
     }
 
-    function look_up_palette_entry_bg(mut this, palette_entry: u8) throws -> RGB {
+    function look_up_palette_entry_bg(mut this, palette_entry: u8) -> RGB {
         guard palette_entry < 16 else {
-            println(format("ERROR: incorrect palette entry: {}", palette_entry))
-            return RGB(red: 0, green: 0, blue: 0)
+            println("ERROR: incorrect palette entry: {}", palette_entry)
+            //return RGB(red: 0, green: 0, blue: 0)
+            abort()
         }
 
         let bg_palette = .vram[0x3f00 + palette_entry as! u64]
 
-        return convert_palette_to_rgb(bg_palette)
+        return .convert_palette_to_rgb(bg_palette)
     }
 
-    function look_up_palette_entry_sprite(mut this, palette_entry: u8) throws -> RGB {
+    function look_up_palette_entry_sprite(mut this, palette_entry: u8) -> RGB {
         guard palette_entry < 16 else {
-            println(format("ERROR: incorrect palette entry: {}", palette_entry))
-            return RGB(red: 0, green: 0, blue: 0)
+            println("ERROR: incorrect palette entry: {}", palette_entry)
+            //return RGB(red: 0, green: 0, blue: 0)
+            abort()
         }
 
         match palette_entry {
-            0 => { return convert_palette_to_rgb(.vram[0x3f00]) }
-            0x4 => { return convert_palette_to_rgb(.vram[0x3f04]) }
-            0x8 => { return convert_palette_to_rgb(.vram[0x3f08]) }
-            0xc => { return convert_palette_to_rgb(.vram[0x3f0c]) }
-            else => { return convert_palette_to_rgb(.vram[0x3f10 + (palette_entry as! u64)]) }
+            0 => { return .convert_palette_to_rgb(.vram[0x3f00]) }
+            0x4 => { return .convert_palette_to_rgb(.vram[0x3f04]) }
+            0x8 => { return .convert_palette_to_rgb(.vram[0x3f08]) }
+            0xc => { return .convert_palette_to_rgb(.vram[0x3f0c]) }
+            else => { return .convert_palette_to_rgb(.vram[0x3f10 + (palette_entry as! u64)]) }
         }
     }
 
@@ -663,81 +771,17 @@ class PPU {
             else => 0
         }
     }
+
+    function convert_palette_to_rgb(this, anon value: u8) -> RGB {
+        if value > 63 {
+            eprintln("ERROR: incorrect palette for rgb: {}", value)
+            abort()
+        }
+        return .color_palette[value]
+    }
+
 }
 
 function rgb(anon red: u8, anon green: u8, anon blue: u8) throws -> RGB {
     return RGB(red, green, blue)
-}
-
-function convert_palette_to_rgb(anon value: u8) throws -> RGB {
-    return match value {
-        0x00 => rgb(101 101 101)
-        0x01 => rgb(0    45 105)
-        0x02 => rgb(19   31 127)
-        0x03 => rgb(69   19 124)
-        0x04 => rgb(96   11  98)
-        0x05 => rgb(115  10  55)
-        0x06 => rgb(113  15   7)
-        0x07 => rgb(90   26   0)
-        0x08 => rgb(52   40   0)
-        0x09 => rgb(11   52   0)
-        0x0a => rgb(0   60    0)    
-        0x0b => rgb(0   61   16)    
-        0x0c => rgb(0   56   64)
-        0x0d => rgb(0    0    0)
-        0x0e => rgb(0    0    0)
-        0x0f => rgb(0    0    0)
-        0x10 => rgb(174 174 174)
-        0x11 => rgb(15   99 179)
-        0x12 => rgb(64   81 208)
-        0x13 => rgb(120  65 204)
-        0x14 => rgb(167  54 169)
-        0x15 => rgb(192  52 112)
-        0x16 => rgb(189  60  48)
-        0x17 => rgb(159  74   0)
-        0x18 => rgb(109  92   0)
-        0x19 => rgb(54  109   0)
-        0x1a => rgb(7   119   4)
-        0x1b => rgb(0   121  61)
-        0x1c => rgb(0   114 125)
-        0x1d => rgb(0     0   0)
-        0x1e => rgb(0     0   0)
-        0x1f => rgb(0     0   0)
-        0x20 => rgb(254 254 255)
-        0x21 => rgb(93  179 255)
-        0x22 => rgb(143 161 255)
-        0x23 => rgb(200 144 255)
-        0x24 => rgb(247 133 250)
-        0x25 => rgb(255 131 192)
-        0x26 => rgb(255 139 127)
-        0x27 => rgb(239 154  73)
-        0x28 => rgb(189 172  44)
-        0x29 => rgb(133 188  47)
-        0x2a => rgb(85  199  83)    
-        0x2b => rgb(60  201 140)    
-        0x2c => rgb(62  194 205)
-        0x2d => rgb(78   78  78)
-        0x2e => rgb(0     0   0)
-        0x2f => rgb(0     0   0)
-        0x30 => rgb(254 254 255)
-        0x31 => rgb(188 223 255)
-        0x32 => rgb(209 216 255)
-        0x33 => rgb(232 209 255)
-        0x34 => rgb(251 205 253)
-        0x35 => rgb(255 204 229)
-        0x36 => rgb(255 207 202)
-        0x37 => rgb(248 213 180)
-        0x38 => rgb(228 220 168)
-        0x39 => rgb(204 227 169)
-        0x3a => rgb(185 232 184)    
-        0x3b => rgb(174 232 208)    
-        0x3c => rgb(175 229 234)
-        0x3d => rgb(182 182 182)
-        0x3e => rgb(0    0    0)
-        0x3f => rgb(0    0    0)
-        else => {
-            println("ERROR: incorrect palette for rgb")
-            yield rgb(0, 0, 0)
-        }
-    }
 }

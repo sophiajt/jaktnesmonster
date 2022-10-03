@@ -25,7 +25,7 @@ function main(args: [String]) {
             mut cpu = CPU::init(system)
             mut debugger = Debugger::init(cpu)
             mut joypad = system.joypad
-
+	        mut ppu = system.ppu
             loop {
                 let in_vblank_before = system.ppu.in_vblank
 
@@ -37,7 +37,7 @@ function main(args: [String]) {
                     debugger.dump_cpu_state()
                 }
 
-                mut ppu = system.ppu
+//                mut ppu = system.ppu
                 ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
                 let in_vblank_after = system.ppu.in_vblank
 
