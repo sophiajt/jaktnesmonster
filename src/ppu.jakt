@@ -182,8 +182,9 @@ class PPU {
             .clock += 1
 
             // 257-320 = sprite tile loading interval
-            if (.horizontal_pixel >= 257) and (.horizontal_pixel <= 320) and (((.vertical_pixel >= 1) and (.vertical_pixel <= 239)) or (.vertical_pixel == 261)) {
-                .oam_addr = 0x00
+            if (.horizontal_pixel >= 257) and (.horizontal_pixel <= 320) and ((.vertical_pixel >= 0) and (.vertical_pixel <= 239)) {
+                // .oam_addr = 0x00
+                .second_oam = .find_sprites(scanline: (.vertical_pixel + 1) as! u8)
             }
             // 240 is the post-render line, vblank is set in 241
             if (.vertical_pixel == 241) and (.horizontal_pixel == 1){
@@ -193,16 +194,16 @@ class PPU {
             if (.vertical_pixel == 261) and (.horizontal_pixel == 1){
                 .in_vblank = false
                 .sprite_zero_hit = false
-                // TODO: Add support for sprite overflow
-                // .sprite_overflow = false
+                .sprite_overflow = false
             }
             // Coarse X
             // if (.rendering_enabled) and (.horizontal_pixel % 8 == 0) and ((.horizontal_pixel <= 256) or (.horizontal_pixel > 328)) {
             //    .v += 1
             // }
-            if (.horizontal_pixel == 340) and (.vertical_pixel == 261) and (.rendering_enabled) and (.even_frame_flag == false) { .clock = 0 }
+            if (.horizontal_pixel == 339) and (.vertical_pixel == 261) and (.rendering_enabled) and (.even_frame_flag == false) { .clock = 0 }
             if (.horizontal_pixel == 340) and (.vertical_pixel == 261) { .clock = 0 }
-                .even_frame_flag != .even_frame_flag
+            
+            .even_frame_flag = not .even_frame_flag
         }
     }
 
@@ -435,9 +436,9 @@ class PPU {
             return
         }
 
-        if horizontal_pixel == 0 {
-            .second_oam = .find_sprites(scanline: vertical_pixel as! u8)
-        }
+        // if .horizontal_pixel == 0 {
+        //     .second_oam = .find_sprites(scanline: .vertical_pixel as! u8)  
+        // }
 
         mut bg_pixel_set = false
         mut sprite_zero_set = false
@@ -452,7 +453,7 @@ class PPU {
         }
 
         if .sprites_visible {
-            .render_sprite_pixel(horizontal_pixel: horizontal_pixel as! u8, vertical_pixel: vertical_pixel as! u8, bg_set: bg_pixel_set)
+            .render_sprite_pixel(horizontal_pixel: .horizontal_pixel as! u8, vertical_pixel: .vertical_pixel as! u8, bg_set: bg_pixel_set)
         }
 
         // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
@@ -481,11 +482,11 @@ class PPU {
         }
 
         match palette_entry {
-            0 => { return convert_palette_to_rgb(.vram[0x3f00]) }
-            0x4 => { return convert_palette_to_rgb(.vram[0x3f04]) }
-            0x8 => { return convert_palette_to_rgb(.vram[0x3f08]) }
-            0xc => { return convert_palette_to_rgb(.vram[0x3f0c]) }
-            else => { return convert_palette_to_rgb(.vram[0x3f10 + (palette_entry as! u64)]) }
+            0 => { return .convert_palette_to_rgb(.vram[0x3f00]) }
+            0x4 => { return .convert_palette_to_rgb(.vram[0x3f04]) }
+            0x8 => { return .convert_palette_to_rgb(.vram[0x3f08]) }
+            0xc => { return .convert_palette_to_rgb(.vram[0x3f0c]) }
+            else => { return .convert_palette_to_rgb(.vram[0x3f10 + (palette_entry as! u64)]) }
         }
     }
 
