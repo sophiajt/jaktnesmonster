@@ -29,6 +29,8 @@ function main(args: [String]) {
             mut clock_pause: bool = false
             mut one_frame: bool = false
             mut slow_mode: bool = false
+            eprintln("Debugging keys\n--------------")
+            eprintln("D - hold to dump current CPU info\nH - toggle CPU halt\nJ - When halted, run single clock\nL - toggle slow mode")
 
             loop {
                 mut event = sdl.poll_event()
@@ -102,12 +104,17 @@ function main(args: [String]) {
                                 }
                                 H => {
                                     clock_pause = not clock_pause
+                                    eprintln("Clock pause: {}", clock_pause)
                                 }
                                 J => {
-                                    one_frame = true
+                                    if clock_pause {
+                                        one_frame = true
+                                        eprintln("Executing single clock")
+                                    }
                                 }
                                 L => {
                                     slow_mode = not slow_mode
+                                    eprintln("Slow clock mode: {}", slow_mode)
                                 }
                             }
                         }
