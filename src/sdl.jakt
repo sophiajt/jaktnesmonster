@@ -17,6 +17,7 @@ import extern c "SDL.h" {
     extern function SDL_DestroyRenderer(renderer: raw SDL_Renderer) -> void
     extern function SDL_DestroyWindow(window: raw SDL_Window) -> void
     extern function SDL_Quit() -> void
+    extern function SDL_Delay(ms: u32) -> void
 }
 
 enum Key {
@@ -29,6 +30,9 @@ enum Key {
     X
     Tab
     D
+    H
+    J
+    L
 }
 
 enum SDLEvent {
@@ -134,6 +138,15 @@ class SDL {
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_D) {
                         const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::D());
                         return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_H) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::H());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_J) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::J());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_L) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::L());
+                        return event;
                     }
                 } else if (has_event && event.type == SDL_KEYUP) {
                     if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
@@ -163,6 +176,15 @@ class SDL {
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_D) {
                         const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::D());
                         return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_H) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::H());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_J) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::J());
+                        return event;
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_L) {
+                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::L());
+                        return event;
                     }
                 }"
             }
@@ -176,6 +198,12 @@ class SDL {
             SDL_DestroyRenderer(renderer: .renderer)
             SDL_DestroyWindow(window: .window)
             SDL_Quit()
+        }
+    }
+
+    public function delay(this, anon ms:u32) {
+        unsafe {
+            SDL_Delay(ms)
         }
     }
 }

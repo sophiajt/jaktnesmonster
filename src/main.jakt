@@ -25,101 +25,111 @@ function main(args: [String]) {
             mut cpu = CPU::init(system)
             mut debugger = Debugger::init(cpu)
             mut joypad = system.joypad
-	        mut ppu = system.ppu
+            mut ppu = system.ppu
+            mut clock_pause: bool = false
+            mut one_frame: bool = false
+            mut slow_mode: bool = false
+            eprintln("Debugging keys\n--------------")
+            eprintln("D - hold to dump current CPU info\nH - toggle CPU halt\nJ - When halted, run single clock\nL - toggle slow mode")
+
             loop {
-                let in_vblank_before = system.ppu.in_vblank
-
-                let cpu_clocks_before = cpu.clock
-                cpu.run_opcode()
-                let cpu_clocks_after = cpu.clock
-
-                if system.debug {
-                    debugger.dump_cpu_state()
-                }
-
-//                mut ppu = system.ppu
-                ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
-                let in_vblank_after = system.ppu.in_vblank
-
-                if not in_vblank_before and in_vblank_after {
-                    // We're just now in the vblank
-                    draw_frame(sdl, buffer: ppu.video_buffer)
-                    mut event = sdl.poll_event()
-                    if event.has_value() {
-                        match event! {
-                            Quit => {
-                                break
+                mut event = sdl.poll_event()
+                if event.has_value() {
+                    match event! {
+                        Quit => {
+                            break
+                        }
+                        KeyDown(key) => {
+                            match key {
+                                Up => {
+                                    joypad.press_up()
+                                }
+                                Down => {
+                                    joypad.press_down()
+                                }
+                                Left => {
+                                    joypad.press_left()
+                                }
+                                Right => {
+                                    joypad.press_right()
+                                }
+                                Return => {
+                                    joypad.press_start()
+                                }
+                                Tab => {
+                                    joypad.press_select()
+                                }
+                                Z => {
+                                    joypad.press_a()
+                                }
+                                X => {
+                                    joypad.press_b()
+                                }
+                                D => {
+                                    system.debug_enable()
+                                }
+                                H => {}
+                                J => {}
+                                L => {}
                             }
-                            KeyDown(key) => {
-                                match key {
-                                    Up => {
-                                        joypad.press_up()
-                                    }
-                                    Down => {
-                                        joypad.press_down()
-                                    }
-                                    Left => {
-                                        joypad.press_left()
-                                    }
-                                    Right => {
-                                        joypad.press_right()
-                                    }
-                                    Return => {
-                                        joypad.press_start()
-                                    }
-                                    Tab => {
-                                        joypad.press_select()
-                                    }
-                                    Z => {
-                                        joypad.press_a()
-                                    }
-                                    X => {
-                                        joypad.press_b()
-                                    }
-                                    D => {
-                                        system.debug_enable()
+                        }
+                        KeyUp(key) => {
+                            match key {
+                                Up => {
+                                    joypad.release_up()
+                                }
+                                Down => {
+                                    joypad.release_down()
+                                }
+                                Left => {
+                                    joypad.release_left()
+                                }
+                                Right => {
+                                    joypad.release_right()
+                                }
+                                Return => {
+                                    joypad.release_start()
+                                }
+                                Tab => {
+                                    joypad.release_select()
+                                }
+                                Z => {
+                                    joypad.release_a()
+                                }
+                                X => {
+                                    joypad.release_b()
+                                }
+                                D => {
+                                    system.debug_disable()
+                                }
+                                H => {
+                                    clock_pause = not clock_pause
+                                    eprintln("Clock pause: {}", clock_pause)
+                                }
+                                J => {
+                                    if clock_pause {
+                                        one_frame = true
+                                        eprintln("Executing single clock")
                                     }
                                 }
-                            }
-                            KeyUp(key) => {
-                                match key {
-                                    Up => {
-                                        joypad.release_up()
-                                    }
-                                    Down => {
-                                        joypad.release_down()
-                                    }
-                                    Left => {
-                                        joypad.release_left()
-                                    }
-                                    Right => {
-                                        joypad.release_right()
-                                    }
-                                    Return => {
-                                        joypad.release_start()
-                                    }
-                                    Tab => {
-                                        joypad.release_select()
-                                    }
-                                    Z => {
-                                        joypad.release_a()
-                                    }
-                                    X => {
-                                        joypad.release_b()
-                                    }
-                                    D => {
-                                        system.debug_disable()
-                                    }
+                                L => {
+                                    slow_mode = not slow_mode
+                                    eprintln("Slow clock mode: {}", slow_mode)
                                 }
                             }
                         }
                     }
                 }
-            
-                if not in_vblank_before and in_vblank_after and ppu.nmi_on_vblank {
-                    // println("==NMI==")
-                    cpu.nmi()
+                if one_frame {
+                    nesclock(system, cpu, debugger, sdl)
+                    one_frame = false
                 }
+                if slow_mode {
+                    nesclock(system, cpu, debugger, sdl)
+                    sdl.delay(5u32)
+                }
+                if not clock_pause and not slow_mode {nesclock(system, cpu, debugger, sdl) }
+
             }
         }
         Error(msg) => {
@@ -131,4 +141,30 @@ function main(args: [String]) {
 
     sdl.quit()
     return 0
+}
+
+function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: SDL) throws {
+    let in_vblank_before = system.ppu.in_vblank
+
+    let cpu_clocks_before = cpu.clock
+    cpu.run_opcode()
+    let cpu_clocks_after = cpu.clock
+
+    if system.debug {
+        debugger.dump_cpu_state()
+    }
+
+    system.ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
+    let in_vblank_after = system.ppu.in_vblank
+
+    if not in_vblank_before and in_vblank_after {
+        // We're just now in the vblank
+        draw_frame(sdl, buffer: system.ppu.video_buffer)
+
+    }
+
+    if not in_vblank_before and in_vblank_after and system.ppu.nmi_on_vblank {
+        // println("==NMI==")
+        cpu.nmi()
+    }
 }
