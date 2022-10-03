@@ -12,7 +12,16 @@ class Sprite {
     public sprite_zero: bool
 
     public function get_sprite_pixel(this, x: u8) -> (bool, u8){
-        guard x >= .sprite_x and x < (.sprite_x + 8) else {
+
+
+        //FIXME: surely there is a more elegant way to handle overflows
+        mut spritemax: u8 = 0
+        if .sprite_x > 247u8 {
+            spritemax = 255u8
+        } else {
+            spritemax = .sprite_x + 8
+        }
+        guard x >= .sprite_x and x < (spritemax) else {
             return(false, 0u8)
         }
 
