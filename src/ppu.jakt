@@ -51,6 +51,7 @@ class PPU {
     sprites_visible: bool
     buffered_read: u8
     sprite_zero_hit: bool
+    sprite_overflow: bool
     public debug: bool
     rendering_enabled: bool
     even_frame_flag: bool
@@ -89,6 +90,7 @@ class PPU {
             sprites_visible: false
             buffered_read: 0
             sprite_zero_hit: false
+            sprite_overflow: false
             debug: false
             rendering_enabled: false
             even_frame_flag: true
@@ -361,7 +363,7 @@ class PPU {
         }
     }
 
-    function find_sprites(this, scanline: u8) throws -> [Sprite]  {
+    function find_sprites(mut this, scanline: u8) throws -> [Sprite]  {
         mut result: [Sprite] = []
         mut sprite_count = 0
         let sprite_table = match .sprite_table_address {
@@ -369,15 +371,17 @@ class PPU {
                     else => .vram_page_1000
                 }   
         for sprite in (0u8..63u8).inclusive() {
-            if sprite_count >= 8 {
-                //println("Sprite overflow, {} entries in second OAM", result.size())
-                break
-            }
             let sprite_addr = sprite * 4u8
             let sprite_y = .oam[sprite_addr]
             let sprite_x = .oam[sprite_addr + 3]
 	        
             if scanline >= sprite_y and scanline < (sprite_y + 8)  {
+                if sprite_count >= 8 {
+                    //println("Sprite overflow, {} entries in second OAM", result.size())
+                    // TODO: properly implement the sprite overflow bug
+                    .sprite_overflow = true
+                    break
+                }
                 let sprite_attr = .oam[sprite_addr + 2]
                 let vflip = (sprite_attr & 0x80) == 0x80
                 let tile_row = match vflip {
