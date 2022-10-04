@@ -3,6 +3,8 @@ import extern c "SDL.h" {
     extern struct SDL_Window {}
     extern struct SDL_AudioDeviceID {}
     extern struct SDL_AudioSpec {}
+    extern struct SDL_Texture {}
+    extern struct SDL_Rect {}
 
     extern function SDL_SetMainReady() -> void
     extern function SDL_Init(flags: u32) -> c_int
@@ -24,6 +26,10 @@ import extern c "SDL.h" {
     extern function SDL_PauseAudioDevice(device: u32, mode: u32)
     extern function SDL_QueueAudio(device: u32, sample: raw i16, sample_size: u32)
     extern function SDL_ClearQueuedAudio(device: u32)
+    extern function SDL_LockTexture(mut texture: raw SDL_Texture, rect: raw SDL_Rect, pixels: raw raw void, pitch: raw c_int) -> c_int
+    extern function SDL_UnlockTexture(mut texture: raw SDL_Texture) -> void
+    extern function SDL_RenderCopy(mut renderer:  raw SDL_Renderer, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int
+    extern function SDL_CreateTexture(mut renderer: raw SDL_Renderer, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture
 }
 
 enum Key {
@@ -256,6 +262,29 @@ class SDL {
     public function clear_queued_audio(mut this) {
         unsafe {
             SDL_ClearQueuedAudio(device: .audio_device)
+        }
+    }
+    public function lock_texture(this, mut texture: raw SDL_Texture, rect: raw SDL_Rect, mut pixels: raw raw void, mut pitch: raw c_int) -> c_int {
+        unsafe {
+            return SDL_LockTexture(texture, rect, pixels, pitch)
+        }
+    }
+
+    public function unlock_texture(this, mut texture: raw SDL_Texture) -> void {
+        unsafe {
+            SDL_UnlockTexture(texture)
+        }
+    }
+
+    public function render_copy(this, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int {
+        unsafe {
+            return SDL_RenderCopy(renderer: .renderer, texture, srcrect, dstrect)
+        }
+    }
+
+    public function create_texture(this, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture {
+        unsafe {
+            return SDL_CreateTexture(renderer: .renderer, format, access, w, h)
         }
     }
 }

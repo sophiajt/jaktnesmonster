@@ -1,38 +1,42 @@
-import sdl { SDL }
+import extern c "SDL.h" {}
+import extern "algorithm" {}
+import sdl { SDL,  null }
 import ppu { RGB }
 import cart { Region }
 
 function draw_frame(sdl: SDL, buffer: [RGB], region: Region) throws {
-    let WINDOW_WIDTH = 600;
-    mut user_x = 100u64;
-    mut user_y = 100u64;
 
-    match region {
-        NTSC => {
-            for idx in (256u64 * 8u64)..(256u64 * 232u64) {
-                let i = idx - (256u64 * 8u64)
-                let rgb = buffer[idx]
-                sdl.set_render_draw_color(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 255)
-
-                let x = i % 256
-                let y = i / 256
-
-                sdl.render_draw_point(x, y)
-            }
-
-        }
-        else => {
-            for i in 0..(256u64 * 240u64) {
-                let rgb = buffer[i]
-                sdl.set_render_draw_color(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 255)
-
-                let x = i % 256
-                let y = i / 256
-
-                sdl.render_draw_point(x, y)
-            }
+    mut format = 0u32
+    mut access: c_int = 0
+    let (width, height) = match region {
+        NTSC => (256, 224) // NTSC does not display the top and bottom 8 scanlines of the framebuffer
+        PAL => (256, 240)
+        else => {abort()}
+    }
+    unsafe {
+        cpp {
+            "format = SDL_PIXELFORMAT_RGBA32;"
+            "access = SDL_TEXTUREACCESS_STREAMING;"
         }
     }
+
+    mut texture = sdl.create_texture(format, access, w: 256, h: 240)
+    mut pixels: raw u32 = null()
+    mut pitch: c_int = 0
+
+    unsafe {cpp{
+        "int result = SDL_LockTexture(texture, NULL, (void**)&pixels,  &pitch);
+        if (result < 0)  {
+            printf(\"SDL LockTexture failed: %s\n\",  SDL_GetError());
+        }
+        for (int i = 0; i < buffer.size(); ++i){
+            pixels[i] = buffer[i]->to_u32();
+        }
+        "
+    }}
+
+    sdl.unlock_texture(texture)
+    sdl.render_copy(texture, srcrect: null(), dstrect: null())    
 
     sdl.render_present()
 
