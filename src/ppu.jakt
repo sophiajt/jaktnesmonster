@@ -4,6 +4,11 @@ class RGB {
     public red: u8
     public green: u8
     public blue: u8
+
+    public function to_u32(this) -> u32 {
+    // Order is RGBA for SDL
+        return (255 << 24) | (.blue << 16) | (.green << 8) | .red 
+    }
 }
 
 class Sprite {
