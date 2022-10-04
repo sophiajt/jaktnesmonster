@@ -51,6 +51,9 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     mut prg_rom_pages: [[u8]] = []
     let prg_rom_page_size: usize = 16 * 1024
     mut current_start: usize = 16
+    if (chr_rom == 0) {
+        current_start = 0x2010
+    }
 
     for page in 0..prg_rom {
         mut current_page: [u8] = []
