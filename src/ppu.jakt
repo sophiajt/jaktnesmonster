@@ -36,6 +36,7 @@ class PPU {
     public nmi_on_vblank: bool
     clock: u64
     public in_vblank: bool
+    dont_vblank: bool
     vram: [u8]
     // public vram_rw_addr: u16
     public oam: [u8]
@@ -79,6 +80,7 @@ class PPU {
             nmi_on_vblank: false
             clock: 0
             in_vblank: false
+            dont_vblank: false
             vram: [0; 0x3FFF]
             oam: [0; 256]
             oam_addr: 0x00
@@ -188,9 +190,15 @@ class PPU {
                 // .oam_addr = 0x00
                 .second_oam = .find_sprites(scanline: (.vertical_pixel + 1) as! u8)
             }
+            if (.vertical_pixel == 241) and (.horizontal_pixel == 0) {
+                .dont_vblank = false
+            }
             // 240 is the post-render line, vblank is set in 241
             if (.vertical_pixel == 241) and (.horizontal_pixel == 1){
-                .in_vblank = true
+                if not .dont_vblank { .in_vblank = true }
+            }
+            if (.vertical_pixel == 241) and (.horizontal_pixel == 3) {
+                .dont_vblank = false
             }
             // 261 is the pre-render line
             if (.vertical_pixel == 261) and (.horizontal_pixel == 1){
@@ -737,7 +745,9 @@ class PPU {
         }
 
         .w = 0
-
+        if (.vertical_pixel == 241) and (.horizontal_pixel >= 1 or .horizontal_pixel <= 3){
+            .dont_vblank = true
+        }
         .in_vblank = false
         return status
     }
