@@ -12,16 +12,22 @@ class Sprite {
     public sprite_zero: bool
 
     public function get_sprite_pixel(this, x: u8) -> (bool, u8){
-        guard x >= .sprite_x and x < (.sprite_x + 8) else {
+
+        //TODO (?): How did the hardware handle this with 8 bits?
+        guard x >= .sprite_x and (x as! u16) < ((.sprite_x as! u16) + 8u16) else {
             return(false, 0u8)
         }
 
-        let shift_amount = match .hflip {
-            true => x - .sprite_x
-            else => 7 - (x - .sprite_x)
+        mut shift_amount = match .hflip {
+            true => (x - .sprite_x) as! i16
+            else => 7 - (x as! i16 - .sprite_x as! i16)
         }
 
-        let entry = .mask[shift_amount]
+        if (shift_amount < 0) {
+            shift_amount = 0
+        }
+
+        let entry = .mask[shift_amount as! u8]
 
         return (true, entry)
     }
