@@ -124,7 +124,7 @@ function main(args: [String]) {
                     nesclock(system, cpu, debugger, sdl)
                     one_frame = false
                 }
-                if slow_mode {
+                if slow_mode and not clock_pause {
                     nesclock(system, cpu, debugger, sdl)
                     sdl.delay(5u32)
                 }
