@@ -30,10 +30,10 @@ function main(args: [String]) {
             mut one_frame: bool = false
             mut slow_mode: bool = false
             eprintln("Debugging keys\n--------------")
-            eprintln("D - hold to dump current CPU info\nH - toggle CPU halt\nJ - When halted, run single clock\nL - toggle slow mode")
+            eprintln("D - hold to dump current CPU info\nH - toggle CPU halt\nJ - When halted, run single frame\nL - toggle slow mode")
 
+            mut event = sdl.poll_event()
             loop {
-                mut event = sdl.poll_event()
                 if event.has_value() {
                     match event! {
                         Quit => {
@@ -109,7 +109,7 @@ function main(args: [String]) {
                                 J => {
                                     if clock_pause {
                                         one_frame = true
-                                        eprintln("Executing single clock")
+                                        eprintln("Executing single frame")
                                     }
                                 }
                                 L => {
@@ -120,16 +120,27 @@ function main(args: [String]) {
                         }
                     }
                 }
+                event = None
+
                 if one_frame {
-                    nesclock(system, cpu, debugger, sdl)
+                    if nesclock(system, cpu, debugger, sdl) {
+                        event = sdl.poll_event()
+                    }
                     one_frame = false
                 }
                 if slow_mode {
-                    nesclock(system, cpu, debugger, sdl)
-                    sdl.delay(5u32)
+                    if nesclock(system, cpu, debugger, sdl) {
+                        event = sdl.poll_event()
+                    }
+                    sdl.delay(1u32)
                 }
-                if not clock_pause and not slow_mode {nesclock(system, cpu, debugger, sdl) }
-
+                if not clock_pause and not slow_mode {
+                    if nesclock(system, cpu, debugger, sdl) {
+                        event = sdl.poll_event()
+                    }
+                } else {
+                    event = sdl.poll_event()
+                }
             }
         }
         Error(msg) => {
@@ -143,8 +154,9 @@ function main(args: [String]) {
     return 0
 }
 
-function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: SDL) throws {
+function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: SDL) throws -> bool {
     let in_vblank_before = system.ppu.in_vblank
+    mut next_frame = false
 
     let cpu_clocks_before = cpu.clock
     cpu.run_opcode()
@@ -160,11 +172,13 @@ function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
     if not in_vblank_before and in_vblank_after {
         // We're just now in the vblank
         draw_frame(sdl, buffer: system.ppu.video_buffer)
-
+        next_frame = true
     }
 
     if not in_vblank_before and in_vblank_after and system.ppu.nmi_on_vblank {
         // println("==NMI==")
         cpu.nmi()
     }
+
+    return next_frame
 }
