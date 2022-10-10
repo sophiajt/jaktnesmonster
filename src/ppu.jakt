@@ -12,16 +12,22 @@ class Sprite {
     public sprite_zero: bool
 
     public function get_sprite_pixel(this, x: u8) -> (bool, u8){
-        guard x >= .sprite_x and x < (.sprite_x + 8) else {
+
+        //TODO (?): How did the hardware handle this with 8 bits?
+        guard x >= .sprite_x and (x as! u16) < ((.sprite_x as! u16) + 8u16) else {
             return(false, 0u8)
         }
 
-        let shift_amount = match .hflip {
-            true => x - .sprite_x
-            else => 7 - (x - .sprite_x)
+        mut shift_amount = match .hflip {
+            true => (x - .sprite_x) as! i16
+            else => 7 - (x as! i16 - .sprite_x as! i16)
         }
 
-        let entry = .mask[shift_amount]
+        if (shift_amount < 0) {
+            shift_amount = 0
+        }
+
+        let entry = .mask[shift_amount as! u8]
 
         return (true, entry)
     }
@@ -423,17 +429,19 @@ class PPU {
     function render_pixel(mut this) throws {
         // BACKGROUND
         //println("Hpx: {}, Vpx: {}", horizontal_pixel, vertical_pixel)
-        if .horizontal_pixel == 256 and .rendering_enabled {
+        let visible_row = (.vertical_pixel < 240) or (.vertical_pixel == 261)
+
+        if .horizontal_pixel == 256 and visible_row and .rendering_enabled {
             .y_increment()
         }
 
-        if .horizontal_pixel == 257 and .rendering_enabled {
+        if .horizontal_pixel == 257 and visible_row and .rendering_enabled {
             let abcdef = .t & 0x41f
             .v = .v & 0xbe0
             .v = .v | abcdef
         }
 
-        if (.horizontal_pixel >= 280) and (.horizontal_pixel <= 304) and (.vertical_pixel == 262) and .rendering_enabled {
+        if (.horizontal_pixel >= 280) and (.horizontal_pixel <= 304) and (.vertical_pixel == 261) and .rendering_enabled {
             // GHIA.BC DEF.....
             let ghiabcdef = .t & 0x7be0
             .v = .v & 0x41f
