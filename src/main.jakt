@@ -7,8 +7,9 @@ import joypad { Joypad }
 
 function main(args: [String]) {
     mut sdl = SDL::construct()
-    sdl.init_video(width: 256 * 2, height: 240 * 2)
-    sdl.set_scale(scale: 2.0f32)
+    defer {
+        sdl.quit()
+    }
 
     guard args.size() > 1 else {
         eprintln("usage: jakt_nes <rom file>")
@@ -31,6 +32,13 @@ function main(args: [String]) {
             mut slow_mode: bool = false
             eprintln("Debugging keys\n--------------")
             eprintln("D - hold to dump current CPU info\nH - toggle CPU halt\nJ - When halted, run single frame\nL - toggle slow mode")
+
+            if system.cart.region is NTSC {
+                sdl.init_video(width: 256 * 2, height: 224 * 2)
+            } else {
+                sdl.init_video(width: 256 * 2, height: 240 * 2)
+            }
+            sdl.set_scale(scale: 2.0f32)
 
             mut event = sdl.poll_event()
             loop {
@@ -145,12 +153,10 @@ function main(args: [String]) {
         }
         Error(msg) => {
             eprintln("Error: {}", msg)
-            sdl.quit()
             return 2
         }
     }
 
-    sdl.quit()
     return 0
 }
 
@@ -171,7 +177,7 @@ function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
 
     if not in_vblank_before and in_vblank_after {
         // We're just now in the vblank
-        draw_frame(sdl, buffer: system.ppu.video_buffer)
+        draw_frame(sdl, buffer: system.ppu.video_buffer, region: system.cart.region)
         next_frame = true
     }
 

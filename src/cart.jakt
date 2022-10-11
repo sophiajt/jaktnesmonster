@@ -3,12 +3,20 @@ enum Mirroring {
     Vertical
 }
 
+enum Region {
+    NTSC
+    PAL
+    Multi
+    Dendy
+}
+
 class Cart {
     public prg_rom: usize
     public chr_rom: usize
     public mirroring: Mirroring
     public battery_present: bool
     public mapper: u8
+    public region: Region
     public prg_rom_pages: [[u8]]
     public chr_rom_pages: [[u8]]
 
@@ -49,8 +57,16 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     mapper += buffer[7] & 0xf0;
 
     if mapper != 0 {
-        eprintln("Only mapper 0 is currently supported")
+        eprintln("Mapper {} is not currently supported", mapper)
         abort()
+    }
+
+    let region = match buffer[12] & 0x3 {
+        0 => Region::NTSC
+        1 => Region::PAL
+        2 => Region::Multi
+        3 => Region::Dendy
+        else => Region::NTSC
     }
 
     mut prg_rom_pages: [[u8]] = []
@@ -84,7 +100,7 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     }
 
     let cart = Cart(prg_rom, 
-        chr_rom, mirroring, battery_present, mapper, prg_rom_pages, chr_rom_pages)
+        chr_rom, mirroring, battery_present, mapper, region, prg_rom_pages, chr_rom_pages)
 
     cart.info()
 

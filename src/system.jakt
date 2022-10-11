@@ -12,7 +12,7 @@ class System {
     scratch_ram: [u8]
     public ppu: PPU
     apu: APU
-    cart: Cart
+    public cart: Cart
     public joypad: Joypad
     public debug: bool
 
