@@ -128,7 +128,7 @@ function main(args: [String]) {
                     }
                     one_frame = false
                 }
-                if slow_mode {
+                if slow_mode and not clock_pause{
                     if nesclock(system, cpu, debugger, sdl) {
                         event = sdl.poll_event()
                     }
