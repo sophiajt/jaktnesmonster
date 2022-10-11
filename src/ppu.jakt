@@ -753,14 +753,24 @@ class PPU {
         mut output = 0u8
 //        println("PPU read: {:0>4x}", .v)
 
+        mut address = .v
+        if address >= 0x2000 and address <= 0x2fff {
+            if .mirroring is Horizontal {
+                address = address | 0x400
+            }
+            if .mirroring is Vertical {
+                address = address | 0x800
+            }
+        }
+
         if .v <= 0x3eff {
             mut value: u8 = 0
-            if .v < 0x1000 {
-                value = .vram_page_0000[.v]
-            } else if .v < 0x2000 {
-                value = .vram_page_1000[.v - 0x1000]
-            } else if (.v >= 0x2000) and (.v <= 0x2fff){
-                value = .vram[.v]
+            if address < 0x1000 {
+                value = .vram_page_0000[address]
+            } else if address < 0x2000 {
+                value = .vram_page_1000[address - 0x1000]
+            } else if (address >= 0x2000) and (address <= 0x2fff){
+                value = .vram[address]
             }
             .increment_v()
             output = .buffered_read
