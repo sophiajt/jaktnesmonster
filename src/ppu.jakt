@@ -619,8 +619,6 @@ class PPU {
             .sprites_visible = false
         }
 
-
-
         if (value & PPU_BACKGROUND_MASK) == PPU_BACKGROUND_MASK {
             .background_visible = true
         } else {
@@ -751,7 +749,7 @@ class PPU {
 
     function ppu_data_read(mut this) -> u8 {
         mut output = 0u8
-//        println("PPU read: {:0>4x}", .v)
+        // println("PPU read: {:0>4x}", .v)
 
         mut address = .v
         if address >= 0x2000 and address <= 0x2fff {
@@ -812,8 +810,10 @@ class PPU {
             0x2005 => .ppu_scroll(value) // Write twice
             0x2006 => .ppu_addr(value) // Write twice
             0x2007 => .ppu_data_write(value)
-            //0x4014 => .oam_dma(value) // TODO?
-            else => {}
+            else => {
+                eprintln("Unimplemented write to: {:0>4x}", mirrored_address)
+                abort()
+            }
         }
     }
 
@@ -827,7 +827,10 @@ class PPU {
             0x2002 => .ppu_status()
             //0x2004 => .oam_data() // TODO?
             0x2007 => .ppu_data_read()
-            else => 0
+            else => {
+                eprintln("Unimplemented read from: {:0>4x}", mirrored_address)
+                abort()
+            }
         }
     }
 

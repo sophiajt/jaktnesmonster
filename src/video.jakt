@@ -1,19 +1,37 @@
 import sdl { SDL }
-import ppu { RGB } 
+import ppu { RGB }
+import cart { Region }
 
-function draw_frame(sdl: SDL, buffer: [RGB]) throws {
+function draw_frame(sdl: SDL, buffer: [RGB], region: Region) throws {
     let WINDOW_WIDTH = 600;
     mut user_x = 100u64;
     mut user_y = 100u64;
 
-    for i in 0..(256u64 * 240u64) {
-        let rgb = buffer[i]
-        sdl.set_render_draw_color(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 255)
+    match region {
+        NTSC => {
+            for idx in (256u64 * 8u64)..(256u64 * 232u64) {
+                let i = idx - (256u64 * 8u64)
+                let rgb = buffer[idx]
+                sdl.set_render_draw_color(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 255)
 
-        let x = i % 256
-        let y = i / 256
+                let x = i % 256
+                let y = i / 256
 
-        sdl.render_draw_point(x, y)
+                sdl.render_draw_point(x, y)
+            }
+
+        }
+        else => {
+            for i in 0..(256u64 * 240u64) {
+                let rgb = buffer[i]
+                sdl.set_render_draw_color(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 255)
+
+                let x = i % 256
+                let y = i / 256
+
+                sdl.render_draw_point(x, y)
+            }
+        }
     }
 
     sdl.render_present()
