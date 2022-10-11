@@ -241,7 +241,7 @@ class PPU {
         let scroll_y = ((.v >> 5) & 0x1f) * 8 + (.v >> 12)
 
         mut virtual_horizontal_pixel = .horizontal_pixel + scroll_x as! u64
-        mut virtual_vertical_pixel = .vertical_pixel + scroll_y as! u64
+        mut virtual_vertical_pixel = scroll_y as! u64
 
         let base_table_select = (.v >> 10) & 0x3
 
@@ -446,7 +446,7 @@ class PPU {
 
         if .horizontal_pixel == 257 and visible_row and .rendering_enabled {
             let abcdef = .t & 0x41f
-            .v = .v & 0xbe0
+            .v = .v & 0x7be0
             .v = .v | abcdef
         }
 
@@ -761,9 +761,9 @@ class PPU {
             output = .buffered_read
             .buffered_read = value
         } else {
-                let value = .vram[.v]
-                .increment_v()
-                output = value
+            let value = .vram[.v]
+            .increment_v()
+            output = value
         }
         return output
     }
