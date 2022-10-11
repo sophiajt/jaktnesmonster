@@ -732,7 +732,16 @@ class PPU {
             0x3f1C => { .vram[0x3f0C] = value }
             else => {}
         }
-        .v += .vram_address_increment
+        .increment_v()
+    }
+
+    function increment_v(mut this) {
+        if (.background_visible or .sprites_visible) and (.vertical_pixel < 240 or .vertical_pixel == 261) {
+            .coarse_x_increment()
+            .y_increment()
+        } else {
+            .v += .vram_address_increment
+        }
     }
 
     function ppu_data_read(mut this) -> u8 {
@@ -748,12 +757,12 @@ class PPU {
             } else if (.v >= 0x2000) and (.v <= 0x2fff){
                 value = .vram[.v]
             }
-            .v += .vram_address_increment
+            .increment_v()
             output = .buffered_read
             .buffered_read = value
         } else {
                 let value = .vram[.v]
-                .v += .vram_address_increment
+                .increment_v()
                 output = value
         }
         return output
