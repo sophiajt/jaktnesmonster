@@ -485,6 +485,11 @@ class PPU {
             .render_sprite_pixel(horizontal_pixel: .horizontal_pixel as! u8, vertical_pixel: .vertical_pixel as! u8, bg_set: bg_pixel_set)
         }
 
+        if not .background_visible and not .sprites_visible {
+            let rgb = .look_up_palette_entry_bg(palette_entry: 0)
+            .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb            
+        }
+
         // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
         //     println("{}, {} is {} {:0>2x}", horizontal_pixel, vertical_pixel, rgb, nametable_entry)
         // }
