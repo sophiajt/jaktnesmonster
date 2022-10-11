@@ -1,3 +1,5 @@
+import cart { Mirroring }
+
 class RGB {
     public red: u8
     public green: u8
@@ -64,6 +66,7 @@ class PPU {
     even_frame_flag: bool
     horizontal_pixel: u64
     vertical_pixel: u64
+    mirroring: Mirroring
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
     v: u16
@@ -73,7 +76,7 @@ class PPU {
 
     color_palette: [RGB]
 
-    public function init(vram_page_0000: [u8], vram_page_1000: [u8]) throws -> PPU {
+    public function init(vram_page_0000: [u8], vram_page_1000: [u8], mirroring: Mirroring) throws -> PPU {
         mut video_buffer: [RGB] = []
         for _ in 0..(256*240) {
             video_buffer.push(rgb(0, 0, 0))
@@ -104,6 +107,7 @@ class PPU {
             even_frame_flag: true
             horizontal_pixel: 0
             vertical_pixel: 0
+            mirroring
 
             // internal PPU registers
             v: 0
@@ -181,8 +185,6 @@ class PPU {
     }
 
     public function tick(mut this, cycles: u64) throws {
-        
-
         for x in (.clock)..(.clock + cycles) {
             // Where are we on the screen
             .horizontal_pixel = .clock % 341
@@ -224,7 +226,14 @@ class PPU {
     }
 
     function read_vram(this, anon addr: u16) -> u8 {
-        return .vram[addr]
+        mut address = addr
+        if .mirroring is Horizontal {
+            address = address | 0x400
+        }
+        if .mirroring is Vertical {
+            address = address | 0x800
+        }
+        return .vram[address]
     }
 
     function render_bg_pixel(mut this) throws -> bool {
@@ -232,7 +241,7 @@ class PPU {
         let scroll_y = ((.v >> 5) & 0x1f) * 8 + (.v >> 12)
 
         mut virtual_horizontal_pixel = .horizontal_pixel + scroll_x as! u64
-        mut virtual_vertical_pixel = .vertical_pixel + scroll_y as! u64
+        mut virtual_vertical_pixel = scroll_y as! u64
 
         let base_table_select = (.v >> 10) & 0x3
 
@@ -437,7 +446,7 @@ class PPU {
 
         if .horizontal_pixel == 257 and visible_row and .rendering_enabled {
             let abcdef = .t & 0x41f
-            .v = .v & 0xbe0
+            .v = .v & 0x7be0
             .v = .v | abcdef
         }
 
@@ -474,6 +483,11 @@ class PPU {
 
         if .sprites_visible {
             .render_sprite_pixel(horizontal_pixel: .horizontal_pixel as! u8, vertical_pixel: .vertical_pixel as! u8, bg_set: bg_pixel_set)
+        }
+
+        if not .background_visible and not .sprites_visible {
+            let rgb = .look_up_palette_entry_bg(palette_entry: 0)
+            .video_buffer[.vertical_pixel * 256 + .horizontal_pixel] = rgb            
         }
 
         // if rgb.red != 0 and rgb.blue != 0 and rgb.green != 0 {
@@ -680,42 +694,59 @@ class PPU {
         // println("PPU data write rendering: {}, vblank: ", .rendering_enabled, .in_vblank)
         //  if .rendering_enabled or .in_vblank {
 
-  //          println("PPU write: {:0>4x}", .v)
+        mut address = .v
+        if .mirroring is Horizontal {
+            address = address | 0x400
+        }
+        if .mirroring is Vertical {
+            address = address | 0x800
+        }
 
-            if .v >= 0x4000 {
-                println("bad ppu addr")
-                abort()
-            }
+        // println("PPU write: {:0>4x}", address)
 
-            .vram[.v] = value
-            if (.v >= 0x2000) and (.v <= 0x2eff) {
-                .vram[.v + 0x1000] = value
-            }
-            if (.v >= 0x3000) and (.v <= 0x3eff) {   
-                .vram[.v - 0x1000] = value
-            }
-            if (.v >= 0x3f00) and (.v <= 0x3fff) {
-                let sub_address = (.v - 0x3f00) % 0x20
-                .vram[0x3f00 + sub_address] = value
-                .vram[0x3f00 + 0x20 as! u16 + sub_address] = value
-                .vram[0x3f00 + (0x20 * 2) as! u16 + sub_address] = value
-                .vram[0x3f00 + (0x20 * 3) as! u16 + sub_address] = value
-                .vram[0x3f00 + (0x20 * 4) as! u16 + sub_address] = value
-                .vram[0x3f00 + (0x20 * 5) as! u16 + sub_address] = value
-                .vram[0x3f00 + (0x20 * 6) as! u16 + sub_address] = value
-            }
-            match .v{
-                0x3f00 => { .vram[0x3f10] = value }
-                0x3f04 => { .vram[0x3f14] = value }
-                0x3f08 => { .vram[0x3f18] = value }
-                0x3f0C => { .vram[0x3f1C] = value }
-                0x3f10 => { .vram[0x3f00] = value }
-                0x3f14 => { .vram[0x3f04] = value }
-                0x3f18 => { .vram[0x3f08] = value }
-                0x3f1C => { .vram[0x3f0C] = value }
-                else => {}
-            }
+        if address >= 0x4000 {
+            println("bad ppu addr")
+            abort()
+        }
+
+        .vram[address] = value
+        if (address >= 0x2000) and (address <= 0x2eff) {
+            .vram[address + 0x1000] = value
+        }
+        if (address >= 0x3000) and (address <= 0x3eff) {   
+            .vram[address - 0x1000] = value
+        }
+        if (address >= 0x3f00) and (address <= 0x3fff) {
+            let sub_address = (address - 0x3f00) % 0x20
+            .vram[0x3f00 + sub_address] = value
+            .vram[0x3f00 + 0x20 as! u16 + sub_address] = value
+            .vram[0x3f00 + (0x20 * 2) as! u16 + sub_address] = value
+            .vram[0x3f00 + (0x20 * 3) as! u16 + sub_address] = value
+            .vram[0x3f00 + (0x20 * 4) as! u16 + sub_address] = value
+            .vram[0x3f00 + (0x20 * 5) as! u16 + sub_address] = value
+            .vram[0x3f00 + (0x20 * 6) as! u16 + sub_address] = value
+        }
+        match address {
+            0x3f00 => { .vram[0x3f10] = value }
+            0x3f04 => { .vram[0x3f14] = value }
+            0x3f08 => { .vram[0x3f18] = value }
+            0x3f0C => { .vram[0x3f1C] = value }
+            0x3f10 => { .vram[0x3f00] = value }
+            0x3f14 => { .vram[0x3f04] = value }
+            0x3f18 => { .vram[0x3f08] = value }
+            0x3f1C => { .vram[0x3f0C] = value }
+            else => {}
+        }
+        .increment_v()
+    }
+
+    function increment_v(mut this) {
+        if (.background_visible or .sprites_visible) and (.vertical_pixel < 240 or .vertical_pixel == 261) {
+            .coarse_x_increment()
+            .y_increment()
+        } else {
             .v += .vram_address_increment
+        }
     }
 
     function ppu_data_read(mut this) -> u8 {
@@ -731,13 +762,13 @@ class PPU {
             } else if (.v >= 0x2000) and (.v <= 0x2fff){
                 value = .vram[.v]
             }
-            .v += .vram_address_increment
+            .increment_v()
             output = .buffered_read
             .buffered_read = value
         } else {
-                let value = .vram[.v]
-                .v += .vram_address_increment
-                output = value
+            let value = .vram[.v]
+            .increment_v()
+            output = value
         }
         return output
     }
