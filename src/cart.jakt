@@ -48,6 +48,11 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     mut mapper = buffer[6] >> 4
     mapper += buffer[7] & 0xf0;
 
+    if mapper != 0 {
+        eprintln("Only mapper 0 is currently supported")
+        abort()
+    }
+
     mut prg_rom_pages: [[u8]] = []
     let prg_rom_page_size: usize = 16 * 1024
     mut current_start: usize = 16
