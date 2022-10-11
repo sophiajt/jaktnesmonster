@@ -37,6 +37,7 @@ class System {
                 ppu: PPU::init(
                     vram_page_0000
                     vram_page_1000
+                    mirroring: cart.mirroring
                 )
                 apu: APU::init()
                 cart
