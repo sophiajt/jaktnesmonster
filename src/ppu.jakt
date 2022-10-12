@@ -63,10 +63,11 @@ class PPU {
     sprite_overflow: bool
     public debug: bool
     rendering_enabled: bool
-    even_frame_flag: bool
+    public even_frame_flag: bool
     horizontal_pixel: u64
     vertical_pixel: u64
     mirroring: Mirroring
+    dma_ticks: u64
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
     v: u16
@@ -108,6 +109,7 @@ class PPU {
             horizontal_pixel: 0
             vertical_pixel: 0
             mirroring
+            dma_ticks: 0
 
             // internal PPU registers
             v: 0
@@ -182,6 +184,14 @@ class PPU {
                     rgb(0    0    0)
                 ]   
         )
+    }
+
+    public function dma_tick(mut this) throws {
+        if .even_frame_flag {
+            .tick(cycles: 513 * 3u64)
+        } else {
+            .tick(cycles: 514 * 3u64)
+        }
     }
 
     public function tick(mut this, cycles: u64) throws {
@@ -806,7 +816,7 @@ class PPU {
             0x2000 => .ppu_ctrl(value)
             0x2001 => .ppu_mask(value)
             0x2003 => .oam_addr_write(value) //From NESDEV wiki - most games write $00 here and use OAMDMA
-            //0x2004 => .oam_data(value) // TODO
+            // 0x2004 => .oam_data_write(value)
             0x2005 => .ppu_scroll(value) // Write twice
             0x2006 => .ppu_addr(value) // Write twice
             0x2007 => .ppu_data_write(value)
@@ -821,11 +831,12 @@ class PPU {
         .oam_addr = value
     }
 
+
     public function read_ppu_addr(mut this, address: u16) -> u8 {
         let mirrored_address = (address % 0x8) + 0x2000
         return match mirrored_address {
             0x2002 => .ppu_status()
-            //0x2004 => .oam_data() // TODO?
+            // 0x2004 => .oam_data_read()
             0x2007 => .ppu_data_read()
             else => {
                 eprintln("Unimplemented read from: {:0>4x}", mirrored_address)
