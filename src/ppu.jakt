@@ -816,7 +816,7 @@ class PPU {
             0x2000 => .ppu_ctrl(value)
             0x2001 => .ppu_mask(value)
             0x2003 => .oam_addr_write(value) //From NESDEV wiki - most games write $00 here and use OAMDMA
-            // 0x2004 => .oam_data_write(value)
+            0x2004 => .oam_data_write(value)
             0x2005 => .ppu_scroll(value) // Write twice
             0x2006 => .ppu_addr(value) // Write twice
             0x2007 => .ppu_data_write(value)
@@ -831,12 +831,22 @@ class PPU {
         .oam_addr = value
     }
 
+    public function oam_data_read(mut this) -> u8 {
+        let result = .oam[.oam_addr]
+        .oam_addr++
+        return result
+    }
+
+    public function oam_data_write(mut this, value: u8) {
+        .oam[.oam_addr] = value
+        .oam_addr++
+    }
 
     public function read_ppu_addr(mut this, address: u16) -> u8 {
         let mirrored_address = (address % 0x8) + 0x2000
         return match mirrored_address {
             0x2002 => .ppu_status()
-            // 0x2004 => .oam_data_read()
+            0x2004 => .oam_data_read()
             0x2007 => .ppu_data_read()
             else => {
                 eprintln("Unimplemented read from: {:0>4x}", mirrored_address)
