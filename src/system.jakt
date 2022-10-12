@@ -24,7 +24,6 @@ class System {
 
         mut vram_page_0000: [u8] = [0xFF; 0x1000]
         mut vram_page_1000: [u8] = [0xFF; 0x1000]
-
         
         // Wrap in if in case cart uses CHR-RAM
         if (cart.chr_rom > 0) {
@@ -107,6 +106,9 @@ class System {
             .ppu.write_ppu_addr(address, value)
         } else if address == 0x4014 {
             .oam_dma(value)
+            try {
+                .ppu.dma_tick()
+            } catch {}
         } else if address == 0x4016 {
             if (value & 0x1) == 0x1 {
                 .joypad.poll_joypad()
