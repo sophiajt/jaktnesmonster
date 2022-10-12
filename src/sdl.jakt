@@ -1,6 +1,8 @@
 import extern c "SDL.h" {
     extern struct SDL_Renderer {}
     extern struct SDL_Window {}
+    extern struct SDL_AudioDeviceID {}
+    extern struct SDL_AudioSpec {}
 
     extern function SDL_SetMainReady() -> void
     extern function SDL_Init(flags: u32) -> c_int
@@ -16,8 +18,12 @@ import extern c "SDL.h" {
     extern function SDL_RenderSetScale(renderer: raw SDL_Renderer, scaleX: f32, scaleY: f32) -> c_int
     extern function SDL_DestroyRenderer(renderer: raw SDL_Renderer) -> void
     extern function SDL_DestroyWindow(window: raw SDL_Window) -> void
+    extern function SDL_CloseAudioDevice(device: u32) -> void
     extern function SDL_Quit() -> void
     extern function SDL_Delay(ms: u32) -> void
+    extern function SDL_PauseAudioDevice(device: u32, mode: u32)
+    extern function SDL_QueueAudio(device: u32, sample: raw i16, sample_size: u32)
+    extern function SDL_ClearQueuedAudio(device: u32)
 }
 
 enum Key {
@@ -54,13 +60,14 @@ function null<T>() -> raw T {
 class SDL {
     renderer: raw SDL_Renderer
     window: raw SDL_Window
+    audio_device: u32
 
     public function construct() throws -> SDL {
-        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>())
+        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>(), audio_device: 0)
     }
 
     public function init_video(mut this, width: i64, height: i64) {
-        let sdl_init_video : u32 = 0x20
+        let sdl_init_video : u32 = 0x30 // Video and Audio
         unsafe {
             SDL_SetMainReady();
             SDL_Init(flags: sdl_init_video);
@@ -69,6 +76,24 @@ class SDL {
                                         window_flags: 0
                                         window: &raw .window
                                         renderer: &raw .renderer)
+        }
+    }
+
+    public function init_audio(mut this) {
+        unsafe {
+            cpp {
+                "// opening an audio device:
+                SDL_AudioSpec audio_spec;
+                SDL_zero(audio_spec);
+                audio_spec.freq = 44100;
+                audio_spec.format = AUDIO_S16SYS;
+                audio_spec.channels = 1;
+                audio_spec.samples = 1024;
+                audio_spec.callback = NULL;
+
+                this->audio_device = SDL_OpenAudioDevice(
+                    NULL, 0, &audio_spec, NULL, 0);"
+            }
         }
     }
 
@@ -197,6 +222,7 @@ class SDL {
         unsafe {
             SDL_DestroyRenderer(renderer: .renderer)
             SDL_DestroyWindow(window: .window)
+            SDL_CloseAudioDevice(device: .audio_device)
             SDL_Quit()
         }
     }
@@ -204,6 +230,32 @@ class SDL {
     public function delay(this, anon ms:u32) {
         unsafe {
             SDL_Delay(ms)
+        }
+    }
+
+    public function enable_audio(mut this) {
+        unsafe {
+            SDL_PauseAudioDevice(device: .audio_device, mode: 0)
+        }
+    }
+
+    public function disable_audio(mut this) {
+        unsafe {
+            SDL_PauseAudioDevice(device: .audio_device, mode: 1)
+        }
+    }
+
+    public function queue_audio(mut this, mut data: [i16]) {
+        unsafe {
+            cpp {
+                "SDL_QueueAudio(this->audio_device, data.unsafe_data(), 2 * data.size());"
+            }
+        }
+    }
+
+    public function clear_queued_audio(mut this) {
+        unsafe {
+            SDL_ClearQueuedAudio(device: .audio_device)
         }
     }
 }

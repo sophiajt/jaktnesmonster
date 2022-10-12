@@ -16,6 +16,8 @@ class System {
     public cart: Cart
     public joypad: Joypad
     public debug: bool
+    public audio_clock: f64
+    public audio_buffer: [i16]
 
     public function init(filename: String) throws -> SystemLoadStatus {
         let status = load_cart(filename)
@@ -45,6 +47,8 @@ class System {
                 cart
                 joypad: Joypad::init()
                 debug: false
+                audio_clock: 0.0
+                audio_buffer: [0i16; 44100 / 60]
             )
         )
     }
