@@ -10,6 +10,7 @@ enum SystemLoadStatus {
 
 class System {
     scratch_ram: [u8]
+    prg_ram: [u8]
     public ppu: PPU
     apu: APU
     public cart: Cart
@@ -32,7 +33,9 @@ class System {
         }
 
         return SystemLoadStatus::Success(
-            System(scratch_ram: [0u8; 0x800] 
+            System(
+                scratch_ram: [0u8; 0x800]
+                prg_ram: [0u8; 0x2000]
                 ppu: PPU::init(
                     vram_page_0000
                     vram_page_1000
@@ -51,8 +54,10 @@ class System {
             return .cart.prg_rom_pages[0][address - 0x8000]
         } else if address >= 0xc000 {
             return .cart.prg_rom_pages[.cart.prg_rom_pages.size() - 1][address - 0xc000]
+        } else if address >= 0x6000 and address < 0x8000 {
+            return .prg_ram[address - 0x6000]
         } else {
-            println("we should not be here: mapper_read_byte")
+            println("we should not be here: mapper_read_byte of {:0>4x}", address)
             abort()
             // return 0
         }
@@ -70,6 +75,8 @@ class System {
             return .joypad.read_joypad()
         } else if address < 0x4020 {
             return .apu.read_apu_addr(address)
+        } else if address >= 0x6000 and address < 0x8000 {
+            return .prg_ram[address - 0x6000]
         } else {
             return .mapper_read_byte(address)
         }
