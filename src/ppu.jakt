@@ -66,7 +66,7 @@ class PPU {
     public even_frame_flag: bool
     horizontal_pixel: u64
     vertical_pixel: u64
-    mirroring: Mirroring
+    public mirroring: Mirroring
     dma_ticks: u64
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
@@ -718,13 +718,19 @@ class PPU {
         }
 
         .vram[address] = value
-        if (address >= 0x2000) and (address <= 0x2eff) {
+        if (address >= 0x0000) and (address <= 0x0fff) {
+            .vram_page_0000[address] = value
+        }
+        else if (address >= 0x1000) and (address <= 0x1fff) {
+            .vram_page_1000[address - 0x1000] = value            
+        }
+        else if (address >= 0x2000) and (address <= 0x2eff) {
             .vram[address + 0x1000] = value
         }
-        if (address >= 0x3000) and (address <= 0x3eff) {   
+        else if (address >= 0x3000) and (address <= 0x3eff) {   
             .vram[address - 0x1000] = value
         }
-        if (address >= 0x3f00) and (address <= 0x3fff) {
+        else if (address >= 0x3f00) and (address <= 0x3fff) {
             let sub_address = (address - 0x3f00) % 0x20
             .vram[0x3f00 + sub_address] = value
             .vram[0x3f00 + 0x20 as! u16 + sub_address] = value
