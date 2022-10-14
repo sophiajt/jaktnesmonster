@@ -6,11 +6,6 @@ import debugger { Debugger }
 import joypad { Joypad }
 
 function main(args: [String]) {
-    mut sdl = SDL::construct()
-    defer {
-        sdl.quit()
-    }
-
     guard args.size() > 1 else {
         eprintln("usage: jakt_nes <rom file>")
         return 1
@@ -22,6 +17,11 @@ function main(args: [String]) {
 
     match system {
         Success(sys) => {
+            mut sdl = SDL::construct()
+            defer {
+                sdl.quit()
+            }
+
             mut system = sys
             mut cpu = CPU::init(system)
             mut debugger = Debugger::init(cpu)
@@ -38,6 +38,8 @@ function main(args: [String]) {
             } else {
                 sdl.init_video(width: 256 * 2, height: 240 * 2)
             }
+            sdl.init_audio()
+            sdl.enable_audio()
             sdl.set_scale(scale: 2.0f32)
 
             mut event = sdl.poll_event()
@@ -185,6 +187,20 @@ function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
         // println("==NMI==")
         cpu.nmi()
     }
+
+    // Let's try to create one frame of audio
+    // mut i = 0
+    // let frame_size = (44100 / 60)
+    // while i < frame_size {
+    //     system.audio_clock += 0.010
+    //     unsafe {
+    //         cpp {
+    //             "system->audio_buffer[i] = sin(system->audio_clock * 4.0) * 5000;"
+    //         }
+    //     }
+    //     ++i
+    // }
+    // sdl.queue_audio(data: system.audio_buffer)
 
     return next_frame
 }

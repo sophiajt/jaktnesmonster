@@ -16,6 +16,8 @@ class System {
     public cart: Cart
     public joypad: Joypad
     public debug: bool
+    public audio_clock: f64
+    public audio_buffer: [i16]
     public prg_rom_bank_0: usize
     public prg_rom_bank_1: usize
     public mapper_1_shift_register: u8
@@ -41,6 +43,8 @@ class System {
                 cart
                 joypad: Joypad::init()
                 debug: false
+                audio_clock: 0.0
+                audio_buffer: [0i16; 44100 / 60]
                 prg_rom_bank_0: 0
                 prg_rom_bank_1: cart.prg_rom_pages.size() - 1
                 mapper_1_shift_register: 0
