@@ -71,6 +71,10 @@ class System {
 
     function mapper_write_byte(mut this, address: u16, value: u8) {
         // eprintln("Write of {:0>2x} to {:0>4x}", value, address)
+        if (.cart.mapper == 2) {
+            .prg_rom_bank_0 = (value & 7) as! usize
+            return
+        }
         if (value & 0b1000_0000) == 0b1000_0000 {
             .mapper_1_shift_register = 0
             .mapper_1_bit_count = 0
