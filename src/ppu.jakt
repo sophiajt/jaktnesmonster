@@ -767,28 +767,6 @@ class PPU {
 
         mut address = .v
 
-            // if address == 0x1010 {
-            //     println("value written to 0x1010: {:0>2x}", value)
-            // }
-            // if address == 0x1018 {
-            //     println("value written to 0x1018: {:0>2x}", value)
-            // }
-            // if address == 0x222e {
-            //     println("value written to 0x222e: {:0>2x}", value)
-            //     if .mirroring is Horizontal {
-            //         address = address | 0x400
-            //         for x in (0x2400)..(0x2800) {
-            //             .vram[x] = ((x - 0x2400) % 256) as! u8
-            //         }
-            //     }
-            //     if .mirroring is Vertical {
-            //         address = address | 0x800
-            //         for x in (0x2800)..(0x2c00) {
-            //             .vram[x] = ((x - 0x2800) % 256) as! u8
-            //         }
-            //     }
-            // }
-
         // println("PPU write: {:0>4x}", address)
 
         if address >= 0x4000 {
@@ -855,7 +833,7 @@ class PPU {
         mut output = 0u8
         // println("PPU read: {:0>4x}", .v)
 
-        mut address = .v
+        mut address = .v & 0x3fff
         if address >= 0x2000 and address <= 0x2fff {
             if .mirroring is Horizontal {
                 address = address | 0x400
@@ -865,7 +843,12 @@ class PPU {
             }
         }
 
-        if .v <= 0x3eff {
+        if address > 0x3fff {
+            eprintln("Bad address: {:0>4x}", .v)
+            abort()
+        }
+
+        if address <= 0x3eff {
             mut value: u8 = 0
             if address < 0x1000 {
                 value = .chr_rom_pages[.chr_rom_page_0000][address]
@@ -878,7 +861,7 @@ class PPU {
             output = .buffered_read
             .buffered_read = value
         } else {
-            let value = .vram[.v]
+            let value = .vram[address]
             .increment_v()
             output = value
         }
