@@ -44,7 +44,7 @@ class PPU {
     clock: u64
     public in_vblank: bool
     dont_vblank: bool
-    vram: [u8]
+    public vram: [u8]
     // public vram_rw_addr: u16
     public oam: [u8]
     oam_addr: u8
@@ -765,7 +765,7 @@ class PPU {
         // println("PPU data write rendering: {}, vblank: ", .rendering_enabled, .in_vblank)
         //  if .rendering_enabled or .in_vblank {
 
-        mut address = .v
+        mut address = .v & 0x3fff
 
         // println("PPU write: {:0>4x}", address)
 

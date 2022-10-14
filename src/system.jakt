@@ -80,7 +80,11 @@ class System {
 
                 if address >= 0x8000 and address <= 0x9fff {
                     // Control register
-                    .mapper_1_control(data: .mapper_1_shift_register)
+                    try {
+                        .mapper_1_control(data: .mapper_1_shift_register)
+                    } catch {
+
+                    }
                 } else if address >= 0xa000 and address <= 0xdfff {
                     if .mapper_1_shift_register != 0 {
                         eprintln("chr rom bank switching not yet supported")
@@ -96,10 +100,41 @@ class System {
         }
     }
 
-    public function mapper_1_control(mut this, data: u8) {
+    public function mapper_1_control(mut this, data: u8) throws {
         if (data & 0x3) == 0x3 {
+            // Exchange the screens
+            // Vertical mirroring -> Horizontal Mirroring
+            // Horizonal
+            // 0x2000 -> 0x2400, 0x2800 -> 0x2C00
+            // Vertical
+            // 0x2000 -> 0x2800, 0x2400 -> 0x2C00
+
+            if .ppu.mirroring is Vertical {
+                mut buffer = [0u8; 0x400]
+                // 0x2800 -> 0x2400
+                for x in 0..0x400 {
+                    buffer[x] = .ppu.vram[0x2800 + x]
+                }
+                for x in 0..0x400 {
+                    .ppu.vram[0x2c00 + x] = .ppu.vram[0x2400 + x]
+                    .ppu.vram[0x2400 + x] = buffer[x]
+                }
+            }
+
             .ppu.mirroring = Mirroring::Horizontal
         } else if (data & 0x2) == 0x2 {
+            if .ppu.mirroring is Horizontal {
+                mut buffer = [0u8; 0x400]
+                // 0x2400 -> 0x2800
+                for x in 0..0x400 {
+                    buffer[x] = .ppu.vram[0x2400 + x]
+                }
+                for x in 0..0x400 {
+                    .ppu.vram[0x2c00 + x] = .ppu.vram[0x2800 + x]
+                    .ppu.vram[0x2800 + x] = buffer[x]
+                }
+            }
+
             .ppu.mirroring = Mirroring::Vertical
         } else {
             eprintln("Unsupported mirroring requested")
