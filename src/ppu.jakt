@@ -14,7 +14,6 @@ class Sprite {
     public sprite_zero: bool
 
     public function get_sprite_pixel(this, x: u8) -> (bool, u8){
-
         //TODO (?): How did the hardware handle this with 8 bits?
         guard x >= .sprite_x and (x as! u16) < ((.sprite_x as! u16) + 8u16) else {
             return(false, 0u8)
@@ -45,13 +44,14 @@ class PPU {
     clock: u64
     public in_vblank: bool
     dont_vblank: bool
-    vram: [u8]
+    public vram: [u8]
     // public vram_rw_addr: u16
     public oam: [u8]
     oam_addr: u8
     second_oam: [Sprite]
-    vram_page_0000: [u8]
-    vram_page_1000: [u8]
+    public chr_rom_pages: [[u8]]
+    public chr_rom_page_0000: usize
+    public chr_rom_page_1000: usize
     public video_buffer: [RGB]
     // scroll_x: u8
     // scroll_y: u8
@@ -66,7 +66,7 @@ class PPU {
     public even_frame_flag: bool
     horizontal_pixel: u64
     vertical_pixel: u64
-    mirroring: Mirroring
+    public mirroring: Mirroring
     dma_ticks: u64
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
@@ -77,7 +77,7 @@ class PPU {
 
     color_palette: [RGB]
 
-    public function init(vram_page_0000: [u8], vram_page_1000: [u8], mirroring: Mirroring) throws -> PPU {
+    public function init(chr_rom_pages: [[u8]], mirroring: Mirroring) throws -> PPU {
         mut video_buffer: [RGB] = []
         for _ in 0..(256*240) {
             video_buffer.push(rgb(0, 0, 0))
@@ -95,8 +95,9 @@ class PPU {
             oam: [0; 256]
             oam_addr: 0x00
             second_oam: []
-            vram_page_0000
-            vram_page_1000
+            chr_rom_pages
+            chr_rom_page_0000: 0
+            chr_rom_page_1000: chr_rom_pages.size() - 1
             video_buffer
             background_visible: false
             sprites_visible: false
@@ -264,7 +265,6 @@ class PPU {
         }
 
         if virtual_horizontal_pixel >= 256 {
-            // FIXME: we're assuming vertical mirroring
             base_table_address ^= 0x400
             virtual_horizontal_pixel -= 256
         }
@@ -300,12 +300,12 @@ class PPU {
         let color_bits = (attr >> ((horizontal_box_pos * 2) + (vertical_box_pos * 4))) & 0x3
 
         let first_plane_byte = match .background_table_address {
-            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
-            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
+            0000 => .chr_rom_pages[.chr_rom_page_0000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
+            else => .chr_rom_pages[.chr_rom_page_1000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
         }
         let second_plane_byte = match .background_table_address {
-            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
-            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
+            0000 => .chr_rom_pages[.chr_rom_page_0000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
+            else => .chr_rom_pages[.chr_rom_page_1000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
         }
 
         let first_plane_bit = first_plane_byte >> (7 - virtual_horizontal_pixel % 8) & 0x1
@@ -346,7 +346,6 @@ class PPU {
                 .sprite_zero_hit = (not .sprite_zero_hit) and sprite.sprite_zero 
             }
         }
-
     }
 
     function coarse_x_increment(mut this) {
@@ -399,16 +398,30 @@ class PPU {
     function find_sprites(mut this, scanline: u8) throws -> [Sprite]  {
         mut result: [Sprite] = []
         mut sprite_count = 0
-        let sprite_table = match .sprite_table_address {
-                    0000 => .vram_page_0000
-                    else => .vram_page_1000
-                }   
+        mut sprite_table = .chr_rom_page_0000
+        if .sprite_size_8x8 {
+            sprite_table = match .sprite_table_address {
+                0000 => .chr_rom_page_0000
+                else => .chr_rom_page_1000
+            }
+        }
+
+        mut sprite_height = 8u8
+        if not .sprite_size_8x8 {
+            sprite_height = 16u8
+        }
         for sprite in (0u8..63u8).inclusive() {
             let sprite_addr = sprite * 4u8
             let sprite_y = .oam[sprite_addr]
             let sprite_x = .oam[sprite_addr + 3]
+
+            if not .sprite_size_8x8 and (.oam[sprite_addr + 1] & 0x1) == 0x1 {
+                sprite_table = .chr_rom_page_1000
+            } else {
+                sprite_table = .chr_rom_page_0000
+            }
 	        
-            if scanline >= sprite_y and scanline < (sprite_y + 8)  {
+            if scanline >= sprite_y and scanline < (sprite_y + sprite_height)  {
                 if sprite_count >= 8 {
                     //println("Sprite overflow, {} entries in second OAM", result.size())
                     // TODO: properly implement the sprite overflow bug
@@ -416,29 +429,79 @@ class PPU {
                     break
                 }
                 let sprite_attr = .oam[sprite_addr + 2]
-                let vflip = (sprite_attr & 0x80) == 0x80
-                let tile_row = match vflip {
-                    false => (scanline - sprite_y)
-                    else => 7 - (scanline - sprite_y)
-                }
-                //let sprite_index = (tile_row & 0x7) | ((sprite_x & 0xf) << 4) | ((sprite_y & 0xf) << 8)
-                let sprite_index = .oam[sprite_addr + 1] as! u64 * 0x10 + tile_row as! u64
-                let first_plane = sprite_table[sprite_index]
-                let second_plane = sprite_table[sprite_index + 8]
+                let sprite_number = .oam[sprite_addr + 1]
 
-                mut mask = [0u8; 8]
-                for i in 0..8u8 {
-                    mask[i] = ((first_plane >> i) & 0x1) | (((second_plane >> i & 0x1) << 1)) | ((sprite_attr & 0x3) << 2)
-                }
+                if .sprite_size_8x8 {
+                    let vflip = (sprite_attr & 0x80) == 0x80
+                    let tile_row = match vflip {
+                        false => (scanline - sprite_y)
+                        else => sprite_height - 1 - (scanline - sprite_y)
+                    }
+                    //let sprite_index = (tile_row & 0x7) | ((sprite_x & 0xf) << 4) | ((sprite_y & 0xf) << 8)
+                    let sprite_index = .oam[sprite_addr + 1] as! u64 * 0x10 + tile_row as! u64
+                    let first_plane = .chr_rom_pages[sprite_table][sprite_index]
+                    let second_plane = .chr_rom_pages[sprite_table][sprite_index + 8]
 
-                result.push(Sprite(
-                    hflip: (sprite_attr & 0x40) == 0x40
-                    mask: mask
-                    bg_sprite: (sprite_attr & 0x20) == 0x20
-                    sprite_x: sprite_x
-                    sprite_zero: sprite == 0
-                ))
-                sprite_count += 1
+                    mut mask = [0u8; 8]
+                    for i in 0..8u8 {
+                        mask[i] = ((first_plane >> i) & 0x1) | (((second_plane >> i & 0x1) << 1)) | ((sprite_attr & 0x3) << 2)
+                    }
+
+                    result.push(Sprite(
+                        hflip: (sprite_attr & 0x40) == 0x40
+                        mask: mask
+                        bg_sprite: (sprite_attr & 0x20) == 0x20
+                        sprite_x: sprite_x
+                        sprite_zero: sprite == 0
+                    ))
+                    sprite_count += 1
+                } else {
+                    // 8x16
+                    let vflip = (sprite_attr & 0x80) == 0x80
+                    mut tile_row = match vflip {
+                        false => (scanline - sprite_y)
+                        else => sprite_height - 1 - (scanline - sprite_y)
+                    }
+                    //let sprite_index = (tile_row & 0x7) | ((sprite_x & 0xf) << 4) | ((sprite_y & 0xf) << 8)
+                    mut sprite_index = (sprite_number >> 1) as! u64 * 0x20 + tile_row as! u64
+                    if tile_row > 7 {
+                        // bottom half of the sprite
+                        tile_row -= 8
+                        sprite_index += 8
+                    }
+                    let first_plane = .chr_rom_pages[sprite_table][sprite_index]
+                    let second_plane = .chr_rom_pages[sprite_table][sprite_index + 8]
+
+                    // sprite tile: 2
+                    // 0000 + offset
+                    // scanline: sprite_y (tile_row)
+                    // 0x20 + 0
+                    // sprite_table[0x20 + 0]
+                    // sprite_table[0x20 + 8]
+
+                    // sprite_table[0x21 + 0]
+                    // sprite_table[0x21 + 8]
+
+                    // sprite_table[0x27 + 0]
+                    // sprite_table[0x27 + 8]
+
+                    // sprite_table[0x30 + 0]
+                    // sprite_table[0x30 + 8]
+
+                    mut mask = [0u8; 8]
+                    for i in 0..8u8 {
+                        mask[i] = ((first_plane >> i) & 0x1) | (((second_plane >> i & 0x1) << 1)) | ((sprite_attr & 0x3) << 2)
+                    }
+
+                    result.push(Sprite(
+                        hflip: (sprite_attr & 0x40) == 0x40
+                        mask: mask
+                        bg_sprite: (sprite_attr & 0x20) == 0x20
+                        sprite_x: sprite_x
+                        sprite_zero: sprite == 0
+                    ))
+                    sprite_count += 1
+                }
             }
         }
         return result
@@ -702,13 +765,7 @@ class PPU {
         // println("PPU data write rendering: {}, vblank: ", .rendering_enabled, .in_vblank)
         //  if .rendering_enabled or .in_vblank {
 
-        mut address = .v
-        if .mirroring is Horizontal {
-            address = address | 0x400
-        }
-        if .mirroring is Vertical {
-            address = address | 0x800
-        }
+        mut address = .v & 0x3fff
 
         // println("PPU write: {:0>4x}", address)
 
@@ -718,13 +775,28 @@ class PPU {
         }
 
         .vram[address] = value
-        if (address >= 0x2000) and (address <= 0x2eff) {
-            .vram[address + 0x1000] = value
+        if (address >= 0x0000) and (address <= 0x0fff) {
+            .chr_rom_pages[.chr_rom_page_0000][address] = value
         }
-        if (address >= 0x3000) and (address <= 0x3eff) {   
-            .vram[address - 0x1000] = value
+        else if (address >= 0x1000) and (address <= 0x1fff) {
+            .chr_rom_pages[.chr_rom_page_1000][address - 0x1000] = value            
         }
-        if (address >= 0x3f00) and (address <= 0x3fff) {
+        else if (address >= 0x2000) and (address <= 0x2eff) {
+            if .mirroring is Horizontal {
+                address = address | 0x400
+            }
+            if .mirroring is Vertical {
+                address = address | 0x800
+            }
+
+            .vram[address] = value
+        }
+        else if (address >= 0x3000) and (address <= 0x3eff) {
+            eprintln("Mirror of PPU nametable not yet supported")
+            abort()  
+            // .vram[address] = value
+        }
+        else if (address >= 0x3f00) and (address <= 0x3fff) {
             let sub_address = (address - 0x3f00) % 0x20
             .vram[0x3f00 + sub_address] = value
             .vram[0x3f00 + 0x20 as! u16 + sub_address] = value
@@ -761,7 +833,7 @@ class PPU {
         mut output = 0u8
         // println("PPU read: {:0>4x}", .v)
 
-        mut address = .v
+        mut address = .v & 0x3fff
         if address >= 0x2000 and address <= 0x2fff {
             if .mirroring is Horizontal {
                 address = address | 0x400
@@ -771,12 +843,17 @@ class PPU {
             }
         }
 
-        if .v <= 0x3eff {
+        if address > 0x3fff {
+            eprintln("Bad address: {:0>4x}", .v)
+            abort()
+        }
+
+        if address <= 0x3eff {
             mut value: u8 = 0
             if address < 0x1000 {
-                value = .vram_page_0000[address]
+                value = .chr_rom_pages[.chr_rom_page_0000][address]
             } else if address < 0x2000 {
-                value = .vram_page_1000[address - 0x1000]
+                value = .chr_rom_pages[.chr_rom_page_1000][address - 0x1000]
             } else if (address >= 0x2000) and (address <= 0x2fff){
                 value = .vram[address]
             }
@@ -784,7 +861,7 @@ class PPU {
             output = .buffered_read
             .buffered_read = value
         } else {
-            let value = .vram[.v]
+            let value = .vram[address]
             .increment_v()
             output = value
         }
