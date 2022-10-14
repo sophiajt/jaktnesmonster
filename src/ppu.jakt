@@ -49,8 +49,9 @@ class PPU {
     public oam: [u8]
     oam_addr: u8
     second_oam: [Sprite]
-    vram_page_0000: [u8]
-    vram_page_1000: [u8]
+    public chr_rom_pages: [[u8]]
+    public chr_rom_page_0000: usize
+    public chr_rom_page_1000: usize
     public video_buffer: [RGB]
     // scroll_x: u8
     // scroll_y: u8
@@ -76,7 +77,7 @@ class PPU {
 
     color_palette: [RGB]
 
-    public function init(vram_page_0000: [u8], vram_page_1000: [u8], mirroring: Mirroring) throws -> PPU {
+    public function init(chr_rom_pages: [[u8]], mirroring: Mirroring) throws -> PPU {
         mut video_buffer: [RGB] = []
         for _ in 0..(256*240) {
             video_buffer.push(rgb(0, 0, 0))
@@ -94,8 +95,9 @@ class PPU {
             oam: [0; 256]
             oam_addr: 0x00
             second_oam: []
-            vram_page_0000
-            vram_page_1000
+            chr_rom_pages
+            chr_rom_page_0000: 0
+            chr_rom_page_1000: chr_rom_pages.size() - 1
             video_buffer
             background_visible: false
             sprites_visible: false
@@ -298,12 +300,12 @@ class PPU {
         let color_bits = (attr >> ((horizontal_box_pos * 2) + (vertical_box_pos * 4))) & 0x3
 
         let first_plane_byte = match .background_table_address {
-            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
-            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
+            0000 => .chr_rom_pages[.chr_rom_page_0000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
+            else => .chr_rom_pages[.chr_rom_page_1000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
         }
         let second_plane_byte = match .background_table_address {
-            0000 => .vram_page_0000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
-            else => .vram_page_1000[nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
+            0000 => .chr_rom_pages[.chr_rom_page_0000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
+            else => .chr_rom_pages[.chr_rom_page_1000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
         }
 
         if nametable_entry == 1 and (virtual_vertical_pixel % 8) == 0 {
@@ -402,11 +404,11 @@ class PPU {
     function find_sprites(mut this, scanline: u8) throws -> [Sprite]  {
         mut result: [Sprite] = []
         mut sprite_count = 0
-        mut sprite_table = .vram_page_0000
+        mut sprite_table = .chr_rom_page_0000
         if .sprite_size_8x8 {
             sprite_table = match .sprite_table_address {
-                0000 => .vram_page_0000
-                else => .vram_page_1000
+                0000 => .chr_rom_page_0000
+                else => .chr_rom_page_1000
             }
         }
 
@@ -420,7 +422,7 @@ class PPU {
             let sprite_x = .oam[sprite_addr + 3]
 
             if not .sprite_size_8x8 and (.oam[sprite_addr + 1] & 0x1) == 0x1 {
-                sprite_table = .vram_page_1000
+                sprite_table = .chr_rom_page_1000
             }
 	        
             if scanline >= sprite_y and scanline < (sprite_y + sprite_height)  {
@@ -441,8 +443,8 @@ class PPU {
                     }
                     //let sprite_index = (tile_row & 0x7) | ((sprite_x & 0xf) << 4) | ((sprite_y & 0xf) << 8)
                     let sprite_index = .oam[sprite_addr + 1] as! u64 * 0x10 + tile_row as! u64
-                    let first_plane = sprite_table[sprite_index]
-                    let second_plane = sprite_table[sprite_index + 8]
+                    let first_plane = .chr_rom_pages[sprite_table][sprite_index]
+                    let second_plane = .chr_rom_pages[sprite_table][sprite_index + 8]
 
                     mut mask = [0u8; 8]
                     for i in 0..8u8 {
@@ -471,8 +473,8 @@ class PPU {
                         tile_row -= 8
                         sprite_index += 0x10
                     }
-                    let first_plane = sprite_table[sprite_index]
-                    let second_plane = sprite_table[sprite_index + 8]
+                    let first_plane = .chr_rom_pages[sprite_table][sprite_index]
+                    let second_plane = .chr_rom_pages[sprite_table][sprite_index + 8]
 
                     // sprite tile: 2
                     // 0000 + offset
@@ -807,10 +809,10 @@ class PPU {
 
         .vram[address] = value
         if (address >= 0x0000) and (address <= 0x0fff) {
-            .vram_page_0000[address] = value
+            .chr_rom_pages[.chr_rom_page_0000][address] = value
         }
         else if (address >= 0x1000) and (address <= 0x1fff) {
-            .vram_page_1000[address - 0x1000] = value            
+            .chr_rom_pages[.chr_rom_page_1000][address - 0x1000] = value            
         }
         else if (address >= 0x2000) and (address <= 0x2eff) {
             .vram[address] = value
@@ -868,9 +870,9 @@ class PPU {
         if .v <= 0x3eff {
             mut value: u8 = 0
             if address < 0x1000 {
-                value = .vram_page_0000[address]
+                value = .chr_rom_pages[.chr_rom_page_0000][address]
             } else if address < 0x2000 {
-                value = .vram_page_1000[address - 0x1000]
+                value = .chr_rom_pages[.chr_rom_page_1000][address - 0x1000]
             } else if (address >= 0x2000) and (address <= 0x2fff){
                 value = .vram[address]
             }

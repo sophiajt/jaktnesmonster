@@ -29,20 +29,12 @@ class System {
             return SystemLoadStatus::Error("not a valid ROM file")
         }
 
-        mut vram_page_0000: [u8] = [0xFF; 0x1000]
-        mut vram_page_1000: [u8] = [0xFF; 0x1000]
-        
-        // Wrap in if in case cart uses CHR-RAM
-        vram_page_0000 = cart.chr_rom_pages[0]
-        vram_page_1000 = cart.chr_rom_pages.last()!
-
         return SystemLoadStatus::Success(
             System(
                 scratch_ram: [0u8; 0x800]
                 prg_ram: [0u8; 0x2000]
                 ppu: PPU::init(
-                    vram_page_0000
-                    vram_page_1000
+                    chr_rom_pages: cart.chr_rom_pages
                     mirroring: cart.mirroring
                 )
                 apu: APU::init()
