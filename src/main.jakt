@@ -177,17 +177,6 @@ function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
     system.ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
     let in_vblank_after = system.ppu.in_vblank
 
-    if not in_vblank_before and in_vblank_after {
-        // We're just now in the vblank
-        draw_frame(sdl, buffer: system.ppu.video_buffer, region: system.cart.region)
-        next_frame = true
-    }
-
-    if not in_vblank_before and in_vblank_after and system.ppu.nmi_on_vblank {
-        // println("==NMI==")
-        cpu.nmi()
-    }
-
     // Let's try to create one frame of audio
     // mut i = 0
     // let frame_size = (44100 / 60)
@@ -201,6 +190,17 @@ function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
     //     ++i
     // }
     // sdl.queue_audio(data: system.audio_buffer)
+
+    if not in_vblank_before and in_vblank_after {
+        // We're just now in the vblank
+        draw_frame(sdl, buffer: system.ppu.video_buffer, region: system.cart.region)
+        next_frame = true
+    }
+
+    if not in_vblank_before and in_vblank_after and system.ppu.nmi_on_vblank {
+        // println("==NMI==")
+        cpu.nmi()
+    }
 
     return next_frame
 }
