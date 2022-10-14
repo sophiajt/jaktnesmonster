@@ -207,7 +207,7 @@ class PPU {
             // 257-320 = sprite tile loading interval
             if (.horizontal_pixel >= 257) and (.horizontal_pixel <= 320) and ((.vertical_pixel >= 0) and (.vertical_pixel <= 239)) {
                 // .oam_addr = 0x00
-                //.second_oam = .find_sprites(scanline: (.vertical_pixel + 1) as! u8)
+                .second_oam = .find_sprites(scanline: (.vertical_pixel + 1) as! u8)
             }
             if (.vertical_pixel == 241) and (.horizontal_pixel == 0) {
                 .dont_vblank = false
@@ -346,7 +346,6 @@ class PPU {
                 .sprite_zero_hit = (not .sprite_zero_hit) and sprite.sprite_zero 
             }
         }
-
     }
 
     function coarse_x_increment(mut this) {
@@ -418,6 +417,8 @@ class PPU {
 
             if not .sprite_size_8x8 and (.oam[sprite_addr + 1] & 0x1) == 0x1 {
                 sprite_table = .chr_rom_page_1000
+            } else {
+                sprite_table = .chr_rom_page_0000
             }
 	        
             if scanline >= sprite_y and scanline < (sprite_y + sprite_height)  {
@@ -466,7 +467,7 @@ class PPU {
                     if tile_row > 7 {
                         // bottom half of the sprite
                         tile_row -= 8
-                        sprite_index += 0x10
+                        sprite_index += 8
                     }
                     let first_plane = .chr_rom_pages[sprite_table][sprite_index]
                     let second_plane = .chr_rom_pages[sprite_table][sprite_index + 8]
@@ -554,7 +555,7 @@ class PPU {
         }
 
         if .sprites_visible {
-            // .render_sprite_pixel(horizontal_pixel: .horizontal_pixel as! u8, vertical_pixel: .vertical_pixel as! u8, bg_set: bg_pixel_set)
+            .render_sprite_pixel(horizontal_pixel: .horizontal_pixel as! u8, vertical_pixel: .vertical_pixel as! u8, bg_set: bg_pixel_set)
         }
 
         if not .background_visible and not .sprites_visible {
