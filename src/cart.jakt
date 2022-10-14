@@ -56,7 +56,7 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     mut mapper = buffer[6] >> 4
     mapper += buffer[7] & 0xf0;
 
-    if mapper != 0 {
+    guard mapper < 2 else {
         eprintln("Mapper {} is not currently supported", mapper)
         abort()
     }
@@ -96,6 +96,15 @@ function load_cart(filename: String) throws -> CartLoadStatus {
         for offset in 0x1000uz..0x2000uz {
             current_page_part_2.push(buffer[current_start + page * chr_rom_page_size + offset])            
         }
+        chr_rom_pages.push(current_page_part_2)
+    }
+
+    if chr_rom == 0 {
+        // Assume we're in CHR RAM
+        mut current_page: [u8] = [0u8; 0x1000]
+        chr_rom_pages.push(current_page)
+        
+        mut current_page_part_2: [u8] = [0u8; 0x1000]
         chr_rom_pages.push(current_page_part_2)
     }
 

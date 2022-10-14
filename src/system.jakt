@@ -1,6 +1,6 @@
 import ppu { PPU }
 import apu { APU }
-import cart { load_cart, Cart }
+import cart { load_cart, Cart, Mirroring }
 import joypad { Joypad }
 
 enum SystemLoadStatus {
@@ -16,6 +16,12 @@ class System {
     public cart: Cart
     public joypad: Joypad
     public debug: bool
+    public prg_rom_bank_0: usize
+    public prg_rom_bank_1: usize
+    public mapper_1_shift_register: u8
+    public mapper_1_bit_count: u8
+    public mapper_1_prg_rom_bank_mode: u8
+    public mapper_1_chr_rom_bank_mode: u8
 
     public function init(filename: String) throws -> SystemLoadStatus {
         let status = load_cart(filename)
@@ -23,37 +29,33 @@ class System {
             return SystemLoadStatus::Error("not a valid ROM file")
         }
 
-        mut vram_page_0000: [u8] = [0xFF; 0x1000]
-        mut vram_page_1000: [u8] = [0xFF; 0x1000]
-        
-        // Wrap in if in case cart uses CHR-RAM
-        if (cart.chr_rom > 0) {
-            vram_page_0000 = cart.chr_rom_pages[0]
-            vram_page_1000 = cart.chr_rom_pages.last()!
-        }
-
         return SystemLoadStatus::Success(
             System(
                 scratch_ram: [0u8; 0x800]
                 prg_ram: [0u8; 0x2000]
                 ppu: PPU::init(
-                    vram_page_0000
-                    vram_page_1000
+                    chr_rom_pages: cart.chr_rom_pages
                     mirroring: cart.mirroring
                 )
                 apu: APU::init()
                 cart
                 joypad: Joypad::init()
                 debug: false
+                prg_rom_bank_0: 0
+                prg_rom_bank_1: cart.prg_rom_pages.size() - 1
+                mapper_1_shift_register: 0
+                mapper_1_bit_count: 0
+                mapper_1_prg_rom_bank_mode: 0
+                mapper_1_chr_rom_bank_mode: 0
             )
         )
     }
 
     function mapper_read_byte(this, address: u16) -> u8 {
         if address >= 0x8000 and address <= 0xbfff {
-            return .cart.prg_rom_pages[0][address - 0x8000]
+            return .cart.prg_rom_pages[.prg_rom_bank_0][address - 0x8000]
         } else if address >= 0xc000 {
-            return .cart.prg_rom_pages[.cart.prg_rom_pages.size() - 1][address - 0xc000]
+            return .cart.prg_rom_pages[.prg_rom_bank_1][address - 0xc000]
         } else if address >= 0x6000 and address < 0x8000 {
             return .prg_ram[address - 0x6000]
         } else {
@@ -63,7 +65,101 @@ class System {
         }
     }
 
-    function mapper_write_byte(this, address: u16, value: u8) {
+    function mapper_write_byte(mut this, address: u16, value: u8) {
+        // eprintln("Write of {:0>2x} to {:0>4x}", value, address)
+        if (value & 0b1000_0000) == 0b1000_0000 {
+            .mapper_1_shift_register = 0
+            .mapper_1_bit_count = 0
+        } else {
+            .mapper_1_shift_register |= (value & 0x1) << (.mapper_1_bit_count)
+            .mapper_1_bit_count++
+
+            if .mapper_1_bit_count == 5 {
+                // Do something here
+                // eprintln("Write of {:0>2x} to {:0>4x}", .mapper_1_shift_register, address)
+
+                if address >= 0x8000 and address <= 0x9fff {
+                    // Control register
+                    try {
+                        .mapper_1_control(data: .mapper_1_shift_register)
+                    } catch {
+
+                    }
+                } else if address >= 0xa000 and address <= 0xdfff {
+                    if .mapper_1_shift_register != 0 {
+                        eprintln("chr rom bank switching not yet supported")
+                        abort()
+                    }
+                } else if address >= 0xe000 and address <= 0xffff {
+                    .mapper_1_prg_rom_bank_switch(data: .mapper_1_shift_register)
+                }
+
+                .mapper_1_bit_count = 0
+                .mapper_1_shift_register = 0
+            }
+        }
+    }
+
+    public function mapper_1_control(mut this, data: u8) throws {
+        if (data & 0x3) == 0x3 {
+            // Exchange the screens
+            // Vertical mirroring -> Horizontal Mirroring
+            // Horizonal
+            // 0x2000 -> 0x2400, 0x2800 -> 0x2C00
+            // Vertical
+            // 0x2000 -> 0x2800, 0x2400 -> 0x2C00
+
+            if .ppu.mirroring is Vertical {
+                mut buffer = [0u8; 0x400]
+                // 0x2800 -> 0x2400
+                for x in 0..0x400 {
+                    buffer[x] = .ppu.vram[0x2800 + x]
+                }
+                for x in 0..0x400 {
+                    .ppu.vram[0x2c00 + x] = .ppu.vram[0x2400 + x]
+                    .ppu.vram[0x2400 + x] = buffer[x]
+                }
+            }
+
+            .ppu.mirroring = Mirroring::Horizontal
+        } else if (data & 0x2) == 0x2 {
+            if .ppu.mirroring is Horizontal {
+                mut buffer = [0u8; 0x400]
+                // 0x2400 -> 0x2800
+                for x in 0..0x400 {
+                    buffer[x] = .ppu.vram[0x2400 + x]
+                }
+                for x in 0..0x400 {
+                    .ppu.vram[0x2c00 + x] = .ppu.vram[0x2800 + x]
+                    .ppu.vram[0x2800 + x] = buffer[x]
+                }
+            }
+
+            .ppu.mirroring = Mirroring::Vertical
+        } else {
+            eprintln("Unsupported mirroring requested")
+            abort()
+        }
+
+        .mapper_1_prg_rom_bank_mode = (data >> 2) & 0x3
+        .mapper_1_chr_rom_bank_mode = (data >> 4)
+    }
+
+    public function mapper_1_prg_rom_bank_switch(mut this, data: u8) {
+        if .mapper_1_prg_rom_bank_mode == 2 {
+            // Switching 0xc000
+            .prg_rom_bank_1 = data as! usize
+        } else if .mapper_1_prg_rom_bank_mode == 3 {
+            // Switching 0x8000
+            .prg_rom_bank_0 = data as! usize
+        } else {
+            eprintln("Unsupported 32kb switch")
+            abort()
+
+            // mut page = data & ~0x1
+            // .prg_rom_bank_0 = page as! usize
+            // .prg_rom_bank_1 = (page + 1) as! usize
+        }
     }
 
     public function read_byte(mut this, address: u16) -> u8 {
@@ -122,6 +218,8 @@ class System {
             }
         } else if address < 0x4020 {
             .apu.write_apu_addr(address, value)
+        } else if address >= 0x6000 and address <= 0x7fff {
+            .prg_ram[address - 0x6000] = value
         } else {
             .mapper_write_byte(address, value)
         }
