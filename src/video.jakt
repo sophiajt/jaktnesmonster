@@ -4,13 +4,13 @@ import sdl { SDL,  null }
 import ppu { RGB }
 import cart { Region }
 
-function draw_frame(sdl: SDL, buffer: [RGB], region: Region) throws {
+function draw_frame(sdl: SDL, mut buffer: [u32], region: Region) throws {
 
     mut format = 0u32
     mut access: c_int = 0
-    let (width, height) = match region {
-        NTSC => (256, 224) // NTSC does not display the top and bottom 8 scanlines of the framebuffer
-        PAL => (256, 240)
+    let (start_y, scanlines) = match region {
+        NTSC => (8, 224) // NTSC does not display the top and bottom 8 scanlines of the framebuffer
+        PAL => (0, 240)
         else => {abort()}
     }
     unsafe {
@@ -20,25 +20,16 @@ function draw_frame(sdl: SDL, buffer: [RGB], region: Region) throws {
         }
     }
 
-    mut texture = sdl.create_texture(format, access, w: 256, h: 240)
-    mut pixels: raw u32 = null()
-    mut pitch: c_int = 0
+    mut surface = sdl.surface
 
     unsafe {cpp{
-        "int result = SDL_LockTexture(texture, NULL, (void**)&pixels,  &pitch);
-        if (result < 0)  {
-            printf(\"SDL LockTexture failed: %s\n\",  SDL_GetError());
-        }
-        for (int i = 0; i < buffer.size(); ++i){
-            pixels[i] = buffer[i]->to_u32();
-        }
+        "
+        SDL_Surface* source = SDL_CreateRGBSurfaceFrom(buffer.unsafe_data()+(256*start_y), 256, scanlines, 32, 256*4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0);
+        SDL_BlitScaled(source, nullptr, surface, nullptr);
         "
     }}
 
-    sdl.unlock_texture(texture)
-    sdl.render_copy(texture, srcrect: null(), dstrect: null())    
-
-    sdl.render_present()
+    sdl.update_window_surface()
 
 }
 
