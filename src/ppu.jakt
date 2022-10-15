@@ -64,6 +64,10 @@ class PPU {
     public debug: bool
     rendering_enabled: bool
     public even_frame_flag: bool
+
+    left_sprite_mask: bool
+    left_bg_mask: bool
+
     horizontal_pixel: u64
     vertical_pixel: u64
     public mirroring: Mirroring
@@ -107,6 +111,8 @@ class PPU {
             debug: false
             rendering_enabled: false
             even_frame_flag: true
+            left_sprite_mask: false
+            left_bg_mask: false
             horizontal_pixel: 0
             vertical_pixel: 0
             mirroring
@@ -343,7 +349,9 @@ class PPU {
                 }
                 
                 // Sprite zero can be hit from the background too!
-                .sprite_zero_hit = (not .sprite_zero_hit) and sprite.sprite_zero 
+                if not .sprite_zero_hit and .horizontal_pixel != 255 {
+                    .sprite_zero_hit = (not .sprite_zero_hit) and sprite.sprite_zero and bg_set
+                }
             }
         }
     }
@@ -412,7 +420,7 @@ class PPU {
         }
         for sprite in (0u8..63u8).inclusive() {
             let sprite_addr = sprite * 4u8
-            let sprite_y = .oam[sprite_addr]
+            let sprite_y = .oam[sprite_addr] + 1
             let sprite_x = .oam[sprite_addr + 3]
 
             if not .sprite_size_8x8 and (.oam[sprite_addr + 1] & 0x1) == 0x1 {
@@ -550,11 +558,11 @@ class PPU {
         //}
 
         // FIXME: when we add support for sprites remove this
-        if .background_visible {
+        if .background_visible and (not .left_bg_mask or .horizontal_pixel >= 8) {
             bg_pixel_set = .render_bg_pixel()
         }
 
-        if .sprites_visible {
+        if .sprites_visible and (not .left_sprite_mask or .horizontal_pixel >= 8) {
             .render_sprite_pixel(horizontal_pixel: .horizontal_pixel as! u8, vertical_pixel: .vertical_pixel as! u8, bg_set: bg_pixel_set)
         }
 
@@ -696,6 +704,18 @@ class PPU {
             .background_visible = true
         } else {
             .background_visible = false
+        }
+
+        if (value & PPU_LEFT_BACKGROUND_MASK) == PPU_LEFT_BACKGROUND_MASK {
+            .left_bg_mask = false
+        } else {
+            .left_bg_mask = true
+        }
+
+        if (value & PPU_LEFT_SPRITE_MASK) == PPU_LEFT_SPRITE_MASK {
+            .left_sprite_mask = false
+        } else {
+            .left_sprite_mask = true
         }
 
         let render_bytes = (value << 3) >>> 6
