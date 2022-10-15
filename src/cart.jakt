@@ -56,7 +56,7 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     mut mapper = buffer[6] >> 4
     mapper += buffer[7] & 0xf0;
 
-    guard mapper < 3 else {
+    guard mapper < 4 else {
         eprintln("Mapper {} is not currently supported", mapper)
         abort()
     }
