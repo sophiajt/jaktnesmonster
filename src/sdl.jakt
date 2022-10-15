@@ -43,6 +43,8 @@ import extern c "SDL.h" {
     extern function SDL_RenderCopy(mut renderer:  raw SDL_Renderer, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int
     extern function SDL_CreateTexture(mut renderer: raw SDL_Renderer, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture
     extern function SDL_UpdateWindowSurface(window: raw SDL_Window) -> c_int
+    extern function SDL_CreateRGBSurfaceFrom(pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface
+    extern function SDL_BlitScaled(source: raw SDL_Surface, srcrect: raw SDL_Rect, dest: raw SDL_Surface, destrect: raw SDL_Rect) -> c_int
 }
 
 enum Key {
@@ -308,16 +310,25 @@ class SDL {
 
     public function get_window_surface(this) ->  raw SDL_Surface {
         unsafe {
-            mut surface = SDL_GetWindowSurface(window: .window)
-            let format = *((*surface).format)
-            eprintln("Format:: bpp {}; Rmask: {:0>8x}; Gmask: {:0>8x}; BMask {:0>8x};  Amask {:0>8x}", format.BitsPerPixel, format.Rmask, format.Gmask, format.Bmask, format.Amask)
-            return surface
+            return SDL_GetWindowSurface(window: .window)
         }
     }
 
     public function update_window_surface(this) ->  c_int {
         unsafe  {
             return SDL_UpdateWindowSurface(window: .window)
+        }
+    }
+
+    public function create_rgb_surface_from(this, mut pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface {
+        unsafe  {
+            return SDL_CreateRGBSurfaceFrom(pixels, width,  height,  depth,  pitch, Rmask, Gmask,  Bmask,  Amask)
+        }
+    }
+
+    public function blit_scaled(this, mut source: raw SDL_Surface, mut srcrect: raw SDL_Rect, mut dest: raw SDL_Surface, mut destrect: raw SDL_Rect) -> c_int{
+        unsafe  {
+            return SDL_BlitScaled(source, srcrect, dest, destrect)
         }
     }
 }

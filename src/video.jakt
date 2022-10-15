@@ -1,5 +1,3 @@
-import extern c "SDL.h" {}
-import extern "algorithm" {}
 import sdl { SDL,  null }
 import ppu { RGB }
 import cart { Region }
@@ -13,21 +11,26 @@ function draw_frame(sdl: SDL, mut buffer: [u32], region: Region) throws {
         PAL => (0, 240)
         else => {abort()}
     }
-    unsafe {
-        cpp {
-            "format = SDL_PIXELFORMAT_RGBA32;"
-            "access = SDL_TEXTUREACCESS_STREAMING;"
-        }
-    }
 
     mut surface = sdl.surface
+    mut buf_addr: raw void = null()
+    unsafe {
+        cpp {
+            "buf_addr =  buffer.unsafe_data()+(256*start_y);"
+        }
+    }
+    mut source = sdl.create_rgb_surface_from(pixels: buf_addr, 
+                                             width: 256, 
+                                             height: scanlines as! c_int, 
+                                             depth: 32, 
+                                             pitch: (256*4) as! c_int, 
+                                             Rmask: 0x000000ff, 
+                                             Gmask: 0x0000ff00, 
+                                             Bmask: 0x00ff0000, 
+                                             Amask: 0
+                                            )
 
-    unsafe {cpp{
-        "
-        SDL_Surface* source = SDL_CreateRGBSurfaceFrom(buffer.unsafe_data()+(256*start_y), 256, scanlines, 32, 256*4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0);
-        SDL_BlitScaled(source, nullptr, surface, nullptr);
-        "
-    }}
+    sdl.blit_scaled(source, srcrect: null(), dest: surface, destrect: null())
 
     sdl.update_window_surface()
 
