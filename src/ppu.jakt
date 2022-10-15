@@ -406,13 +406,12 @@ class PPU {
     function find_sprites(mut this, scanline: u8) throws -> [Sprite]  {
         mut result: [Sprite] = []
         mut sprite_count = 0
-        mut sprite_table = .chr_rom_page_0000
-        if .sprite_size_8x8 {
-            sprite_table = match .sprite_table_address {
-                0000 => .chr_rom_page_0000
-                else => .chr_rom_page_1000
-            }
+
+        let sprite_base_table = match .sprite_table_address {
+            0000 => .chr_rom_page_0000
+            else => .chr_rom_page_1000
         }
+        mut sprite_table = sprite_base_table        
 
         mut sprite_height = 8u8
         if not .sprite_size_8x8 {
@@ -423,12 +422,16 @@ class PPU {
             let sprite_y = .oam[sprite_addr] + 1
             let sprite_x = .oam[sprite_addr + 3]
 
-            if not .sprite_size_8x8 and (.oam[sprite_addr + 1] & 0x1) == 0x1 {
-                sprite_table = .chr_rom_page_1000
+            if not .sprite_size_8x8 {
+                if (.oam[sprite_addr + 1] & 0x1) == 0x1 {
+                    sprite_table = .chr_rom_page_1000
+                } else {
+                    sprite_table = sprite_base_table
+                }
             } else {
-                sprite_table = .chr_rom_page_0000
+                sprite_table = sprite_base_table
             }
-	        
+
             if scanline >= sprite_y and scanline < (sprite_y + sprite_height)  {
                 if sprite_count >= 8 {
                     //println("Sprite overflow, {} entries in second OAM", result.size())
