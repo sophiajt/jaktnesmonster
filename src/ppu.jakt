@@ -57,7 +57,7 @@ class PPU {
     public chr_rom_pages: [[u8]]
     public chr_rom_page_0000: usize
     public chr_rom_page_1000: usize
-    public video_buffer: [RGB]
+    public video_buffer: [u32]
     // scroll_x: u8
     // scroll_y: u8
     // scroll_toggle: bool
@@ -80,13 +80,10 @@ class PPU {
     x: u8
     w: u8
 
-    color_palette: [RGB]
+    color_palette: [u32]
 
     public function init(chr_rom_pages: [[u8]], mirroring: Mirroring) throws -> PPU {
-        mut video_buffer: [RGB] = []
-        for _ in 0..(256*240) {
-            video_buffer.push(rgb(0, 0, 0))
-        }
+        mut video_buffer: [u32] = [rgb(0,0,0); 256*240]
         return PPU(
             vram_address_increment: 1
             sprite_table_address: 0x0000
@@ -574,7 +571,7 @@ class PPU {
         // print("{:0>2x}", nametable_entry)
     }
 
-    function look_up_palette_entry_bg(mut this, palette_entry: u8) -> RGB {
+    function look_up_palette_entry_bg(mut this, palette_entry: u8) -> u32 {
         guard palette_entry < 16 else {
             println("ERROR: incorrect palette entry: {}", palette_entry)
             //return RGB(red: 0, green: 0, blue: 0)
@@ -586,7 +583,7 @@ class PPU {
         return .convert_palette_to_rgb(bg_palette)
     }
 
-    function look_up_palette_entry_sprite(mut this, palette_entry: u8) -> RGB {
+    function look_up_palette_entry_sprite(mut this, palette_entry: u8) -> u32 {
         guard palette_entry < 16 else {
             println("ERROR: incorrect palette entry: {}", palette_entry)
             //return RGB(red: 0, green: 0, blue: 0)
@@ -937,7 +934,7 @@ class PPU {
         }
     }
 
-    function convert_palette_to_rgb(this, anon value: u8) -> RGB {
+    function convert_palette_to_rgb(this, anon value: u8) -> u32 {
         if value > 63 {
             eprintln("ERROR: incorrect palette for rgb: {}", value)
             abort()
@@ -947,6 +944,6 @@ class PPU {
 
 }
 
-function rgb(anon red: u8, anon green: u8, anon blue: u8) throws -> RGB {
-    return RGB(red, green, blue)
+function rgb(anon red: u8, anon green: u8, anon blue: u8) -> u32 {
+    return (255 << 24) | (blue << 16) | (green << 8) | red 
 }
