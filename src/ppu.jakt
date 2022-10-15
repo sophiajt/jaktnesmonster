@@ -812,9 +812,9 @@ class PPU {
             .vram[address] = value
         }
         else if (address >= 0x3000) and (address <= 0x3eff) {
-            eprintln("Mirror of PPU nametable not yet supported")
-            abort()  
-            // .vram[address] = value
+            // eprintln("Mirror of PPU nametable not yet supported")
+            // abort()  
+            .vram[address - 0x1000] = value
         }
         else if (address >= 0x3f00) and (address <= 0x3fff) {
             let sub_address = (address - 0x3f00) % 0x20
