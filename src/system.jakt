@@ -93,11 +93,10 @@ class System {
                     } catch {
 
                     }
-                } else if address >= 0xa000 and address <= 0xdfff {
-                    if .mapper_1_shift_register != 0 {
-                        eprintln("chr rom bank switching not yet supported")
-                        abort()
-                    }
+                } else if address >= 0xa000 and address <= 0xbfff {
+                    .mapper_1_chr_rom_bank_switch0(data: .mapper_1_shift_register)
+                } else if address >= 0xc000 and address <= 0xdfff {
+                    .mapper_1_chr_rom_bank_switch1(data: .mapper_1_shift_register)
                 } else if address >= 0xe000 and address <= 0xffff {
                     .mapper_1_prg_rom_bank_switch(data: .mapper_1_shift_register)
                 }
@@ -151,6 +150,22 @@ class System {
 
         .mapper_1_prg_rom_bank_mode = (data >> 2) & 0x3
         .mapper_1_chr_rom_bank_mode = (data >> 4)
+    }
+
+    public function mapper_1_chr_rom_bank_switch0(mut this, data: u8) {
+        if .mapper_1_chr_rom_bank_mode == 0 {
+            let byte = data & 0x1e
+            .ppu.chr_rom_page_0000 = byte as! usize
+            .ppu.chr_rom_page_1000 = byte as! usize + 1
+        } else {
+            let byte = data & 0x1f
+            .ppu.chr_rom_page_0000 = byte as! usize
+        }
+    }
+
+    public function mapper_1_chr_rom_bank_switch1(mut this, data: u8) {
+        let byte = data & 0x1f
+        .ppu.chr_rom_page_1000 = data as! usize
     }
 
     public function mapper_1_prg_rom_bank_switch(mut this, data: u8) {

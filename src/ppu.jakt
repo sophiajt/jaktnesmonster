@@ -410,7 +410,7 @@ class PPU {
         if not .sprite_size_8x8 {
             sprite_height = 16u8
         }
-        for sprite in (63u8..0u8).inclusive() {
+        for sprite in (0u8..63u8).inclusive() {
             let sprite_addr = sprite * 4u8
             let sprite_y = .oam[sprite_addr]
             let sprite_x = .oam[sprite_addr + 3]
