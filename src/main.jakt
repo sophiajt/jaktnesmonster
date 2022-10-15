@@ -40,7 +40,6 @@ function main(args: [String]) {
             }
             sdl.init_audio()
             sdl.enable_audio()
-            sdl.set_scale(scale: 2.0f32)
 
             mut event = sdl.poll_event()
             loop {

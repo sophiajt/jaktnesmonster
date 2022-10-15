@@ -3,6 +3,18 @@ import extern c "SDL.h" {
     extern struct SDL_Window {}
     extern struct SDL_AudioDeviceID {}
     extern struct SDL_AudioSpec {}
+    extern struct SDL_Texture {}
+    extern struct SDL_Rect {}
+    extern struct SDL_PixelFormat {
+        BitsPerPixel: u8
+        Rmask: u32
+        Gmask: u32
+        Bmask: u32
+        Amask: u32
+    }
+    extern struct SDL_Surface {
+        format: raw SDL_PixelFormat
+    }
 
     extern function SDL_SetMainReady() -> void
     extern function SDL_Init(flags: u32) -> c_int
@@ -11,6 +23,8 @@ import extern c "SDL.h" {
                                                 window_flags: u32
                                                 window: raw raw SDL_Window
                                                 renderer: raw raw SDL_Renderer) -> c_int
+    extern function SDL_CreateWindow(title: raw c_char, x: c_int, y: c_int, w: c_int, h: c_int, flags: u32) -> raw SDL_Window
+    extern function SDL_GetWindowSurface(window: raw SDL_Window) -> raw SDL_Surface
     extern function SDL_SetRenderDrawColor(renderer: raw SDL_Renderer, r: u8, g: u8, b: u8, a: u8) -> c_int
     extern function SDL_RenderClear(renderer: raw SDL_Renderer) -> c_int
     extern function SDL_RenderPresent(renderer: raw SDL_Renderer) -> c_int
@@ -24,6 +38,13 @@ import extern c "SDL.h" {
     extern function SDL_PauseAudioDevice(device: u32, mode: u32)
     extern function SDL_QueueAudio(device: u32, sample: raw i16, sample_size: u32)
     extern function SDL_ClearQueuedAudio(device: u32)
+    extern function SDL_LockTexture(mut texture: raw SDL_Texture, rect: raw SDL_Rect, pixels: raw raw void, pitch: raw c_int) -> c_int
+    extern function SDL_UnlockTexture(mut texture: raw SDL_Texture) -> void
+    extern function SDL_RenderCopy(mut renderer:  raw SDL_Renderer, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int
+    extern function SDL_CreateTexture(mut renderer: raw SDL_Renderer, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture
+    extern function SDL_UpdateWindowSurface(window: raw SDL_Window) -> c_int
+    extern function SDL_CreateRGBSurfaceFrom(pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface
+    extern function SDL_BlitScaled(source: raw SDL_Surface, srcrect: raw SDL_Rect, dest: raw SDL_Surface, destrect: raw SDL_Rect) -> c_int
 }
 
 enum Key {
@@ -61,21 +82,26 @@ class SDL {
     renderer: raw SDL_Renderer
     window: raw SDL_Window
     audio_device: u32
+    public surface: raw SDL_Surface
 
     public function construct() throws -> SDL {
-        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>(), audio_device: 0)
+        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>(), audio_device: 0, surface: null())
     }
 
     public function init_video(mut this, width: i64, height: i64) {
         let sdl_init_video : u32 = 0x30 // Video and Audio
+        let sdl_windowpos_undefined: c_int = 0x1FFF0000
         unsafe {
             SDL_SetMainReady();
             SDL_Init(flags: sdl_init_video);
-            SDL_CreateWindowAndRenderer(width: width as! c_int
-                                        height: height as! c_int
-                                        window_flags: 0
-                                        window: &raw .window
-                                        renderer: &raw .renderer)
+            // SDL_CreateWindowAndRenderer(width: width as! c_int
+            //                             height: height as! c_int
+            //                             window_flags: 0
+            //                             window: &raw .window
+            //                             renderer: &raw .renderer)
+
+            .window = SDL_CreateWindow(title: "JaktNES Monster".c_string(), x: sdl_windowpos_undefined, y: sdl_windowpos_undefined, w: width as! c_int, h: height as! c_int, flags: 0u32)
+            .surface = .get_window_surface()
         }
     }
 
@@ -256,6 +282,53 @@ class SDL {
     public function clear_queued_audio(mut this) {
         unsafe {
             SDL_ClearQueuedAudio(device: .audio_device)
+        }
+    }
+    public function lock_texture(this, mut texture: raw SDL_Texture, rect: raw SDL_Rect, mut pixels: raw raw void, mut pitch: raw c_int) -> c_int {
+        unsafe {
+            return SDL_LockTexture(texture, rect, pixels, pitch)
+        }
+    }
+
+    public function unlock_texture(this, mut texture: raw SDL_Texture) -> void {
+        unsafe {
+            SDL_UnlockTexture(texture)
+        }
+    }
+
+    public function render_copy(this, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int {
+        unsafe {
+            return SDL_RenderCopy(renderer: .renderer, texture, srcrect, dstrect)
+        }
+    }
+
+    public function create_texture(this, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture {
+        unsafe {
+            return SDL_CreateTexture(renderer: .renderer, format, access, w, h)
+        }
+    }
+
+    public function get_window_surface(this) ->  raw SDL_Surface {
+        unsafe {
+            return SDL_GetWindowSurface(window: .window)
+        }
+    }
+
+    public function update_window_surface(this) ->  c_int {
+        unsafe  {
+            return SDL_UpdateWindowSurface(window: .window)
+        }
+    }
+
+    public function create_rgb_surface_from(this, mut pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface {
+        unsafe  {
+            return SDL_CreateRGBSurfaceFrom(pixels, width,  height,  depth,  pitch, Rmask, Gmask,  Bmask,  Amask)
+        }
+    }
+
+    public function blit_scaled(this, mut source: raw SDL_Surface, mut srcrect: raw SDL_Rect, mut dest: raw SDL_Surface, mut destrect: raw SDL_Rect) -> c_int{
+        unsafe  {
+            return SDL_BlitScaled(source, srcrect, dest, destrect)
         }
     }
 }
