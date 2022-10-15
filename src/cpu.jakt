@@ -1458,8 +1458,11 @@ class CPU {
         .pc += 1
         .clock += 4
 
-        .s += 1
-        let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
+        mut tmp = .s as! u16
+        tmp += 1
+        tmp = tmp & 0xff
+        .s = tmp as! u8
+        let intermediate = .system.read_byte(address: 0x100u16 + tmp)
 
         // set the flags
         .test_nz_flags(value: intermediate)
@@ -1487,9 +1490,19 @@ class CPU {
     }
 
     function pull_pc(mut this) {
-        .s += 1
-        .pc = .system.read_word(address: 0x100u16 + .s as! u16)
-        .s += 1
+        if .s == 0xff {
+            .s = 0
+        } else {
+            .s += 1
+        }
+        let pc_low = .system.read_byte(address: 0x100u16 + .s as! u16)
+        if .s == 0xff {
+            .s = 0
+        } else {
+            .s += 1
+        }
+        let pc_high = .system.read_byte(address: 0x100u16 + .s as! u16)
+        .pc = ((pc_high as! u16) << 8) | (pc_low as! u16)
     }
 
     function plp(mut this) {
@@ -1532,7 +1545,11 @@ class CPU {
 
     function push_byte(mut this, anon value: u8) {
         .system.write_byte(address: (0x100u16 + .s as! u16), value)
-        .s -= 1
+        if .s == 0 {
+            .s = 0xff
+        } else {
+            .s -= 1
+        }
     }
 
     function push_word(mut this, value: u16) {
