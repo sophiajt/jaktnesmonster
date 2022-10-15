@@ -71,8 +71,14 @@ class System {
 
     function mapper_write_byte(mut this, address: u16, value: u8) {
         // eprintln("Write of {:0>2x} to {:0>4x}", value, address)
-        if (.cart.mapper == 2) {
-            .prg_rom_bank_0 = (value & 7) as! usize
+        if .cart.mapper == 2 {
+            .prg_rom_bank_0 = value as! usize & 7
+            return
+        }
+        if .cart.mapper == 3 {
+            let mapper_3_bank = (value as! usize & 3) * 2
+            .ppu.chr_rom_page_0000 = mapper_3_bank
+            .ppu.chr_rom_page_1000 = mapper_3_bank + 1
             return
         }
         if (value & 0b1000_0000) == 0b1000_0000 {

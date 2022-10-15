@@ -1,40 +1,38 @@
-import sdl { SDL }
+import sdl { SDL,  null }
 import ppu { RGB }
 import cart { Region }
 
-function draw_frame(sdl: SDL, buffer: [RGB], region: Region) throws {
-    let WINDOW_WIDTH = 600;
-    mut user_x = 100u64;
-    mut user_y = 100u64;
+function draw_frame(sdl: SDL, mut buffer: [u32], region: Region) throws {
 
-    match region {
-        NTSC => {
-            for idx in (256u64 * 8u64)..(256u64 * 232u64) {
-                let i = idx - (256u64 * 8u64)
-                let rgb = buffer[idx]
-                sdl.set_render_draw_color(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 255)
-
-                let x = i % 256
-                let y = i / 256
-
-                sdl.render_draw_point(x, y)
-            }
-
-        }
-        else => {
-            for i in 0..(256u64 * 240u64) {
-                let rgb = buffer[i]
-                sdl.set_render_draw_color(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 255)
-
-                let x = i % 256
-                let y = i / 256
-
-                sdl.render_draw_point(x, y)
-            }
-        }
+    mut format = 0u32
+    mut access: c_int = 0
+    let (start_y, scanlines) = match region {
+        NTSC => (8, 224) // NTSC does not display the top and bottom 8 scanlines of the framebuffer
+        PAL => (0, 240)
+        else => {abort()}
     }
 
-    sdl.render_present()
+    mut surface = sdl.surface
+    mut buf_addr: raw void = null()
+    unsafe {
+        cpp {
+            "buf_addr =  buffer.unsafe_data()+(256*start_y);"
+        }
+    }
+    mut source = sdl.create_rgb_surface_from(pixels: buf_addr, 
+                                             width: 256, 
+                                             height: scanlines as! c_int, 
+                                             depth: 32, 
+                                             pitch: (256*4) as! c_int, 
+                                             Rmask: 0x000000ff, 
+                                             Gmask: 0x0000ff00, 
+                                             Bmask: 0x00ff0000, 
+                                             Amask: 0
+                                            )
+
+    sdl.blit_scaled(source, srcrect: null(), dest: surface, destrect: null())
+
+    sdl.update_window_surface()
 
 }
 
