@@ -215,7 +215,7 @@ class PPU {
             // 257-320 = sprite tile loading interval
             if (.horizontal_pixel >= 257) and (.horizontal_pixel <= 320) and ((.vertical_pixel >= 0) and (.vertical_pixel <= 239)) {
                 // .oam_addr = 0x00
-                .second_oam = .find_sprites(scanline: (.vertical_pixel) as! u8)
+                .second_oam = .find_sprites(scanline: (.vertical_pixel + 1) as! u8)
             }
             if (.vertical_pixel == 241) and (.horizontal_pixel == 0) {
                 .dont_vblank = false
