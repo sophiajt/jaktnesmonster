@@ -426,7 +426,7 @@ class PPU {
                 if (.oam[sprite_addr + 1] & 0x1) == 0x1 {
                     sprite_table = .chr_rom_page_1000
                 } else {
-                    sprite_table = sprite_base_table
+                    sprite_table = .chr_rom_page_0000
                 }
             } else {
                 sprite_table = sprite_base_table

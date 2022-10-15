@@ -50,7 +50,7 @@ class System {
                 mapper_1_shift_register: 0
                 mapper_1_bit_count: 0
                 mapper_1_prg_rom_bank_mode: 3
-                mapper_1_chr_rom_bank_mode: 0
+                mapper_1_chr_rom_bank_mode: 1
             )
         )
     }
@@ -164,8 +164,10 @@ class System {
     }
 
     public function mapper_1_chr_rom_bank_switch1(mut this, data: u8) {
-        let byte = data & 0x1f
-        .ppu.chr_rom_page_1000 = data as! usize
+        if .mapper_1_chr_rom_bank_mode == 1 {
+            let byte = data & 0x1f
+            .ppu.chr_rom_page_1000 = data as! usize
+        }
     }
 
     public function mapper_1_prg_rom_bank_switch(mut this, data: u8) {
