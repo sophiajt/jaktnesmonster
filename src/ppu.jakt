@@ -422,10 +422,10 @@ class PPU {
         for sprite in (0u8..63u8).inclusive() {
             let sprite_addr = sprite * 4u8
             mut sprite_y = 0u8
-            //FIXME: This only fixes an overflow crash, it may not be correct emulation
-            if (.oam[sprite_addr] == 255 ) {
-                sprite_y = .oam[sprite_addr]
-            } else {
+            //https://www.nesdev.org/wiki/PPU_OAM
+            // Byte 0 - Hide a sprite by writing any values in $EF-$FF here.
+            // If "any values" can go to $ef-$ff, we only care what's below $ee
+            if (.oam[sprite_addr] < 0xee ) {
                 sprite_y = .oam[sprite_addr] + 1
             }
             let sprite_x = .oam[sprite_addr + 3]
