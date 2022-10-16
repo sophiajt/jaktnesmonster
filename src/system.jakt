@@ -31,14 +31,17 @@ class System {
             return SystemLoadStatus::Error("not a valid ROM file")
         }
 
+        mut ppu = PPU::init(
+            chr_rom_pages: cart.chr_rom_pages
+        )
+
+        ppu.set_mirroring(cart.mirroring)
+
         return SystemLoadStatus::Success(
             System(
                 scratch_ram: [0u8; 0x800]
                 prg_ram: [0u8; 0x2000]
-                ppu: PPU::init(
-                    chr_rom_pages: cart.chr_rom_pages
-                    mirroring: cart.mirroring
-                )
+                ppu
                 apu: APU::init()
                 cart
                 joypad: Joypad::init()
@@ -114,44 +117,11 @@ class System {
     }
 
     public function mapper_1_control(mut this, data: u8) throws {
-        if (data & 0x3) == 0x3 {
-            // Exchange the screens
-            // Vertical mirroring -> Horizontal Mirroring
-            // Horizonal
-            // 0x2000 -> 0x2400, 0x2800 -> 0x2C00
-            // Vertical
-            // 0x2000 -> 0x2800, 0x2400 -> 0x2C00
-
-            if .ppu.mirroring is Vertical {
-                mut buffer = [0u8; 0x400]
-                // 0x2800 -> 0x2400
-                for x in 0..0x400 {
-                    buffer[x] = .ppu.vram[0x2800 + x]
-                }
-                for x in 0..0x400 {
-                    .ppu.vram[0x2c00 + x] = .ppu.vram[0x2400 + x]
-                    .ppu.vram[0x2400 + x] = buffer[x]
-                }
-            }
-
-            .ppu.mirroring = Mirroring::Horizontal
-        } else if (data & 0x2) == 0x2 {
-            if .ppu.mirroring is Horizontal {
-                mut buffer = [0u8; 0x400]
-                // 0x2400 -> 0x2800
-                for x in 0..0x400 {
-                    buffer[x] = .ppu.vram[0x2400 + x]
-                }
-                for x in 0..0x400 {
-                    .ppu.vram[0x2c00 + x] = .ppu.vram[0x2800 + x]
-                    .ppu.vram[0x2800 + x] = buffer[x]
-                }
-            }
-
-            .ppu.mirroring = Mirroring::Vertical
-        } else {
-            eprintln("Unsupported mirroring requested")
-            // abort()
+        match data & 0x3 {
+            0 => .ppu.set_mirroring(Mirroring::OneScreenLower)
+            1 => .ppu.set_mirroring(Mirroring::OneScreenUpper)
+            2 => .ppu.set_mirroring(Mirroring::Vertical)
+            else => .ppu.set_mirroring(Mirroring::Horizontal)
         }
 
         .mapper_1_prg_rom_bank_mode = (data >> 2) & 0x3

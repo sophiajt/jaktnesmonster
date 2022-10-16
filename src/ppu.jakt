@@ -49,7 +49,9 @@ class PPU {
     clock: u64
     public in_vblank: bool
     dont_vblank: bool
-    public vram: [u8]
+    public nametable_data: [[u8]]
+    public nametables: [usize]
+    public palette: [u8]
     // public vram_rw_addr: u16
     public oam: [u8]
     oam_addr: u8
@@ -75,7 +77,6 @@ class PPU {
 
     horizontal_pixel: u64
     vertical_pixel: u64
-    public mirroring: Mirroring
     dma_ticks: u64
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
@@ -86,7 +87,7 @@ class PPU {
 
     color_palette: [u32]
 
-    public function init(chr_rom_pages: [[u8]], mirroring: Mirroring) throws -> PPU {
+    public function init(chr_rom_pages: [[u8]]) throws -> PPU {
         mut video_buffer: [u32] = [rgb(0,0,0); 256*240]
         return PPU(
             vram_address_increment: 1
@@ -97,7 +98,9 @@ class PPU {
             clock: 0
             in_vblank: false
             dont_vblank: false
-            vram: [0; 0x3FFF]
+            nametable_data: [[0x0; 0x400], [0x0; 0x400], [0x0; 0x400], [0x0; 0x400]]
+            nametables: [0; 4]
+            palette: [0x0; 32]
             oam: [0xff; 256]
             oam_addr: 0x00
             second_oam: []
@@ -117,7 +120,6 @@ class PPU {
             left_bg_mask: false
             horizontal_pixel: 0
             vertical_pixel: 0
-            mirroring
             dma_ticks: 0
 
             // internal PPU registers
@@ -203,6 +205,35 @@ class PPU {
         }
     }
 
+    public function set_mirroring(mut this, anon mirroring: Mirroring) {
+        match mirroring {
+            Horizontal => {
+                .nametables[0] = 0
+                .nametables[1] = 0
+                .nametables[2] = 1
+                .nametables[3] = 1
+            }
+            Vertical => {
+                .nametables[0] = 0
+                .nametables[1] = 1
+                .nametables[2] = 0
+                .nametables[3] = 1
+            }
+            OneScreenLower => {
+                .nametables[0] = 0
+                .nametables[1] = 0
+                .nametables[2] = 0
+                .nametables[3] = 0
+            }
+            OneScreenUpper => {
+                .nametables[0] = 1
+                .nametables[1] = 1
+                .nametables[2] = 1
+                .nametables[3] = 1
+            }
+        }
+    }
+
     public function tick(mut this, cycles: u64) throws {
         for x in (.clock)..(.clock + cycles) {
             // Where are we on the screen
@@ -245,15 +276,38 @@ class PPU {
         }
     }
 
-    function read_vram(this, anon addr: u16) -> u8 {
-        mut address = addr
-        if .mirroring is Horizontal {
-            address = address | 0x400
+    function read_nametable(this, anon address: u16) -> u8 {
+        match address & 0xfc00 {
+            0x2000 => {
+                return .nametable_data[.nametables[0]][address & ~0xfc00]
+            }
+            0x2400 => {
+                return .nametable_data[.nametables[1]][address & ~0xfc00]
+            }
+            0x2800 => {
+                return .nametable_data[.nametables[2]][address & ~0xfc00]
+            }
+            else => {
+                return .nametable_data[.nametables[3]][address & ~0xfc00]
+            }
         }
-        if .mirroring is Vertical {
-            address = address | 0x800
+    }
+
+    function write_nametable(mut this, address: u16, value: u8) {
+        match address & 0xfc00 {
+            0x2000 => {
+                .nametable_data[.nametables[0]][address & ~0xfc00] = value
+            }
+            0x2400 => {
+                .nametable_data[.nametables[1]][address & ~0xfc00] = value
+            }
+            0x2800 => {
+                .nametable_data[.nametables[2]][address & ~0xfc00] = value
+            }
+            else => {
+                .nametable_data[.nametables[3]][address & ~0xfc00] = value
+            }
         }
-        return .vram[address]
     }
 
     function render_bg_pixel(mut this) throws -> bool {
@@ -263,23 +317,15 @@ class PPU {
         mut virtual_horizontal_pixel = .horizontal_pixel + scroll_x as! u64
         mut virtual_vertical_pixel = scroll_y as! u64
 
-        let base_table_select = (.v >> 10) & 0x3
-
-        mut base_table_address: u16 = match base_table_select {
-            0 => 0x2000
-            1 => 0x2400
-            2 => 0x2800
-            3 => 0x2c00
-            else => {abort()}
-        }
+        mut base_table = (.v >> 10) & 0x3
 
         if virtual_horizontal_pixel >= 256 {
-            base_table_address ^= 0x400
+            base_table ^= 0x1
             virtual_horizontal_pixel -= 256
         }
 
         if virtual_vertical_pixel >= 240 {
-            base_table_address ^= 0x800
+            base_table ^= 0x2
             virtual_vertical_pixel -= 240
         }
 
@@ -288,8 +334,7 @@ class PPU {
         let horizontal_tile: u16 = virtual_horizontal_pixel / 8
 
         // Fetch nametable entry
-        let nametable_entry = .read_vram(base_table_address + vertical_tile * 32 + horizontal_tile)
-        // let nametable_entry = .vram[.base_table_address - 0x2000 + vertical_tile * 32 + horizontal_tile]
+        let nametable_entry = .nametable_data[.nametables[base_table]][vertical_tile * 32 + horizontal_tile]
         
         let vertical_attr = vertical_tile / 4
         let horizontal_attr = horizontal_tile / 4
@@ -301,7 +346,7 @@ class PPU {
         // | plane 1
         // attr (2 bits)
 
-        let attr = .read_vram(base_table_address + 0x3c0 + vertical_attr * 8 + horizontal_attr)
+        let attr = .nametable_data[.nametables[base_table]][0x3c0 + vertical_attr * 8 + horizontal_attr]
 
         let horizontal_box_pos = (horizontal_tile % 4) / 2
         let vertical_box_pos = (vertical_tile % 4) / 2
@@ -594,7 +639,7 @@ class PPU {
             abort()
         }
 
-        let bg_palette = .vram[0x3f00 + palette_entry as! u64]
+        let bg_palette = .palette[palette_entry as! u64]
 
         return .convert_palette_to_rgb(bg_palette)
     }
@@ -607,11 +652,11 @@ class PPU {
         }
 
         match palette_entry {
-            0 => { return .convert_palette_to_rgb(.vram[0x3f00]) }
-            0x4 => { return .convert_palette_to_rgb(.vram[0x3f04]) }
-            0x8 => { return .convert_palette_to_rgb(.vram[0x3f08]) }
-            0xc => { return .convert_palette_to_rgb(.vram[0x3f0c]) }
-            else => { return .convert_palette_to_rgb(.vram[0x3f10 + (palette_entry as! u64)]) }
+            0 => { return .convert_palette_to_rgb(.palette[0x00]) }
+            0x4 => { return .convert_palette_to_rgb(.palette[0x04]) }
+            0x8 => { return .convert_palette_to_rgb(.palette[0x08]) }
+            0xc => { return .convert_palette_to_rgb(.palette[0x0c]) }
+            else => { return .convert_palette_to_rgb(.palette[0x10 + (palette_entry as! u64)]) }
         }
     }
 
@@ -804,47 +849,34 @@ class PPU {
             abort()
         }
 
-        .vram[address] = value
         if (address >= 0x0000) and (address <= 0x0fff) {
             .chr_rom_pages[.chr_rom_page_0000][address] = value
         }
         else if (address >= 0x1000) and (address <= 0x1fff) {
             .chr_rom_pages[.chr_rom_page_1000][address - 0x1000] = value            
         }
-        else if (address >= 0x2000) and (address <= 0x2eff) {
-            if .mirroring is Horizontal {
-                address = address | 0x400
-            }
-            if .mirroring is Vertical {
-                address = address | 0x800
-            }
-
-            .vram[address] = value
+        else if (address >= 0x2000) and (address <= 0x2fff) {
+            .write_nametable(address, value)
         }
         else if (address >= 0x3000) and (address <= 0x3eff) {
             // eprintln("Mirror of PPU nametable not yet supported")
             // abort()  
-            .vram[address - 0x1000] = value
+            .write_nametable(address: address - 0x1000, value)
         }
         else if (address >= 0x3f00) and (address <= 0x3fff) {
             let sub_address = (address - 0x3f00) % 0x20
-            .vram[0x3f00 + sub_address] = value
-            .vram[0x3f00 + 0x20 as! u16 + sub_address] = value
-            .vram[0x3f00 + (0x20 * 2) as! u16 + sub_address] = value
-            .vram[0x3f00 + (0x20 * 3) as! u16 + sub_address] = value
-            .vram[0x3f00 + (0x20 * 4) as! u16 + sub_address] = value
-            .vram[0x3f00 + (0x20 * 5) as! u16 + sub_address] = value
-            .vram[0x3f00 + (0x20 * 6) as! u16 + sub_address] = value
+            // FIXME: add back in mirroring
+            .palette[sub_address] = value
         }
         match address {
-            0x3f00 => { .vram[0x3f10] = value }
-            0x3f04 => { .vram[0x3f14] = value }
-            0x3f08 => { .vram[0x3f18] = value }
-            0x3f0C => { .vram[0x3f1C] = value }
-            0x3f10 => { .vram[0x3f00] = value }
-            0x3f14 => { .vram[0x3f04] = value }
-            0x3f18 => { .vram[0x3f08] = value }
-            0x3f1C => { .vram[0x3f0C] = value }
+            0x3f00 => { .palette[0x10] = value }
+            0x3f04 => { .palette[0x14] = value }
+            0x3f08 => { .palette[0x18] = value }
+            0x3f0C => { .palette[0x1C] = value }
+            0x3f10 => { .palette[0x00] = value }
+            0x3f14 => { .palette[0x04] = value }
+            0x3f18 => { .palette[0x08] = value }
+            0x3f1C => { .palette[0x0C] = value }
             else => {}
         }
         .increment_v()
@@ -863,20 +895,7 @@ class PPU {
         mut output = 0u8
         // println("PPU read: {:0>4x}", .v)
 
-        mut address = .v & 0x3fff
-        if address >= 0x2000 and address <= 0x2fff {
-            if .mirroring is Horizontal {
-                address = address | 0x400
-            }
-            if .mirroring is Vertical {
-                address = address | 0x800
-            }
-        }
-
-        if address > 0x3fff {
-            eprintln("Bad address: {:0>4x}", .v)
-            abort()
-        }
+        let address = .v & 0x3fff
 
         if address <= 0x3eff {
             mut value: u8 = 0
@@ -885,13 +904,13 @@ class PPU {
             } else if address < 0x2000 {
                 value = .chr_rom_pages[.chr_rom_page_1000][address - 0x1000]
             } else if (address >= 0x2000) and (address <= 0x2fff){
-                value = .vram[address]
+                value = .read_nametable(address)
             }
             .increment_v()
             output = .buffered_read
             .buffered_read = value
         } else {
-            let value = .vram[address]
+            let value = .palette[address - 0x3f00]
             .increment_v()
             output = value
         }
