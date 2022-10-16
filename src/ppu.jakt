@@ -855,7 +855,7 @@ class PPU {
         else if (address >= 0x1000) and (address <= 0x1fff) {
             .chr_rom_pages[.chr_rom_page_1000][address - 0x1000] = value            
         }
-        else if (address >= 0x2000) and (address <= 0x2eff) {
+        else if (address >= 0x2000) and (address <= 0x2fff) {
             .write_nametable(address, value)
         }
         else if (address >= 0x3000) and (address <= 0x3eff) {
