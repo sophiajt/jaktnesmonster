@@ -40,6 +40,7 @@ function main(args: [String]) {
             }
             sdl.init_audio()
             sdl.enable_audio()
+            sdl.get_controller()
 
             mut event = sdl.poll_event()
             loop {
@@ -127,6 +128,62 @@ function main(args: [String]) {
                                 }
                             }
                         }
+                        ButtonDown(button) =>{
+                            match button {
+                                Up => {
+                                    joypad.press_up()
+                                }
+                                Down => {
+                                    joypad.press_down()
+                                }
+                                Left => {
+                                    joypad.press_left()
+                                }
+                                Right => {
+                                    joypad.press_right()
+                                }
+                                Start => {
+                                    joypad.press_start()
+                                }
+                                Select => {
+                                    joypad.press_select()
+                                }
+                                A => {
+                                    joypad.press_a()
+                                }
+                                B => {
+                                    joypad.press_b()
+                                }
+                            }
+                        }
+                        ButtonUp(button) =>{
+                            match button {
+                                Up => {
+                                    joypad.release_up()
+                                }
+                                Down => {
+                                    joypad.release_down()
+                                }
+                                Left => {
+                                    joypad.release_left()
+                                }
+                                Right => {
+                                    joypad.release_right()
+                                }
+                                Start => {
+                                    joypad.release_start()
+                                }
+                                Select => {
+                                    joypad.release_select()
+                                }
+                                A => {
+                                    joypad.release_a()
+                                }
+                                B => {
+                                    joypad.release_b()
+                                }
+                            }
+                        }
                     }
                 }
                 event = None
@@ -199,9 +256,9 @@ function clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
         // Finally, let's burn some time so that we're at 60fps
         let delta = sdl.delta_time() as! u32
         let ms_per_frame = 1000u32 / 60u32
-        if delta < ms_per_frame {
-            sdl.delay(ms: ms_per_frame - delta)
-        }
+//        if delta < ms_per_frame {
+//            sdl.delay(ms: ms_per_frame - delta)
+//        }
     }
 
     if not in_vblank_before and in_vblank_after and system.ppu.nmi_on_vblank {

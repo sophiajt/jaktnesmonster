@@ -15,6 +15,7 @@ import extern c "SDL.h" {
     extern struct SDL_Surface {
         format: raw SDL_PixelFormat
     }
+    extern struct SDL_GameController {}
 
     extern function SDL_SetMainReady() -> void
     extern function SDL_Init(flags: u32) -> c_int
@@ -46,6 +47,10 @@ import extern c "SDL.h" {
     extern function SDL_CreateRGBSurfaceFrom(pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface
     extern function SDL_BlitScaled(source: raw SDL_Surface, srcrect: raw SDL_Rect, dest: raw SDL_Surface, destrect: raw SDL_Rect) -> c_int
     extern function SDL_GetTicks64() -> u64
+    extern function SDL_NumJoysticks() -> c_int
+    extern function SDL_IsGameController(index: c_int) -> bool
+    extern function SDL_GameControllerOpen(index: c_int) -> raw SDL_GameController
+    extern function SDL_GameControllerClose(gamepad: raw SDL_GameController)
 }
 
 enum Key {
@@ -63,10 +68,23 @@ enum Key {
     L
 }
 
+enum Button {
+    Up
+    Down
+    Left
+    Right
+    Start
+    Select
+    A
+    B
+}
+
 enum SDLEvent {
     Quit
     KeyDown(key: Key)
     KeyUp(key: Key)
+    ButtonDown(button: Button)
+    ButtonUp(button: Button)
 }
 
 // TODO: nullptr constant anyone?
@@ -85,9 +103,10 @@ class SDL {
     audio_device: u32
     public surface: raw SDL_Surface
     last_frame_time: u64
+    gamepad: raw SDL_GameController
 
     public function construct() throws -> SDL {
-        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>(), audio_device: 0, surface: null(), last_frame_time: 0)
+        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>(), audio_device: 0, surface: null(), last_frame_time: 0, gamepad: null<SDL_GameController>())
     }
 
     public function init_video(mut this, width: i64, height: i64) {
@@ -239,6 +258,58 @@ class SDL {
                         const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::L());
                         return event;
                     }
+                } else if (has_event && event.type == SDL_CONTROLLERBUTTONDOWN) {
+                    if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Up());
+                        return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Down());
+                            return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
+                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Left());
+                            return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Right());
+                            return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::A());
+                            return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B) {
+                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::B());
+                            return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_START) {
+                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Start());
+                            return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_BACK) {
+                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Select());
+                            return event;
+                    }
+                } else if (has_event && event.type == SDL_CONTROLLERBUTTONUP) {
+                    if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Up());
+                        return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Down());
+                        return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Left());
+                        return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Right());
+                        return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::A());
+                        return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::B());
+                        return event;
+                    } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_START) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Start());
+                        return event;
+                    }  else if (event.cbutton.button ==  SDL_CONTROLLER_BUTTON_BACK) {
+                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Select());
+                        return event;
+                    }
                 }"
             }
         }
@@ -251,6 +322,7 @@ class SDL {
             SDL_DestroyRenderer(renderer: .renderer)
             SDL_DestroyWindow(window: .window)
             SDL_CloseAudioDevice(device: .audio_device)
+            SDL_GameControllerClose(gamepad: .gamepad)
             SDL_Quit()
         }
     }
@@ -348,5 +420,22 @@ class SDL {
             return delta_time
         }
 
+    }
+
+    public function get_controller(mut this) {
+        mut joysticks: c_int = 0
+        unsafe {
+            joysticks = SDL_NumJoysticks()
+        }
+        eprintln("Joysticks: {}", joysticks)
+        if joysticks >= 0 {
+            unsafe {
+                //TODO: Make game controller detection more complex
+                if (SDL_IsGameController(index: 0 as! c_int)) {
+                    eprintln("Is a game controller")
+                    .gamepad = SDL_GameControllerOpen(index: 0 as! c_int)
+                }
+            }
+        }
     }
 }
