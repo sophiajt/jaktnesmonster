@@ -50,7 +50,7 @@ class System {
                 mapper_1_shift_register: 0
                 mapper_1_bit_count: 0
                 mapper_1_prg_rom_bank_mode: 3
-                mapper_1_chr_rom_bank_mode: 1
+                mapper_1_chr_rom_bank_mode: 0
             )
         )
     }
