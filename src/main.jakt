@@ -40,6 +40,7 @@ function main(args: [String]) {
             }
             sdl.init_audio()
             sdl.enable_audio()
+            sdl.get_controller()
 
             mut event = sdl.poll_event()
             loop {
@@ -124,6 +125,62 @@ function main(args: [String]) {
                                 L => {
                                     slow_mode = not slow_mode
                                     eprintln("Slow clock mode: {}", slow_mode)
+                                }
+                            }
+                        }
+                        ButtonDown(button) =>{
+                            match button {
+                                Up => {
+                                    joypad.press_up()
+                                }
+                                Down => {
+                                    joypad.press_down()
+                                }
+                                Left => {
+                                    joypad.press_left()
+                                }
+                                Right => {
+                                    joypad.press_right()
+                                }
+                                Start => {
+                                    joypad.press_start()
+                                }
+                                Select => {
+                                    joypad.press_select()
+                                }
+                                A => {
+                                    joypad.press_a()
+                                }
+                                B => {
+                                    joypad.press_b()
+                                }
+                            }
+                        }
+                        ButtonUp(button) =>{
+                            match button {
+                                Up => {
+                                    joypad.release_up()
+                                }
+                                Down => {
+                                    joypad.release_down()
+                                }
+                                Left => {
+                                    joypad.release_left()
+                                }
+                                Right => {
+                                    joypad.release_right()
+                                }
+                                Start => {
+                                    joypad.release_start()
+                                }
+                                Select => {
+                                    joypad.release_select()
+                                }
+                                A => {
+                                    joypad.release_a()
+                                }
+                                B => {
+                                    joypad.release_b()
                                 }
                             }
                         }
