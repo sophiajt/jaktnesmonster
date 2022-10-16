@@ -98,7 +98,7 @@ class PPU {
             in_vblank: false
             dont_vblank: false
             vram: [0; 0x3FFF]
-            oam: [0; 256]
+            oam: [0xff; 256]
             oam_addr: 0x00
             second_oam: []
             chr_rom_pages
@@ -422,6 +422,10 @@ class PPU {
         }
         for sprite in (0u8..63u8).inclusive() {
             let sprite_addr = sprite * 4u8
+            if .oam[sprite_addr] > 0xee {
+                // Ignore any sprite below row 0xee
+                continue
+            }
             let sprite_y = .oam[sprite_addr] + 1
             let sprite_x = .oam[sprite_addr + 3]
 
