@@ -132,19 +132,19 @@ function main(args: [String]) {
                 event = None
 
                 if one_frame {
-                    if nesclock(system, cpu, debugger, sdl) {
+                    if clocktick(system, cpu, debugger, sdl) {
                         event = sdl.poll_event()
                     }
                     one_frame = false
                 }
                 if slow_mode and not clock_pause{
-                    if nesclock(system, cpu, debugger, sdl) {
+                    if clocktick(system, cpu, debugger, sdl) {
                         event = sdl.poll_event()
                     }
                     sdl.delay(1u32)
                 }
                 if not clock_pause and not slow_mode {
-                    if nesclock(system, cpu, debugger, sdl) {
+                    if clocktick(system, cpu, debugger, sdl) {
                         event = sdl.poll_event()
                     }
                 } else {
@@ -161,7 +161,7 @@ function main(args: [String]) {
     return 0
 }
 
-function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: SDL) throws -> bool {
+function clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: SDL) throws -> bool {
     let in_vblank_before = system.ppu.in_vblank
     mut next_frame = false
 
@@ -176,24 +176,32 @@ function nesclock (mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
     system.ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
     let in_vblank_after = system.ppu.in_vblank
 
-    // Let's try to create one frame of audio
-    // mut i = 0
-    // let frame_size = (44100 / 60)
-    // while i < frame_size {
-    //     system.audio_clock += 0.010
-    //     unsafe {
-    //         cpp {
-    //             "system->audio_buffer[i] = sin(system->audio_clock * 4.0) * 5000;"
-    //         }
-    //     }
-    //     ++i
-    // }
-    // sdl.queue_audio(data: system.audio_buffer)
-
     if not in_vblank_before and in_vblank_after {
         // We're just now in the vblank
         draw_frame(sdl, buffer: system.ppu.video_buffer, region: system.cart.region)
         next_frame = true
+
+        // Let's try to create one frame of audio
+        // Uncomment for test sine wave
+        // mut i = 0
+        // let frame_size = (44100 / 60)
+        // while i < frame_size {
+        //     system.audio_clock += 0.010
+        //     unsafe {
+        //         cpp {
+        //             "system->audio_buffer[i] = sin(system->audio_clock * 4.0) * 5000;"
+        //         }
+        //     }
+        //     ++i
+        // }
+        // sdl.queue_audio(data: system.audio_buffer)
+
+        // Finally, let's burn some time so that we're at 60fps
+        let delta = sdl.delta_time() as! u32
+        let ms_per_frame = 1000u32 / 60u32
+        if delta < ms_per_frame {
+            sdl.delay(ms: ms_per_frame - delta)
+        }
     }
 
     if not in_vblank_before and in_vblank_after and system.ppu.nmi_on_vblank {
