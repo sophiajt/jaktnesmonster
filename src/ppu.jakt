@@ -421,7 +421,13 @@ class PPU {
         }
         for sprite in (0u8..63u8).inclusive() {
             let sprite_addr = sprite * 4u8
-            let sprite_y = .oam[sprite_addr] + 1
+            mut sprite_y = 0u8
+            //FIXME: This only fixes an overflow crash, it may not be correct emulation
+            if (.oam[sprite_addr] == 255 ) {
+                sprite_y = .oam[sprite_addr]
+            } else {
+                sprite_y = .oam[sprite_addr] + 1
+            }
             let sprite_x = .oam[sprite_addr + 3]
 
             if not .sprite_size_8x8 {
