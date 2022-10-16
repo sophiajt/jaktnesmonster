@@ -55,155 +55,260 @@ class CPU {
         match opcode {
             0x00 => .brk()
             0x01 => .ora(opcode)
+            0x02 => .jam()
+            0x03 => .slo(opcode)
+            0x04 => .illegal_nop(opcode)
             0x05 => .ora(opcode)
             0x06 => .asl(opcode)
+            0x07 => .slo(opcode)
             0x08 => .php()
             0x09 => .ora(opcode)
             0x0a => .asl(opcode)
+            0x0b => .anc()
+            0x0c => .illegal_nop(opcode)
             0x0d => .ora(opcode)
             0x0e => .asl(opcode)
+            0x0f => .slo(opcode)
             0x10 => .bpl()
             0x11 => .ora(opcode)
+            0x12 => .jam()
+            0x13 => .slo(opcode)
+            0x14 => .illegal_nop(opcode)
             0x15 => .ora(opcode)
             0x16 => .asl(opcode)
+            0x17 => .slo(opcode)
             0x18 => .clc()
             0x19 => .ora(opcode)
+            0x1a => .illegal_nop(opcode)
+            0x1b => .slo(opcode)
+            0x1c => .illegal_nop(opcode)
             0x1d => .ora(opcode)
             0x1e => .asl(opcode)
+            0x1f => .slo(opcode)
             0x20 => .jsr()
             0x21 => .and_opcode(opcode)
+            0x22 => .jam()
+            0x23 => .rla(opcode)
             0x24 => .bit(opcode)
             0x25 => .and_opcode(opcode)
             0x26 => .rol(opcode)
+            0x27 => .rla(opcode)
             0x28 => .plp()
             0x29 => .and_opcode(opcode)
             0x2a => .rol(opcode)
+            0x2b => .anc()
             0x2c => .bit(opcode)
             0x2d => .and_opcode(opcode)
             0x2e => .rol(opcode)
+            0x2f => .rla(opcode)
             0x30 => .bmi()
             0x31 => .and_opcode(opcode)
+            0x32 => .jam()
+            0x33 => .rla(opcode)
+            0x34 => .illegal_nop(opcode)
             0x35 => .and_opcode(opcode)
             0x36 => .rol(opcode)
+            0x37 => .rla(opcode)
             0x38 => .sec()
             0x39 => .and_opcode(opcode)
+            0x3a => .illegal_nop(opcode)
+            0x3b => .rla(opcode)
+            0x3c => .illegal_nop(opcode)
             0x3d => .and_opcode(opcode)
             0x3e => .rol(opcode)
+            0x3f => .rla(opcode)
             0x40 => .rti()
             0x41 => .eor(opcode)
+            0x42 => .jam()
+            0x43 => .sre(opcode)
+            0x44 => .illegal_nop(opcode)
             0x45 => .eor(opcode)
             0x46 => .lsr(opcode)
+            0x47 => .sre(opcode)
             0x48 => .pha()
             0x49 => .eor(opcode)
             0x4a => .lsr(opcode)
+            0x4b => .alr()
             0x4c => .jmp(opcode)
             0x4d => .eor(opcode)
             0x4e => .lsr(opcode)
+            0x4f => .sre(opcode)
             0x50 => .bvc()
             0x51 => .eor(opcode)
+            0x52 => .jam()
+            0x53 => .sre(opcode)
+            0x54 => .illegal_nop(opcode)
             0x55 => .eor(opcode)
             0x56 => .lsr(opcode)
+            0x57 => .sre(opcode)
             0x58 => .cli()
             0x59 => .eor(opcode)
+            0x5a => .illegal_nop(opcode)
+            0x5b => .sre(opcode)
+            0x5c => .illegal_nop(opcode)
             0x5d => .eor(opcode)
             0x5e => .lsr(opcode)
+            0x5f => .sre(opcode)
             0x60 => .rts()
             0x61 => .adc(opcode)
+            0x62 => .jam()
+            0x63 => .rra(opcode)
+            0x64 => .illegal_nop(opcode)
             0x65 => .adc(opcode)
             0x66 => .ror(opcode)
+            0x67 => .rra(opcode)
             0x68 => .pla()
             0x69 => .adc(opcode)
             0x6a => .ror(opcode)
+            0x6b => .arr()
             0x6c => .jmp(opcode)
             0x6d => .adc(opcode)
             0x6e => .ror(opcode)
+            0x6f => .rra(opcode)
             0x70 => .bvs()
             0x71 => .adc(opcode)
+            0x72 => .jam()
+            0x73 => .rra(opcode)
+            0x74 => .illegal_nop(opcode)
             0x75 => .adc(opcode)
             0x76 => .ror(opcode)
+            0x77 => .rra(opcode)
             0x78 => .sei()
             0x79 => .adc(opcode)
+            0x7a => .illegal_nop(opcode)
+            0x7b => .rra(opcode)
+            0x7c => .illegal_nop(opcode)
             0x7d => .adc(opcode)
             0x7e => .ror(opcode)
+            0x7f => .rra(opcode)
+            0x80 => .illegal_nop(opcode)
             0x81 => .sta(opcode)
+            0x82 => .illegal_nop(opcode)
+            0x83 => .sax(opcode)
             0x84 => .sty(opcode)
             0x85 => .sta(opcode)
             0x86 => .stx(opcode)
+            0x87 => .sax(opcode)
             0x88 => .dey()
+            0x89 => .illegal_nop(opcode)
             0x8a => .txa()
+            0x8b => .ane()
             0x8c => .sty(opcode)
             0x8d => .sta(opcode)
             0x8e => .stx(opcode)
+            0x8f => .sax(opcode)
             0x90 => .bcc()
             0x91 => .sta(opcode)
+            0x92 => .jam()
+            0x93 => .sha(opcode)
             0x94 => .sty(opcode)
             0x95 => .sta(opcode)
             0x96 => .stx(opcode)
+            0x97 => .sax(opcode)
             0x98 => .tya()
             0x99 => .sta(opcode)
             0x9a => .txs()
+            0x9b => .tas()
+            0x9c => .shy()
             0x9d => .sta(opcode)
+            0x9e => .shx()
+            0x9f => .sha(opcode)
             0xa0 => .ldy(opcode)
             0xa1 => .lda(opcode)
             0xa2 => .ldx(opcode)
+            0xa3 => .lax(opcode)
             0xa4 => .ldy(opcode)
             0xa5 => .lda(opcode)
             0xa6 => .ldx(opcode)
+            0xa7 => .lax(opcode)
             0xa8 => .tay()
             0xa9 => .lda(opcode)
             0xaa => .tax()
+            0xab => .lxa()
             0xac => .ldy(opcode)
             0xad => .lda(opcode)
             0xae => .ldx(opcode)
+            0xaf => .lax(opcode)
             0xb0 => .bcs()
             0xb1 => .lda(opcode)
+            0xb2 => .jam()
+            0xb3 => .lax(opcode)
             0xb4 => .ldy(opcode)
             0xb5 => .lda(opcode)
             0xb6 => .ldx(opcode)
+            0xb7 => .lax(opcode)
             0xb8 => .clv()
             0xb9 => .lda(opcode)
             0xba => .tsx()
+            0xbb => .las()
             0xbc => .ldy(opcode)
             0xbd => .lda(opcode)
             0xbe => .ldx(opcode)
+            0xbf => .lax(opcode)
             0xc0 => .cpy(opcode)
             0xc1 => .cmp(opcode)
+            0xc2 => .illegal_nop(opcode)
+            0xc3 => .dcp(opcode)
             0xc4 => .cpy(opcode)
             0xc5 => .cmp(opcode)
             0xc6 => .dec(opcode)
+            0xc7 => .dcp(opcode)
             0xc8 => .iny()
             0xc9 => .cmp(opcode)
             0xca => .dex()
+            0xcb => .sbx()
             0xcc => .cpy(opcode)
             0xcd => .cmp(opcode)
             0xce => .dec(opcode)
+            0xcf => .dcp(opcode)
             0xd0 => .bne()
             0xd1 => .cmp(opcode)
+            0xd2 => .jam()
+            0xd3 => .dcp(opcode)
+            0xd4 => .illegal_nop(opcode)
             0xd5 => .cmp(opcode)
             0xd6 => .dec(opcode)
+            0xd7 => .dcp(opcode)
             0xd8 => .cld()
             0xd9 => .cmp(opcode)
+            0xda => .illegal_nop(opcode)
+            0xdb => .dcp(opcode)
+            0xdc => .illegal_nop(opcode)
             0xdd => .cmp(opcode)
             0xde => .dec(opcode)
+            0xdf => .dcp(opcode)
             0xe0 => .cpx(opcode)
             0xe1 => .sbc(opcode)
+            0xe2 => .illegal_nop(opcode)
+            0xe3 => .isc(opcode)
             0xe4 => .cpx(opcode)
             0xe5 => .sbc(opcode)
             0xe6 => .inc(opcode)
+            0xe7 => .isc(opcode)
             0xe8 => .inx()
             0xe9 => .sbc(opcode)
             0xea => .nop()
+            0xeb => .usbc()
             0xec => .cpx(opcode)
             0xed => .sbc(opcode)
             0xee => .inc(opcode)
+            0xef => .isc(opcode)
             0xf0 => .beq()
             0xf1 => .sbc(opcode)
+            0xf2 => .jam()
+            0xf3 => .isc(opcode)
+            0xf4 => .illegal_nop(opcode)
             0xf5 => .sbc(opcode)
             0xf6 => .inc(opcode)
+            0xf7 => .isc(opcode)
             0xf8 => .sed()
             0xf9 => .sbc(opcode)
+            0xfa => .illegal_nop(opcode)
+            0xfb => .isc(opcode)
+            0xfc => .illegal_nop(opcode)
             0xfd => .sbc(opcode)
             0xfe => .inc(opcode)
+            0xff => .isc(opcode)
 
             else => {
                 eprintln("{:0>4x}: unknown opcode: {:0>2x}", .pc, opcode)
@@ -260,6 +365,12 @@ class CPU {
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
         return .system.read_byte(address)        
     }
+
+    function zero_page_y_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
+        .system.write_byte(address, value)
+    }
     
     function indirect_zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
@@ -270,6 +381,14 @@ class CPU {
         // reads: 00, 01 for the address
 
         return .system.read_byte(address: new_address)
+    }
+
+    function indirect_zero_page_x_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
+        let new_address = .system.read_word_wrapped(address)
+
+        .system.write_byte(address: new_address, value)
     }
     
     function indirect_zero_page_y(mut this, check_extra_clock: bool) -> u8 {
@@ -289,6 +408,17 @@ class CPU {
         }
 
         return .system.read_byte(address: new_address)
+    }
+
+    function indirect_zero_page_y_set(mut this, value: u8){
+        let arg_address = .pc + 1
+        let address = (.system.read_byte(address: arg_address)) as! u16
+
+        let pre_index = .system.read_word_wrapped(address)
+
+        let new_address: u16 = unchecked_add<u16>(pre_index, .y as! u16)   
+
+        .system.write_byte(address: new_address, value)
     }
     
     function absolute(mut this) -> u8 {
@@ -342,6 +472,13 @@ class CPU {
         }
 
         return .system.read_byte(address)
+    }
+
+    function absolute_y_set(mut this, value: u8) {
+        let arg_address = .pc + 1
+        let address = .system.read_word(address: arg_address)
+
+        .system.write_byte(address: unchecked_add<u16>(.y as! u16, address), value)
     }
     
     function test_nz_flags(mut this, value: u8) {
@@ -1773,5 +1910,774 @@ class CPU {
     function nop(mut this) {
         .pc += 1
         .clock += 2
+    }
+
+    // The "illegal" opcodes follow
+
+    function illegal_nop(mut this, opcode: u8)  {
+        match opcode {
+            0x1a => {
+                .pc += 1
+                .clock += 2
+            }
+            0x3a => {
+                .pc += 1
+                .clock += 2
+            }
+            0x5a => {
+                .pc += 1
+                .clock += 2
+            }
+            0x7a => {
+                .pc += 1
+                .clock += 2
+            }
+            0xda => {
+                .pc += 1
+                .clock += 2
+            }
+            0xfa => {
+                .pc += 1
+                .clock += 2
+            }
+            0x80 => {
+                .pc +=  2
+                .clock += 2 
+            }
+            0x82 => {
+                .pc +=  2
+                .clock += 2 
+            }
+            0x89 => {
+                .pc +=  2
+                .clock += 2 
+            }
+            0xc2 => {
+                .pc +=  2
+                .clock += 2 
+            }
+            0xe2 => {
+                .pc +=  2
+                .clock += 2 
+            }
+            0x04 => {
+                .pc += 2
+                .clock += 3
+            }
+            0x44 => {
+                .pc += 2
+                .clock += 3
+            }
+            0x64 => {
+                .pc += 2
+                .clock += 3
+            }
+            0x14 => {
+                .pc += 2
+                .clock += 4
+            }
+            0x34 => {
+                .pc += 2
+                .clock += 4
+            }
+            0x54 => {
+                .pc += 2
+                .clock += 4
+            }
+            0x74 => {
+                .pc += 2
+                .clock += 4
+            }
+            0xd4 => {
+                .pc += 2
+                .clock += 4
+            }
+            0xf4 => {
+                .pc += 2
+                .clock += 4
+            }
+            0x0c => {
+                .pc += 3
+                .clock += 4
+            }
+            0x1c => {
+                .absolute_x(check_extra_clock: true)
+                .pc += 3
+                .clock += 4
+            }
+            0x3c => {
+                .absolute_x(check_extra_clock: true)
+                .pc += 3
+                .clock += 4
+            }
+            0x5c => {
+                .absolute_x(check_extra_clock: true)
+                .pc += 3
+                .clock += 4
+            }
+            0x7c => {
+                .absolute_x(check_extra_clock: true)
+                .pc += 3
+                .clock += 4
+            }
+            0xdc => {
+                .absolute_x(check_extra_clock: true)
+                .pc += 3
+                .clock += 4
+            }
+            0xfc => {
+                .absolute_x(check_extra_clock: true)
+                .pc += 3
+                .clock += 4
+            }
+            else => {abort()}
+        }
+    }
+
+    function alr(mut this) {
+        // A AND oper; LSR
+        // immediate only
+        .a = .a & .immediate()
+        .carry = (.a & 0x1) == 0x1
+        .a = .a >> 11
+        .test_nz_flags(value: .a)
+        .pc += 2
+        .clock += 2
+    }
+
+    function anc(mut this) {
+        .a  = .a & .immediate()
+        .carry = (.a & 0x80) == 0x80
+        .pc += 2
+        .clock += 2
+    }
+
+    function ane(mut this) {
+        // Highly unstable, do not use.
+        // A base value in A is determined based on the contets of A and a constant, which may be typically $00, $ff, $ee, etc. The value of this constant depends on temerature, the chip series, and maybe other factors, as well.
+        // In order to eliminate these uncertaincies from the equation, use either 0 as the operand or a value of $FF in the accumulator.
+        // (A OR CONST) AND X AND oper -> A
+        eprintln("The effect of this opcode are pure magic and depend on all kinds of physical influences. Not emulating.")
+        abort()
+    }
+
+    function arr(mut this) {
+        // AND + ROR
+        // To whomever wants to make this support decimal mode: Good luck
+        // Please stop here, the NES doesn't support decimal mode
+
+        let carry_value  = match .carry {
+            true => 0x80u8
+            else => 0
+        }
+        let oper  =  .immediate()
+        .a = .a & oper
+        .a = .a >> 1
+        //.carry = (.a & 0x1) == 0x1 // since we trample over this anyways, we can ignore it
+        .a |= carry_value
+        .test_nz_flags(value: .a)
+        .carry = (.a & 0x20) == 0x20
+
+        .overflow = ((.a & 0x20) == 0x20) ^ ((.a  & 0x10) == 0x10)
+
+        .pc += 2
+        .clock += 2
+    }
+
+    function dcp(mut this, opcode: u8) {
+        // DEC + CMP
+        match opcode {
+            0xc7 => {
+                mut intermediate  = .zero_page()
+                intermediate--
+                .adder(accumulator: .a, operand: ~intermediate, carry: true)
+                .zero_page_set(value: intermediate)
+
+                .pc += 2
+                .clock  += 5
+            }
+            0xd7 => {
+                mut intermediate  = .zero_page_x()
+                intermediate--
+                .adder(accumulator: .a, operand: ~intermediate, carry: true)
+                .zero_page_x_set(value: intermediate)
+                .pc += 2
+                .clock  += 6
+            }
+            0xcf => {
+                mut intermediate  = .absolute()
+                intermediate--
+                .adder(accumulator: .a, operand: ~intermediate, carry: true)
+                .absolute_set(value: intermediate)
+                .pc += 3
+                .clock  += 6
+            }
+            0xdf => {
+                mut intermediate  =  .absolute_x(check_extra_clock: false)
+                intermediate--
+                .adder(accumulator: .a, operand: ~intermediate, carry: true)
+                .absolute_x_set(value: intermediate)
+                .pc += 3
+                .clock  += 7
+            }
+            0xdb => {
+                mut intermediate  = .absolute_y(check_extra_clock: false)
+                intermediate--
+                .adder(accumulator: .a, operand: ~intermediate, carry: true)
+                .absolute_y_set(value: intermediate)
+                .pc += 3
+                .clock  += 7
+            }
+            0xc3 => {
+                mut intermediate  = .indirect_zero_page_x()
+                intermediate--
+                .adder(accumulator: .a, operand: ~intermediate, carry: true)
+                .indirect_zero_page_x_set(value: intermediate)
+                .pc += 2
+                .clock  += 8
+            }
+            0xd3 => {
+                mut intermediate  = .indirect_zero_page_y(check_extra_clock: false)
+                intermediate--
+                .adder(accumulator: .a, operand: ~intermediate, carry: true)
+                .indirect_zero_page_y_set(value: intermediate)
+                .pc += 2
+                .clock  += 8
+            }
+            else => {abort()}
+        }
+    }
+
+    function isc(mut this, opcode: u8){
+        match opcode {
+            0xe7 => {
+                mut intermediate = .zero_page()
+                intermediate++
+                .a = .adder_with_overflow(accumulator: .a, operand: ~intermediate, carry: .carry)
+                .zero_page_set(value: intermediate)
+                .pc += 2
+                .clock += 5
+            }
+            0xf7 => {
+                mut intermediate = .zero_page_x()
+                intermediate++
+                .a = .adder_with_overflow(accumulator: .a, operand: ~intermediate, carry: .carry)
+                .zero_page_x_set(value: intermediate)
+                .pc += 2
+                .clock += 6
+            }
+            0xef => {
+                mut intermediate = .absolute()
+                intermediate++
+                .a = .adder_with_overflow(accumulator: .a, operand: ~intermediate, carry: .carry)
+                .absolute_set(value: intermediate)
+                .pc += 3
+                .clock += 6
+            }
+            0xff => {
+                mut intermediate = .absolute_x(check_extra_clock: false)
+                intermediate++
+                .a = .adder_with_overflow(accumulator: .a, operand: ~intermediate, carry: .carry)
+                .absolute_x_set(value: intermediate)
+                .pc += 3
+                .clock += 7
+            }
+            0xfb => {
+                mut intermediate =  .absolute_y(check_extra_clock: false)
+                intermediate++
+                .a = .adder_with_overflow(accumulator: .a, operand: ~intermediate, carry: .carry)
+                .absolute_y_set(value: intermediate)
+                .pc += 3
+                .clock += 7
+            }
+            0xe3 => {
+                mut intermediate = .indirect_zero_page_x()
+                intermediate++
+                .a = .adder_with_overflow(accumulator: .a, operand: ~intermediate, carry: .carry)
+                .indirect_zero_page_x_set(value: intermediate)
+                .pc += 2
+                .clock += 8
+            }
+            0xf3 => {
+                mut intermediate = .indirect_zero_page_y(check_extra_clock: false)
+                intermediate++
+                .a = .adder_with_overflow(accumulator: .a, operand: ~intermediate, carry: .carry)
+                .indirect_zero_page_y_set(value: intermediate)
+                .pc += 2
+                .clock += 8
+            }
+            else => {abort()}
+        }
+    }
+
+    function las(mut this){
+        // LDA + TSX
+        let intermediate = .absolute_y(check_extra_clock: true) & .s
+        .a = intermediate
+        .x = intermediate
+        //.s = intermediate // The doc indicates this, but I'm not to sure about it
+        .test_nz_flags(value: intermediate)
+
+        .pc += 3
+        .clock += 4
+    }
+
+    function lax(mut this, opcode: u8) {
+        let (intermediate, pc: u16, clock: u64) = match opcode {
+            0xa7 => {
+                yield (.zero_page(), 2, 3)
+            }
+            0xb7 => {
+                yield (.zero_page_y(), 2, 4)
+            }
+            0xaf => {
+                yield (.absolute(), 3, 4)
+            }
+            0xbf => {
+                yield (.absolute_y(check_extra_clock: true), 3, 4)
+            }
+            0xa3 => {
+                yield (.indirect_zero_page_x(), 2, 6)
+            }
+            0xb3 => {
+                yield (.indirect_zero_page_y(check_extra_clock: true), 2, 5)
+            }
+            else => {abort()}
+        }
+
+        .a = intermediate
+        .x = intermediate
+
+        .test_nz_flags(value: .a)
+
+        .pc += pc
+        .clock += clock
+    }
+
+    function lxa(mut this) {
+        // This is as unstable and magic as ANE
+        .ane()
+    }
+
+    function rla(mut this, opcode: u8) {
+        //  ROL +  AND
+        let carry_value = match .carry {
+            true => 1u8
+            else => 0u8
+        }
+
+        match opcode {
+            0x27 => {
+                mut intermediate = .zero_page()
+                .carry = (intermediate & 0x80) == 0x80
+                intermediate = (intermediate << 1) + carry_value
+                .a = .a & intermediate
+                .test_nz_flags(value: .a)
+                .zero_page_set(value: intermediate)
+                .pc += 2
+                .clock += 5
+            }
+            0x37 => {
+                mut intermediate = .zero_page_x()
+                .carry = (intermediate & 0x80) == 0x80
+                intermediate = (intermediate << 1) + carry_value
+                .a = .a & intermediate
+                .test_nz_flags(value: .a)
+                .zero_page_x_set(value: intermediate)
+                .pc += 2
+                .clock += 6
+            }
+            0x2f => {
+                mut intermediate = .absolute()
+                .carry = (intermediate & 0x80) == 0x80
+                intermediate = (intermediate << 1) + carry_value
+                .a = .a & intermediate
+                .test_nz_flags(value: .a)
+                .absolute_set(value: intermediate)
+                .pc += 3
+                .clock += 6
+            }
+            0x3f => {
+                mut intermediate = .absolute_x(check_extra_clock: false)
+                .carry = (intermediate & 0x80) == 0x80
+                intermediate = (intermediate << 1) + carry_value
+                .a = .a & intermediate
+                .test_nz_flags(value: .a)
+                .absolute_x_set(value: intermediate)
+                .pc += 3
+                .clock += 7
+            }
+            0x3b => {
+                mut intermediate = .absolute_y(check_extra_clock: false)
+                .carry = (intermediate & 0x80) == 0x80
+                intermediate = (intermediate << 1) + carry_value
+                .a = .a & intermediate
+                .test_nz_flags(value: .a)
+                .absolute_y_set(value: intermediate)
+                .pc += 3
+                .clock += 7
+            }
+            0x23 => {
+                mut intermediate = .indirect_zero_page_x()
+                .carry = (intermediate & 0x80) == 0x80
+                intermediate = (intermediate << 1) + carry_value
+                .a = .a & intermediate
+                .test_nz_flags(value: .a)
+                .indirect_zero_page_x_set(value: intermediate)
+                .pc += 2
+                .clock += 8
+            }
+            0x33 => {
+                mut intermediate = .indirect_zero_page_y(check_extra_clock: false)
+                .carry = (intermediate & 0x80) == 0x80
+                intermediate = (intermediate << 1) + carry_value
+                .a = .a & intermediate
+                .test_nz_flags(value: .a)
+                .indirect_zero_page_y_set(value: intermediate)
+                .pc += 2
+                .clock += 8
+            }
+
+            else => {abort()}
+        }
+    }
+
+    function rra(mut this, opcode: u8) {
+        // ROR + ADC
+        let carry_value = match .carry {
+            true => 0x80u8
+            else => 0u8
+        }
+        match opcode {
+            0x67 => {
+                mut value = .zero_page()
+                .carry = (value & 0x1) == 0x1
+                value = (value >> 1) + carry_value
+                .a = .adder_with_overflow(accumulator: .a, operand: value, carry: .carry)
+                .zero_page_set(value)
+                .pc += 2
+                .clock += 5
+            }
+            0x77 => {
+                mut value = .zero_page_x()
+                .carry = (value & 0x1) == 0x1
+                value = (value >> 1) + carry_value
+                .a = .adder_with_overflow(accumulator: .a, operand: value, carry: .carry)
+                .zero_page_x_set(value)
+                .pc += 2
+                .clock += 6
+            }
+            0x6f => {
+                mut value = .absolute()
+                .carry = (value & 0x1) == 0x1
+                value = (value >> 1) + carry_value
+                .a = .adder_with_overflow(accumulator: .a, operand: value, carry: .carry)
+                .absolute_set(value)
+                .pc += 3
+                .clock += 6
+            }
+            0x7f => {
+                mut value = .absolute_x(check_extra_clock: false)
+                .carry = (value & 0x1) == 0x1
+                value = (value >> 1) + carry_value
+                .a = .adder_with_overflow(accumulator: .a, operand: value, carry: .carry)
+                .absolute_x_set(value)
+                .pc += 3
+                .clock += 7
+            }
+            0x7b => {
+                mut value = .absolute_y(check_extra_clock: false)
+                .carry = (value & 0x1) == 0x1
+                value = (value >> 1) + carry_value
+                .a = .adder_with_overflow(accumulator: .a, operand: value, carry: .carry)
+                .absolute_y_set(value)
+                .pc += 3
+                .clock += 7
+            }
+            0x63 => {
+                mut value = .indirect_zero_page_x()
+                .carry = (value & 0x1) == 0x1
+                value = (value >> 1) + carry_value
+                .a = .adder_with_overflow(accumulator: .a, operand: value, carry: .carry)
+                .indirect_zero_page_x_set(value)
+                .pc += 2
+                .clock += 8
+            }
+            0x73 => {
+                mut value = .indirect_zero_page_y(check_extra_clock: false)
+                .carry = (value & 0x1) == 0x1
+                value = (value >> 1) + carry_value
+                .a = .adder_with_overflow(accumulator: .a, operand: value, carry: .carry)
+                .indirect_zero_page_y_set(value)
+                .pc += 2
+                .clock += 8
+            }
+            else => {abort()}
+        }
+        .test_nz_flags(value: .a)
+    }
+
+    function sax(mut this, opcode: u8) {
+        // STA + STX, but since they are both thrown at the bus, the logic transistors
+        // effectively perform an AND between the two values
+        let value = .a & .x
+
+        match opcode {
+            0x87 => {
+                .zero_page_set(value)
+                .pc += 2
+                .clock += 3
+            }
+            0x97 => {
+                .zero_page_y_set(value)
+                .pc += 2
+                .clock += 4
+            }
+            0x8f => {
+                .absolute_set(value)
+                .pc += 3 
+                .clock += 4
+            }
+            0x83 => {
+                .indirect_zero_page_x_set(value)
+                .pc += 2
+                .clock += 6
+            }
+            else => {abort()}
+        }
+    }
+
+    function sbx(mut this) {
+        let value = .immediate()
+        .x = (.a & .x) - value
+        .adder(accumulator: .a, operand: ~value, carry: true)
+    }
+    
+    function sha(mut this, opcode: u8) {
+        // Stores A AND X AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        let value = .a & .x
+
+        match opcode {
+            0x9f => {
+                .absolute_y_set(value)
+                .pc += 3
+                .clock += 5
+            }
+            0x93 => {
+                .indirect_zero_page_y_set(value)
+                .pc += 2
+                .clock += 6
+            }
+            else => {abort()}
+        }
+    }
+
+    function shx(mut this) {
+        // Stores X AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        let value = .x
+        .absolute_y_set(value)
+        .pc += 3
+        .clock += 5
+    }
+
+    function shy(mut this) {
+        // Stores Y AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        let value = .y
+        .absolute_x_set(value)
+        .pc += 3
+        .clock += 5
+    }
+
+    function slo(mut this, opcode: u8) {
+        // ASL + ORA
+        match opcode {
+            0x07 => {
+                mut value = .zero_page()
+                .carry = (value & 0x80) == 0x80
+                value = value << 1
+                .zero_page_set(value)
+                .a = .a | value
+                .pc += 2
+                .clock += 5
+            }
+            0x17 => {
+                mut value = .zero_page_x()
+                .carry = (value & 0x80) == 0x80
+                value = value << 1
+                .zero_page_x_set(value)
+                .a = .a | value
+                .pc += 2
+                .clock += 6
+            }
+            0x0f => {
+                mut value = .absolute()
+                .carry = (value & 0x80) == 0x80
+                value = value << 1
+                .absolute_set(value)
+                .a = .a | value
+                .pc += 3
+                .clock += 6
+            }
+            0x1f => {
+                mut value = .absolute_x(check_extra_clock: false)
+                .carry = (value & 0x80) == 0x80
+                value = value << 1
+                .absolute_x_set(value)
+                .a = .a | value
+                .pc += 3
+                .clock += 7
+            }
+            0x1b => {
+                mut value = .absolute_y(check_extra_clock: false)
+                .carry = (value & 0x80) == 0x80
+                value = value << 1
+                .absolute_y_set(value)
+                .a = .a | value
+                .pc += 3
+                .clock += 7
+            }
+            0x03 => {
+                mut value = .indirect_zero_page_x()
+                .carry = (value & 0x80) == 0x80
+                value = value << 1
+                .indirect_zero_page_x_set(value)
+                .a = .a | value
+                .pc += 2
+                .clock += 8
+            }
+            0x13 => {
+                mut value = .indirect_zero_page_y(check_extra_clock: false)
+                .carry = (value & 0x80) == 0x80
+                value = value << 1
+                .indirect_zero_page_y_set(value)
+                .a = .a | value
+                .pc += 2
+                .clock += 8
+            }
+            else => {abort()}
+        }
+    }
+
+    function sre(mut this, opcode: u8){
+        // LSR +  EOR
+        match opcode {
+            0x47 => {
+                mut value = .zero_page()
+                .carry = (value & 0x1) == 0x1
+                value = value >> 1
+                .zero_page_set(value)
+                .a = .a ^ value
+                .test_nz_flags(value: .a)
+                .pc += 2
+                .clock += 5
+            }
+            0x57 => {
+                mut value = .zero_page_x()
+                .carry = (value & 0x1) == 0x1
+                value = value >> 1
+                .zero_page_x_set(value)
+                .a = .a ^ value
+                .test_nz_flags(value: .a)
+                .pc += 2
+                .clock += 6
+            }
+            0x4f => {
+                mut value = .absolute()
+                .carry = (value & 0x1) == 0x1
+                value = value >> 1
+                .absolute_set(value)
+                .a = .a ^ value
+                .test_nz_flags(value: .a)
+                .pc += 3
+                .clock += 6
+            }
+            0x5f => {
+                mut value = .absolute_x(check_extra_clock: false)
+                .carry = (value & 0x1) == 0x1
+                value = value >> 1
+                .absolute_x_set(value)
+                .a = .a ^ value
+                .test_nz_flags(value: .a)
+                .pc += 3
+                .clock += 7
+            }
+            0x5b => {
+                mut value = .absolute_y(check_extra_clock: false)
+                .carry = (value & 0x1) == 0x1
+                value = value >> 1
+                .absolute_y_set(value)
+                .a = .a ^ value
+                .test_nz_flags(value: .a)
+                .pc += 3
+                .clock += 7
+            }
+            0x43 => {
+                mut value = .indirect_zero_page_x()
+                .carry = (value & 0x1) == 0x1
+                value = value >> 1
+                .indirect_zero_page_x_set(value)
+                .a = .a ^ value
+                .test_nz_flags(value: .a)
+                .pc += 2
+                .clock += 8
+            }
+            0x53 => {
+                mut value = .indirect_zero_page_y(check_extra_clock: false)
+                .carry = (value & 0x1) == 0x1
+                value = value >> 1
+                .indirect_zero_page_y_set(value)
+                .a = .a ^ value
+                .test_nz_flags(value: .a)
+                .pc += 2
+                .clock += 8
+            }
+            else => {abort()}
+        }
+    }
+
+    function tas(mut this)  {
+        // Puts A AND X in SP and stores A AND X AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        .s = .a & .x
+
+        .absolute_y_set(value: .a & .x)
+
+        .pc += 3
+        .clock += 5
+    }
+
+    function usbc(mut this) {
+        // SBC + NOP
+        .sbc(opcode: 0xe9)
+    }
+
+    function jam(mut this) {
+        // These instructions freeze the CPU.
+
+        // The processor will be trapped infinitely in T1 
+        // phase with $FF on the data bus. — Reset required.
+        
+        // FIXME: There most likely is a better way 
+        eprintln("JAM!")
+        while (true) {}
     }
 }
