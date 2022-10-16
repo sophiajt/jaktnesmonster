@@ -256,9 +256,9 @@ function clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
         // Finally, let's burn some time so that we're at 60fps
         let delta = sdl.delta_time() as! u32
         let ms_per_frame = 1000u32 / 60u32
-//        if delta < ms_per_frame {
-//            sdl.delay(ms: ms_per_frame - delta)
-//        }
+        if delta < ms_per_frame {
+            sdl.delay(ms: ms_per_frame - delta)
+        }
     }
 
     if not in_vblank_before and in_vblank_after and system.ppu.nmi_on_vblank {
