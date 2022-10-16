@@ -51,6 +51,8 @@ import extern c "SDL.h" {
     extern function SDL_IsGameController(index: c_int) -> bool
     extern function SDL_GameControllerOpen(index: c_int) -> raw SDL_GameController
     extern function SDL_GameControllerClose(gamepad: raw SDL_GameController)
+    extern function SDL_GetError() -> raw c_char
+    extern function SDL_GameControllerEventState(state: c_int) -> c_int
 }
 
 enum Key {
@@ -110,11 +112,12 @@ class SDL {
     }
 
     public function init_video(mut this, width: i64, height: i64) {
-        let sdl_init_video : u32 = 0x30 // Video and Audio
+        let sdl_init_flags : u32 = 0x2030 // Video, Audio, Gamecontroller
         let sdl_windowpos_undefined: c_int = 0x1FFF0000
         unsafe {
             SDL_SetMainReady();
-            SDL_Init(flags: sdl_init_video);
+            SDL_Init(flags: sdl_init_flags);
+            SDL_GameControllerEventState(state: 1);
             // SDL_CreateWindowAndRenderer(width: width as! c_int
             //                             height: height as! c_int
             //                             window_flags: 0
@@ -427,12 +430,10 @@ class SDL {
         unsafe {
             joysticks = SDL_NumJoysticks()
         }
-        eprintln("Joysticks: {}", joysticks)
         if joysticks >= 0 {
             unsafe {
                 //TODO: Make game controller detection more complex
                 if (SDL_IsGameController(index: 0 as! c_int)) {
-                    eprintln("Is a game controller")
                     .gamepad = SDL_GameControllerOpen(index: 0 as! c_int)
                 }
             }
