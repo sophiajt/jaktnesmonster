@@ -25,6 +25,7 @@ class CPU {
     public break_flag: bool
     public overflow: bool
     public negative: bool
+    jammed: bool
 
     public system: System
     public clock: u64
@@ -45,12 +46,15 @@ class CPU {
             break_flag: false
             overflow: false
             negative: false
+            jammed: false
             system
             clock: 7 // Startup initilization takes 7 cycles
         )
     }
 
     public function run_opcode(mut this) {
+        if .jammed {return}
+
         let opcode = .system.read_byte(address: .pc)
         match opcode {
             0x00 => .brk()
@@ -2676,8 +2680,7 @@ class CPU {
         // The processor will be trapped infinitely in T1 
         // phase with $FF on the data bus. — Reset required.
         
-        // FIXME: There most likely is a better way 
         eprintln("JAM!")
-        while (true) {}
+        .jammed = true
     }
 }
