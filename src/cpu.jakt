@@ -61,6 +61,7 @@ class CPU {
             0x08 => .php()
             0x09 => .ora(opcode)
             0x0a => .asl(opcode)
+            0x0c => .nop4()
             0x0d => .ora(opcode)
             0x0e => .asl(opcode)
             0x10 => .bpl()
