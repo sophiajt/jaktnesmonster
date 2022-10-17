@@ -92,6 +92,7 @@ class CPU {
             0x36 => .rol(opcode)
             0x38 => .sec()
             0x39 => .and_opcode(opcode)
+            0x3a => .nop()
             0x3d => .and_opcode(opcode)
             0x3e => .rol(opcode)
             0x40 => .rti()
