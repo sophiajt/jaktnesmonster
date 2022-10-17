@@ -510,7 +510,7 @@ class PPU {
                         mask[i] = ((first_plane >> i) & 0x1) | (((second_plane >> i & 0x1) << 1)) | ((sprite_attr & 0x3) << 2)
                     }
 
-                    result.push(Sprite(
+                    result.insert(before_index: 0, value: Sprite(
                         hflip: (sprite_attr & 0x40) == 0x40
                         mask: mask
                         bg_sprite: (sprite_attr & 0x20) == 0x20
@@ -556,7 +556,7 @@ class PPU {
                         mask[i] = ((first_plane >> i) & 0x1) | (((second_plane >> i & 0x1) << 1)) | ((sprite_attr & 0x3) << 2)
                     }
 
-                    result.push(Sprite(
+                    result.insert(before_index: 0, value: Sprite(
                         hflip: (sprite_attr & 0x40) == 0x40
                         mask: mask
                         bg_sprite: (sprite_attr & 0x20) == 0x20
