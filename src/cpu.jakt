@@ -194,6 +194,7 @@ class CPU {
             0xe8 => .inx()
             0xe9 => .sbc(opcode)
             0xea => .nop()
+            0xeb => .sbc(opcode)
             0xec => .cpx(opcode)
             0xed => .sbc(opcode)
             0xee => .inc(opcode)
