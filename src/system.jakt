@@ -84,6 +84,18 @@ class System {
             .ppu.chr_rom_page_1000 = mapper_3_bank + 1
             return
         }
+        if .cart.mapper == 7 {
+            let mapper_7_bank = (value as! usize & 7) << 1
+            .prg_rom_bank_0 = mapper_7_bank
+            .prg_rom_bank_1 = mapper_7_bank + 1
+
+            if (value & 0x10) == 0x10 {
+                .ppu.set_mirroring(Mirroring::OneScreenUpper)
+            } else {
+                .ppu.set_mirroring(Mirroring::Vertical)
+            }
+            return
+        }
         if (value & 0b1000_0000) == 0b1000_0000 {
             .mapper_1_shift_register = 0
             .mapper_1_bit_count = 0
