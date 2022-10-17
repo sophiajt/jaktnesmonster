@@ -65,6 +65,7 @@ class CPU {
             0x0e => .asl(opcode)
             0x10 => .bpl()
             0x11 => .ora(opcode)
+            0x14 => .nop4()
             0x15 => .ora(opcode)
             0x16 => .asl(opcode)
             0x18 => .clc()
@@ -1798,6 +1799,11 @@ class CPU {
     function nop3(mut this) {
         .pc += 1
         .clock += 3
+    }
+
+    function nop4(mut this) {
+        .pc += 1
+        .clock += 4
     }
 
 }
