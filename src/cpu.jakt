@@ -2463,8 +2463,7 @@ class CPU {
         // page boundary crossings may not work 
         // (with the high-byte of the value used as the high-byte of the address)
 
-        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
-        let value = .a & .x
+        let value = .a & .x & (.system.read_byte(address: .pc + 2) + 1)
 
         match opcode {
             0x9f => {
@@ -2487,8 +2486,7 @@ class CPU {
         // page boundary crossings may not work 
         // (with the high-byte of the value used as the high-byte of the address)
 
-        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
-        let value = .x
+        let value = .x & (.system.read_byte(address: .pc + 2) + 1)
         .absolute_y_set(value)
         .pc += 3
         .clock += 5
@@ -2500,8 +2498,7 @@ class CPU {
         // page boundary crossings may not work 
         // (with the high-byte of the value used as the high-byte of the address)
 
-        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
-        let value = .y
+        let value = .y & (.system.read_byte(address: .pc + 2) + 1)
         .absolute_x_set(value)
         .pc += 3
         .clock += 5
@@ -2660,10 +2657,10 @@ class CPU {
         // page boundary crossings may not work 
         // (with the high-byte of the value used as the high-byte of the address)
 
-        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        let high_byte = .system.read_byte(address: .pc + 2) + 1
         .s = .a & .x
 
-        .absolute_y_set(value: .a & .x)
+        .absolute_y_set(value: .a & .x & high_byte)
 
         .pc += 3
         .clock += 5
