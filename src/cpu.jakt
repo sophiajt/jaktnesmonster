@@ -55,6 +55,7 @@ class CPU {
         match opcode {
             0x00 => .brk()
             0x01 => .ora(opcode)
+            0x04 => .nop3()
             0x05 => .ora(opcode)
             0x06 => .asl(opcode)
             0x08 => .php()
@@ -1793,4 +1794,10 @@ class CPU {
         .pc += 1
         .clock += 2
     }
+
+    function nop3(mut this) {
+        .pc += 1
+        .clock += 3
+    }
+
 }
