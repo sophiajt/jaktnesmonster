@@ -2058,11 +2058,15 @@ class CPU {
 
     function ane(mut this) {
         // Highly unstable, do not use.
-        // A base value in A is determined based on the contets of A and a constant, which may be typically $00, $ff, $ee, etc. The value of this constant depends on temerature, the chip series, and maybe other factors, as well.
+        // A base value in A is determined based on the contents of A and a constant, which may be typically $00, $ff, $ee, etc. The value of this constant depends on temerature, the chip series, and maybe other factors, as well.
         // In order to eliminate these uncertaincies from the equation, use either 0 as the operand or a value of $FF in the accumulator.
         // (A OR CONST) AND X AND oper -> A
-        eprintln("The effect of this opcode are pure magic and depend on all kinds of physical influences. Not emulating.")
-        abort()
+        
+        .a = (.a | 0xee) & .x & .immediate() // Let's watch the world burn
+        .pc += 2
+        .clock += 2
+
+        //eprintln("The effect of this opcode are pure magic and depend on all kinds of physical influences.")
     }
 
     function arr(mut this) {
@@ -2260,7 +2264,12 @@ class CPU {
 
     function lxa(mut this) {
         // This is as unstable and magic as ANE
-        .ane()
+        // (A OR constant)  AND oper -> A -> X
+        .a = (.a | 0xee) & .immediate() // Let's watch the world burn
+        .x = .a
+
+        .pc += 2
+        .clock += 2
     }
 
     function rla(mut this, opcode: u8) {
