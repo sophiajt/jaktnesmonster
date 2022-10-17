@@ -588,6 +588,12 @@ class CPU {
                 .pc += 2
                 yield tmp
             }
+            0xeb => {
+                let tmp = .immediate()
+                .clock += 2
+                .pc += 2
+                yield tmp
+            }
             0xe5 => {
                 let tmp = .zero_page()
                 .clock += 3
