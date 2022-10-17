@@ -72,6 +72,7 @@ class CPU {
             0x18 => .clc()
             0x19 => .ora(opcode)
             0x1a => .nop()
+            0x1c => .nop4()
             0x1d => .ora(opcode)
             0x1e => .asl(opcode)
             0x20 => .jsr()
