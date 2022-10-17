@@ -46,7 +46,7 @@ class CPU {
             overflow: false
             negative: false
             system
-            clock: 0
+            clock: 7 // Startup initilization takes 7 cycles
         )
     }
 
