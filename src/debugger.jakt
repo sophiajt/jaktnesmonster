@@ -816,160 +816,491 @@ class Debugger {
         println("nop")
     }
 
+    function illegal_nop(mut this, opcode: u8) {
+        println("nop")
+    }
+
+    function alr(mut this) {
+        // A AND oper; LSR
+        // immediate only
+        print("alr ")
+        .immediate()
+    }
+
+    function anc(mut this) {
+        print("anc ")
+        .immediate()
+    }
+
+    function ane(mut this) {
+        print("ane ")
+        .immediate()
+    }
+
+    function arr(mut this) {
+        // AND + ROR
+        print("arr ")
+        .immediate()
+    }
+
+    function dcp(mut this, opcode: u8) {
+        // DEC + CMP
+        print("dcp ")
+        match opcode {
+            0xc7 => {.zero_page()}
+            0xd7 => {.zero_page_x()}
+            0xcf => {.absolute()}
+            0xdf => {.absolute_x()}
+            0xdb => {.absolute_y()}
+            0xc3 => {.indirect_zero_page_x()}
+            0xd3 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+    }
+
+    function isc(mut this, opcode: u8){
+        print("isc ")
+        match opcode {
+            0xe7 => {.zero_page()}
+            0xf7 => {.zero_page_x()}
+            0xef => {.absolute()}
+            0xff => {.absolute_x()}
+            0xfb => {.absolute_y()}
+            0xe3 => {.indirect_zero_page_x()}
+            0xf3 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+    }
+
+    function las(mut this){
+        // LDA + TSX
+        print("las ")
+        .absolute_y()
+    }
+
+    function lax(mut this, opcode: u8) {
+        print("lax ")
+        match opcode {
+            0xa7 => {.zero_page()}
+            0xb7 => {.zero_page_x()}
+            0xaf => {.absolute()}
+            0xbf => {.absolute_y()}
+            0xa3 => {.indirect_zero_page_x()}
+            0xb3 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+    }
+
+    function lxa(mut this) {
+        // This is as unstable and magic as ANE
+        print("lxa ")
+        .immediate()
+    }
+
+    function rla(mut this, opcode: u8) {
+        //  ROL +  AND
+        print("rla ")
+
+        match opcode {
+            0x27 => {.zero_page()}
+            0x37 => {.zero_page_x()}
+            0x2f => {.absolute()}
+            0x3f => {.absolute_x()}
+            0x3b => {.absolute_y()}
+            0x23 => {.indirect_zero_page_x()}
+            0x33 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+        
+    }
+
+    function rra(mut this, opcode: u8) {
+        // ROR + ADC
+        print("rra ")
+        match opcode {
+            0x67 => {.zero_page()}
+            0x77 => {.zero_page_x()}
+            0x6f => {.absolute()}
+            0x7f => {.absolute_x()}
+            0x7b => {.absolute_y()}
+            0x63 => {.indirect_zero_page_x()}
+            0x73 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+    }
+
+    function sax(mut this, opcode: u8) {
+        // STA + STX, but since they are both thrown at the bus, the logic transistors
+        // effectively perform an AND between the two values
+        print("sax ")
+
+        match opcode {
+            0x87 => {.zero_page()}
+            0x97 => {.zero_page_y()}
+            0x8f => {.absolute()}
+            0x83 => {.indirect_zero_page_x()}
+            else => {abort()}
+        }
+    }
+
+    function sbx(mut this) {
+        print("sbx ")
+        .immediate()
+    }
+    
+    function sha(mut this, opcode: u8) {
+        // Stores A AND X AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        print("sha ")
+
+        match opcode {
+            0x9f => {.absolute_y()}
+            0x93 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+    }
+
+    function shx(mut this) {
+        // Stores X AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        print("shx ")
+        .absolute_y()
+    }
+
+    function shy(mut this) {
+        // Stores Y AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        print("shy ")
+        .absolute_x()
+    }
+
+    function slo(mut this, opcode: u8) {
+        // ASL + ORA
+        print("slo ")
+        match opcode {
+            0x07 => {.zero_page()}
+            0x17 => {.zero_page_x()}
+            0x0f => {.absolute()}
+            0x1f => {.absolute_x()}
+            0x1b => {.absolute_y()}
+            0x03 => {.indirect_zero_page_x()}
+            0x13 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+    }
+
+    function sre(mut this, opcode: u8){
+        // LSR +  EOR
+        print("sre ")
+        match opcode {
+            0x47 => {.zero_page()}
+            0x57 => {.zero_page_x()}
+            0x4f => {.absolute()}
+            0x5f => {.absolute_x()}
+            0x5b => {.absolute_y()}
+            0x43 => {.indirect_zero_page_x()}
+            0x53 => {.indirect_zero_page_y()}
+            else => {abort()}
+        }
+    }
+
+    function tas(mut this)  {
+        // Puts A AND X in SP and stores A AND X AND (high-byte of addr. + 1) at addr.
+        // unstable: sometimes 'AND (H+1)' is dropped, 
+        // page boundary crossings may not work 
+        // (with the high-byte of the value used as the high-byte of the address)
+
+        // FIXME: figure out how to do the high-byte stuff, rolling drop everytime for now
+        print("tas ")
+        .absolute_y()
+    }
+
+    function usbc(mut this) {
+        // SBC + NOP
+        print("usbc ")
+        .immediate()
+    }
+
+    function jam(mut this) {
+        // These instructions freeze the CPU.
+        // The processor will be trapped infinitely in T1 
+        // phase with $FF on the data bus. — Reset required.
+        
+        println("jam")
+    }
+
+
     public function dump_opcode(mut this) {
         let opcode = .cpu.system.read_byte(address: .cpu.pc)
         match opcode {
             0x00 => .brk()
             0x01 => .ora(opcode)
+            0x02 => .jam()
+            0x03 => .slo(opcode)
+            0x04 => .illegal_nop(opcode)
             0x05 => .ora(opcode)
             0x06 => .asl(opcode)
+            0x07 => .slo(opcode)
             0x08 => .php()
             0x09 => .ora(opcode)
             0x0a => .asl(opcode)
+            0x0b => .anc()
+            0x0c => .illegal_nop(opcode)
             0x0d => .ora(opcode)
             0x0e => .asl(opcode)
+            0x0f => .slo(opcode)
             0x10 => .bpl()
             0x11 => .ora(opcode)
+            0x12 => .jam()
+            0x13 => .slo(opcode)
+            0x14 => .illegal_nop(opcode)
             0x15 => .ora(opcode)
             0x16 => .asl(opcode)
+            0x17 => .slo(opcode)
             0x18 => .clc()
             0x19 => .ora(opcode)
+            0x1a => .illegal_nop(opcode)
+            0x1b => .slo(opcode)
+            0x1c => .illegal_nop(opcode)
             0x1d => .ora(opcode)
             0x1e => .asl(opcode)
+            0x1f => .slo(opcode)
             0x20 => .jsr()
             0x21 => .and_opcode(opcode)
+            0x22 => .jam()
+            0x23 => .rla(opcode)
             0x24 => .bit(opcode)
             0x25 => .and_opcode(opcode)
             0x26 => .rol(opcode)
+            0x27 => .rla(opcode)
             0x28 => .plp()
             0x29 => .and_opcode(opcode)
             0x2a => .rol(opcode)
+            0x2b => .anc()
             0x2c => .bit(opcode)
             0x2d => .and_opcode(opcode)
             0x2e => .rol(opcode)
+            0x2f => .rla(opcode)
             0x30 => .bmi()
             0x31 => .and_opcode(opcode)
+            0x32 => .jam()
+            0x33 => .rla(opcode)
+            0x34 => .illegal_nop(opcode)
             0x35 => .and_opcode(opcode)
             0x36 => .rol(opcode)
+            0x37 => .rla(opcode)
             0x38 => .sec()
             0x39 => .and_opcode(opcode)
+            0x3a => .illegal_nop(opcode)
+            0x3b => .rla(opcode)
+            0x3c => .illegal_nop(opcode)
             0x3d => .and_opcode(opcode)
             0x3e => .rol(opcode)
+            0x3f => .rla(opcode)
             0x40 => .rti()
             0x41 => .eor(opcode)
+            0x42 => .jam()
+            0x43 => .sre(opcode)
+            0x44 => .illegal_nop(opcode)
             0x45 => .eor(opcode)
             0x46 => .lsr(opcode)
+            0x47 => .sre(opcode)
             0x48 => .pha()
             0x49 => .eor(opcode)
             0x4a => .lsr(opcode)
+            0x4b => .alr()
             0x4c => .jmp(opcode)
             0x4d => .eor(opcode)
             0x4e => .lsr(opcode)
+            0x4f => .sre(opcode)
             0x50 => .bvc()
             0x51 => .eor(opcode)
+            0x52 => .jam()
+            0x53 => .sre(opcode)
+            0x54 => .illegal_nop(opcode)
             0x55 => .eor(opcode)
             0x56 => .lsr(opcode)
+            0x57 => .sre(opcode)
             0x58 => .cli()
             0x59 => .eor(opcode)
+            0x5a => .illegal_nop(opcode)
+            0x5b => .sre(opcode)
+            0x5c => .illegal_nop(opcode)
             0x5d => .eor(opcode)
             0x5e => .lsr(opcode)
+            0x5f => .sre(opcode)
             0x60 => .rts()
             0x61 => .adc(opcode)
+            0x62 => .jam()
+            0x63 => .rra(opcode)
+            0x64 => .illegal_nop(opcode)
             0x65 => .adc(opcode)
             0x66 => .ror(opcode)
+            0x67 => .rra(opcode)
             0x68 => .pla()
             0x69 => .adc(opcode)
             0x6a => .ror(opcode)
+            0x6b => .arr()
             0x6c => .jmp(opcode)
             0x6d => .adc(opcode)
             0x6e => .ror(opcode)
+            0x6f => .rra(opcode)
             0x70 => .bvs()
             0x71 => .adc(opcode)
+            0x72 => .jam()
+            0x73 => .rra(opcode)
+            0x74 => .illegal_nop(opcode)
             0x75 => .adc(opcode)
             0x76 => .ror(opcode)
+            0x77 => .rra(opcode)
             0x78 => .sei()
             0x79 => .adc(opcode)
+            0x7a => .illegal_nop(opcode)
+            0x7b => .rra(opcode)
+            0x7c => .illegal_nop(opcode)
             0x7d => .adc(opcode)
             0x7e => .ror(opcode)
+            0x7f => .rra(opcode)
+            0x80 => .illegal_nop(opcode)
             0x81 => .sta(opcode)
+            0x82 => .illegal_nop(opcode)
+            0x83 => .sax(opcode)
             0x84 => .sty(opcode)
             0x85 => .sta(opcode)
             0x86 => .stx(opcode)
+            0x87 => .sax(opcode)
             0x88 => .dey()
+            0x89 => .illegal_nop(opcode)
             0x8a => .txa()
+            0x8b => .ane()
             0x8c => .sty(opcode)
             0x8d => .sta(opcode)
             0x8e => .stx(opcode)
+            0x8f => .sax(opcode)
             0x90 => .bcc()
             0x91 => .sta(opcode)
+            0x92 => .jam()
+            0x93 => .sha(opcode)
             0x94 => .sty(opcode)
             0x95 => .sta(opcode)
             0x96 => .stx(opcode)
+            0x97 => .sax(opcode)
             0x98 => .tya()
             0x99 => .sta(opcode)
             0x9a => .txs()
+            0x9b => .tas()
+            0x9c => .shy()
             0x9d => .sta(opcode)
+            0x9e => .shx()
+            0x9f => .sha(opcode)
             0xa0 => .ldy(opcode)
             0xa1 => .lda(opcode)
             0xa2 => .ldx(opcode)
+            0xa3 => .lax(opcode)
             0xa4 => .ldy(opcode)
             0xa5 => .lda(opcode)
             0xa6 => .ldx(opcode)
+            0xa7 => .lax(opcode)
             0xa8 => .tay()
             0xa9 => .lda(opcode)
             0xaa => .tax()
+            0xab => .lxa()
             0xac => .ldy(opcode)
             0xad => .lda(opcode)
             0xae => .ldx(opcode)
+            0xaf => .lax(opcode)
             0xb0 => .bcs()
             0xb1 => .lda(opcode)
+            0xb2 => .jam()
+            0xb3 => .lax(opcode)
             0xb4 => .ldy(opcode)
             0xb5 => .lda(opcode)
             0xb6 => .ldx(opcode)
+            0xb7 => .lax(opcode)
             0xb8 => .clv()
             0xb9 => .lda(opcode)
             0xba => .tsx()
+            0xbb => .las()
             0xbc => .ldy(opcode)
             0xbd => .lda(opcode)
             0xbe => .ldx(opcode)
+            0xbf => .lax(opcode)
             0xc0 => .cpy(opcode)
             0xc1 => .cmp(opcode)
+            0xc2 => .illegal_nop(opcode)
+            0xc3 => .dcp(opcode)
             0xc4 => .cpy(opcode)
             0xc5 => .cmp(opcode)
             0xc6 => .dec(opcode)
+            0xc7 => .dcp(opcode)
             0xc8 => .iny()
             0xc9 => .cmp(opcode)
             0xca => .dex()
+            0xcb => .sbx()
             0xcc => .cpy(opcode)
             0xcd => .cmp(opcode)
             0xce => .dec(opcode)
+            0xcf => .dcp(opcode)
             0xd0 => .bne()
             0xd1 => .cmp(opcode)
+            0xd2 => .jam()
+            0xd3 => .dcp(opcode)
+            0xd4 => .illegal_nop(opcode)
             0xd5 => .cmp(opcode)
             0xd6 => .dec(opcode)
+            0xd7 => .dcp(opcode)
             0xd8 => .cld()
             0xd9 => .cmp(opcode)
+            0xda => .illegal_nop(opcode)
+            0xdb => .dcp(opcode)
+            0xdc => .illegal_nop(opcode)
             0xdd => .cmp(opcode)
             0xde => .dec(opcode)
+            0xdf => .dcp(opcode)
             0xe0 => .cpx(opcode)
             0xe1 => .sbc(opcode)
+            0xe2 => .illegal_nop(opcode)
+            0xe3 => .isc(opcode)
             0xe4 => .cpx(opcode)
             0xe5 => .sbc(opcode)
             0xe6 => .inc(opcode)
+            0xe7 => .isc(opcode)
             0xe8 => .inx()
             0xe9 => .sbc(opcode)
             0xea => .nop()
+            0xeb => .usbc()
             0xec => .cpx(opcode)
             0xed => .sbc(opcode)
             0xee => .inc(opcode)
+            0xef => .isc(opcode)
             0xf0 => .beq()
             0xf1 => .sbc(opcode)
+            0xf2 => .jam()
+            0xf3 => .isc(opcode)
+            0xf4 => .illegal_nop(opcode)
             0xf5 => .sbc(opcode)
             0xf6 => .inc(opcode)
+            0xf7 => .isc(opcode)
             0xf8 => .sed()
             0xf9 => .sbc(opcode)
+            0xfa => .illegal_nop(opcode)
+            0xfb => .isc(opcode)
+            0xfc => .illegal_nop(opcode)
             0xfd => .sbc(opcode)
             0xfe => .inc(opcode)
+            0xff => .isc(opcode)
 
             else => {
                 println("unknown opcode: {}", opcode)
