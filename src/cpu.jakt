@@ -324,6 +324,16 @@ class CPU {
     }
 
     // Interrupts
+   public function irq(mut this) {
+        let irq_vector = .system.read_word(address: 0xfffe)
+
+        .clock += 7
+        .push_word(value: .pc)
+        .push_status()
+
+        .pc = irq_vector
+    }
+
     public function nmi(mut this) {
         let nmi_vector = .system.read_word(address: 0xfffa)
 

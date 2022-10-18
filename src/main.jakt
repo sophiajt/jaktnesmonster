@@ -266,5 +266,10 @@ function clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
         cpu.nmi()
     }
 
+    if system.ppu.mmc3_irq_flag {
+        cpu.irq()
+        system.ppu.mmc3_irq_flag = false // FIXME: Should we reset CPU IRQ flag here?
+    }
+
     return next_frame
 }

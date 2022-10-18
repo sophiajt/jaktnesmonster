@@ -24,6 +24,12 @@ class System {
     public mapper_1_bit_count: u8
     public mapper_1_prg_rom_bank_mode: u8
     public mapper_1_chr_rom_bank_mode: u8
+    public mmc3_bank_register: usize
+    public mmc3_prg_rom_8k_bank_0: usize
+    public mmc3_prg_rom_8k_bank_1: usize
+    public mmc3_prg_rom_8k_bank_2: usize
+    public mmc3_prg_rom_8k_bank_3: usize
+    public mmc3_prg_rom_bank_mode: usize
 
     public function init(filename: String) throws -> SystemLoadStatus {
         let status = load_cart(filename)
@@ -33,6 +39,7 @@ class System {
 
         mut ppu = PPU::init(
             chr_rom_pages: cart.chr_rom_pages
+            mapper: cart.mapper
         )
 
         ppu.set_mirroring(cart.mirroring)
@@ -54,21 +61,147 @@ class System {
                 mapper_1_bit_count: 0
                 mapper_1_prg_rom_bank_mode: 3
                 mapper_1_chr_rom_bank_mode: 0
+                mmc3_bank_register: 0
+                mmc3_prg_rom_8k_bank_0: 0
+                mmc3_prg_rom_8k_bank_1: 1
+                mmc3_prg_rom_8k_bank_2: (cart.prg_rom_pages.size() * 2) - 2
+                mmc3_prg_rom_8k_bank_3: (cart.prg_rom_pages.size() * 2) - 1
+                mmc3_prg_rom_bank_mode: 0
             )
         )
     }
 
-    function mapper_read_byte(this, address: u16) -> u8 {
-        if address >= 0x8000 and address <= 0xbfff {
-            return .cart.prg_rom_pages[.prg_rom_bank_0][address - 0x8000]
-        } else if address >= 0xc000 {
-            return .cart.prg_rom_pages[.prg_rom_bank_1][address - 0xc000]
+    function mmc3_bank_data(mut this, value: u8) {
+        match .mmc3_bank_register {
+            0b000 => {  // R0: Select 2 KB CHR bank at PPU $0000-$07FF (or $1000-$17FF)
+                .ppu.mmc3_chr_rom_2k_bank_0 = value as! usize
+            }
+            0b001 => {  // R1: Select 2 KB CHR bank at PPU $0800-$0FFF (or $1800-$1FFF)
+                .ppu.mmc3_chr_rom_2k_bank_1 = value as! usize
+            }
+            0b010 => {  // R2: Select 1 KB CHR bank at PPU $1000-$13FF (or $0000-$03FF)
+                .ppu.mmc3_chr_rom_1k_bank_0 = value as! usize
+            }
+            0b011 => {  // R3: Select 1 KB CHR bank at PPU $1400-$17FF (or $0400-$07FF)
+                .ppu.mmc3_chr_rom_1k_bank_1 = value as! usize
+            }
+            0b100 => {  // R4: Select 1 KB CHR bank at PPU $1800-$1BFF (or $0800-$0BFF)
+                .ppu.mmc3_chr_rom_1k_bank_2 = value as! usize
+            }
+            0b101 => {  // R5: Select 1 KB CHR bank at PPU $1C00-$1FFF (or $0C00-$0FFF)
+                .ppu.mmc3_chr_rom_1k_bank_3 = value as! usize
+            }
+            0b110 => {  // R6: Select 8 KB PRG ROM bank at $8000-$9FFF (or $C000-$DFFF)
+                if .mmc3_prg_rom_bank_mode == 0 {
+                    .mmc3_prg_rom_8k_bank_0 = value as! usize
+                    .mmc3_prg_rom_8k_bank_2 = (.cart.prg_rom_pages.size() * 2) - 2
+                }
+                else {
+                    .mmc3_prg_rom_8k_bank_0 = (.cart.prg_rom_pages.size() * 2) - 2
+                    .mmc3_prg_rom_8k_bank_2 = value as! usize
+                }
+            }
+            0b111 => {  // R7: Select 8 KB PRG ROM bank at $A000-$BFFF
+                .mmc3_prg_rom_8k_bank_1 = value as! usize
+            }
+            else => {}
+        }
+    }
+
+    function mmc3_bank_select(mut this, value: u8) {
+        .mmc3_bank_register = (value as! usize) & 7
+        .mmc3_prg_rom_bank_mode = (value as! usize >> 6) & 1
+        .ppu.mmc3_chr_a12_inversion = (value as! usize >> 7) & 1
+    }
+
+    function mmc3_read_byte(this, address: u16) -> u8 {
+        if address >= 0x8000 and address <= 0x9fff {
+            if (.mmc3_prg_rom_8k_bank_0 & 1) == 1 {
+                return .cart.prg_rom_pages[(.mmc3_prg_rom_8k_bank_0 - 1) / 2][address - 0x6000]
+            } else {
+                return .cart.prg_rom_pages[.mmc3_prg_rom_8k_bank_0 / 2][address - 0x8000]
+            }
+        } else if address >= 0xa000 and address <= 0xbfff {
+            if (.mmc3_prg_rom_8k_bank_1 & 1) == 1 {
+                return .cart.prg_rom_pages[(.mmc3_prg_rom_8k_bank_1 - 1) / 2][address - 0x8000]
+            } else {
+                return .cart.prg_rom_pages[.mmc3_prg_rom_8k_bank_1 / 2][address - 0xa000]
+            }
+        } else if address >= 0xc000 and address <= 0xdfff {
+            if (.mmc3_prg_rom_8k_bank_2 & 1) == 1 {
+                return .cart.prg_rom_pages[(.mmc3_prg_rom_8k_bank_2 - 1) / 2][address - 0xa000]
+            } else {
+                return .cart.prg_rom_pages[.mmc3_prg_rom_8k_bank_2 / 2][address - 0xc000]
+            }
+        } else if address >= 0xe000 and address <= 0xffff {
+            if (.mmc3_prg_rom_8k_bank_3 & 1) == 1 {
+                return .cart.prg_rom_pages[(.mmc3_prg_rom_8k_bank_3 - 1) / 2][address - 0xc000]
+            } else {
+                return .cart.prg_rom_pages[.mmc3_prg_rom_8k_bank_3 / 2][address - 0xe000]
+            }
         } else if address >= 0x6000 and address < 0x8000 {
             return .prg_ram[address - 0x6000]
         } else {
-            println("we should not be here: mapper_read_byte of {:0>4x}", address)
+            println("we should not be here: mmc3_read_byte of {:0>4x}", address)
             abort()
-            // return 0
+        }
+    }
+
+    function mmc3_write_byte(mut this, address: u16, value: u8) {
+        match address {
+            0x8000u16..0xa000u16 => {
+                if (address & 1) == 0 {
+                    .mmc3_bank_select(value)
+                } else {
+                    .mmc3_bank_data(value)
+                }
+            }
+            0xa000u16..0xc000u16 => {
+                if (address & 1) == 0 {
+                    if (value & 1) == 1 {
+                        .ppu.set_mirroring(Mirroring::Horizontal)
+                    } else {
+                        .ppu.set_mirroring(Mirroring::Vertical)
+                    }
+                }
+            }
+            0xc000u16..0xe000u16 => {
+                if (address & 1) == 0 {
+                    .ppu.mmc3_irq_counter_reload = value
+                } else {
+                    .ppu.mmc3_irq_counter = 0
+                }
+            }
+            0xe000u16..0xffffu16 => {
+                if (address & 1) == 0 {
+                    .ppu.mmc3_irq_enabled = false
+                } else {
+                    .ppu.mmc3_irq_enabled = true
+                    .ppu.mmc3_irq_flag = false // FIXME: Should we reset CPU IRQ flag here?
+                }
+            }
+            else => {
+                println("we should not be here: mmc3_write_byte of {:0>4x}", address)
+                abort()
+            }
+        }
+    }
+
+    function mapper_read_byte(this, address: u16) -> u8 {
+        return match .cart.mapper {
+            4 => .mmc3_read_byte(address)
+            else => {
+                if address >= 0x8000 and address <= 0xbfff {
+                    return .cart.prg_rom_pages[.prg_rom_bank_0][address - 0x8000]
+                } else if address >= 0xc000 {
+                    return .cart.prg_rom_pages[.prg_rom_bank_1][address - 0xc000]
+                } else if address >= 0x6000 and address < 0x8000 {
+                    return .prg_ram[address - 0x6000]
+                } else {
+                    println("we should not be here: mapper_read_byte of {:0>4x}", address)
+                    abort()
+                }
+            }
         }
     }
 
@@ -82,6 +215,10 @@ class System {
             let mapper_3_bank = (value as! usize & 3) * 2
             .ppu.chr_rom_page_0000 = mapper_3_bank
             .ppu.chr_rom_page_1000 = mapper_3_bank + 1
+            return
+        }
+        if .cart.mapper == 4 {
+            .mmc3_write_byte(address, value)
             return
         }
         if .cart.mapper == 7 {

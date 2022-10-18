@@ -78,6 +78,19 @@ class PPU {
     horizontal_pixel: u64
     vertical_pixel: u64
     dma_ticks: u64
+    public mapper: u8
+    public mmc3_chr_a12_inversion: usize
+    public mmc3_chr_rom_2k_bank_0: usize
+    public mmc3_chr_rom_2k_bank_1: usize
+    public mmc3_chr_rom_1k_bank_0: usize
+    public mmc3_chr_rom_1k_bank_1: usize
+    public mmc3_chr_rom_1k_bank_2: usize
+    public mmc3_chr_rom_1k_bank_3: usize
+    public mmc3_irq_counter: u8
+    public mmc3_irq_counter_reload: u8
+    public mmc3_irq_enabled: bool
+    public mmc3_irq_flag: bool
+    public mmc3_irq_reload_flag: bool
 
     // Internal PPU registers (from https://www.nesdev.org/wiki/PPU_scrolling)
     v: u16
@@ -87,7 +100,7 @@ class PPU {
 
     color_palette: [u32]
 
-    public function init(chr_rom_pages: [[u8]]) throws -> PPU {
+    public function init(chr_rom_pages: [[u8]], mapper: u8) throws -> PPU {
         mut video_buffer: [u32] = [rgb(0,0,0); 256*240]
         return PPU(
             vram_address_increment: 1
@@ -121,6 +134,19 @@ class PPU {
             horizontal_pixel: 0
             vertical_pixel: 0
             dma_ticks: 0
+            mapper
+            mmc3_chr_a12_inversion: 0
+            mmc3_chr_rom_2k_bank_0: 0
+            mmc3_chr_rom_2k_bank_1: 0
+            mmc3_chr_rom_1k_bank_0: 0
+            mmc3_chr_rom_1k_bank_1: 0
+            mmc3_chr_rom_1k_bank_2: 0
+            mmc3_chr_rom_1k_bank_3: 0
+            mmc3_irq_counter: 0
+            mmc3_irq_counter_reload: 0
+            mmc3_irq_enabled: false
+            mmc3_irq_flag: false
+            mmc3_irq_reload_flag: false
 
             // internal PPU registers
             v: 0
@@ -195,6 +221,114 @@ class PPU {
                     rgb(0    0    0)
                 ]   
         )
+    }
+
+    public function mmc3_clock_irq(mut this) {
+        if .mmc3_irq_counter == 0 or .mmc3_irq_reload_flag {
+            .mmc3_irq_counter = .mmc3_irq_counter_reload;
+            .mmc3_irq_reload_flag = false;
+        } else {
+            .mmc3_irq_counter--
+        }
+
+        if .mmc3_irq_counter == 0 {
+            .mmc3_irq_flag = .mmc3_irq_enabled;
+        }
+    }
+
+    public function mmc3_chr_rom_byte_at(mut this, page: usize, index: u64) -> u8 {
+        mut computed_address: u16 = 0x0
+        if page == .chr_rom_page_1000 {
+            computed_address += 0x1000
+        }
+        computed_address += index as! u16
+        mut computed_page: usize = 0
+        mut computed_index: u16 = 0
+        mut selected_bank: usize = 0
+        mut offset: u16 = 0
+        if .mmc3_chr_a12_inversion == 0 {
+            match computed_address {
+                0x0000u16..0x0800u16 => {
+                    // 2 KB CHR bank at PPU $0000-$07FF
+                    selected_bank = .mmc3_chr_rom_2k_bank_0
+                    offset = 0x0000
+                }
+                0x0800u16..0x1000u16 => {
+                    // 2 KB CHR bank at PPU $0800-$0FFF
+                    selected_bank = .mmc3_chr_rom_2k_bank_1
+                    offset = 0x0800
+                }
+                0x1000u16..0x1400u16 => {
+                    // 1 KB CHR bank at PPU $1000-$13FF
+                    selected_bank = .mmc3_chr_rom_1k_bank_0
+                    offset = 0x1000
+                }
+                0x1400u16..0x1800u16 => {
+                    // 1 KB CHR bank at PPU $1400-$17FF
+                    selected_bank = .mmc3_chr_rom_1k_bank_1
+                    offset = 0x1400
+                }
+                0x1800u16..0x1c00u16 => {
+                    // 1 KB CHR bank at PPU $1800-$1BFF
+                    selected_bank = .mmc3_chr_rom_1k_bank_2
+                    offset = 0x1800
+                }
+                0x1c00u16..0x2000u16 => {
+                    // 1 KB CHR bank at PPU $1C00-$1FFF
+                    selected_bank = .mmc3_chr_rom_1k_bank_3
+                    offset = 0x1c00
+                }
+                else => {
+                    return 0
+                }
+            }
+        } else {
+            match computed_address {
+                0x1000u16..0x1800u16 => {
+                    // 2 KB CHR bank at PPU $1000-$17FF
+                    selected_bank = .mmc3_chr_rom_2k_bank_0
+                    offset = 0x1000
+                }
+                0x1800u16..0x2000u16 => {
+                    // 2 KB CHR bank at PPU $1800-$1FFF
+                    selected_bank = .mmc3_chr_rom_2k_bank_1
+                    offset = 0x1800
+                }
+                0x0000u16..0x0400u16 => {
+                    // 1 KB CHR bank at PPU $0000-$03FF
+                    selected_bank = .mmc3_chr_rom_1k_bank_0
+                    offset = 0x0000
+                }
+                0x0400u16..0x0800u16 => {
+                    // 1 KB CHR bank at PPU $0400-$07FF
+                    selected_bank = .mmc3_chr_rom_1k_bank_1
+                    offset = 0x0400
+                }
+                0x0800u16..0x0c00u16 => {
+                    // 1 KB CHR bank at PPU $0800-$0BFF
+                    selected_bank = .mmc3_chr_rom_1k_bank_2
+                    offset = 0x0800
+                }
+                0x0c00u16..0x0000u16 => {
+                    // 1 KB CHR bank at PPU $0C00-$0FFF
+                    selected_bank = .mmc3_chr_rom_1k_bank_3
+                    offset = 0x0c00
+                }
+                else => {
+                    return 0
+                }
+            }
+        }
+        computed_page = selected_bank / 4
+        computed_index = (selected_bank as! u16 % 4) * 0x0400 + computed_address - offset
+        return .chr_rom_pages[computed_page][computed_index]
+    }
+
+    public function chr_rom_byte_at(mut this, anon page: usize, anon index: u64) -> u8 {
+        return match .mapper {
+            4 => .mmc3_chr_rom_byte_at(page, index)
+            else => .chr_rom_pages[page][index]
+        }
     }
 
     public function dma_tick(mut this) throws {
@@ -354,12 +488,12 @@ class PPU {
         let color_bits = (attr >> ((horizontal_box_pos * 2) + (vertical_box_pos * 4))) & 0x3
 
         let first_plane_byte = match .background_table_address {
-            0000 => .chr_rom_pages[.chr_rom_page_0000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
-            else => .chr_rom_pages[.chr_rom_page_1000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8]
+            0000 => .chr_rom_byte_at(.chr_rom_page_0000, nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8)
+            else => .chr_rom_byte_at(.chr_rom_page_1000, nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8)
         }
         let second_plane_byte = match .background_table_address {
-            0000 => .chr_rom_pages[.chr_rom_page_0000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
-            else => .chr_rom_pages[.chr_rom_page_1000][nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8]
+            0000 => .chr_rom_byte_at(.chr_rom_page_0000, nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8)
+            else => .chr_rom_byte_at(.chr_rom_page_1000, nametable_entry as! u64 * 0x10 + virtual_vertical_pixel % 8 + 8)
         }
 
         let first_plane_bit = first_plane_byte >> (7 - virtual_horizontal_pixel % 8) & 0x1
@@ -434,6 +568,10 @@ class PPU {
         //     y += 1                         // increment coarse Y
         //   v = (v & ~0x03E0) | (y << 5)     // put coarse Y back into v
 
+        if (.mapper == 4) {
+            .mmc3_clock_irq()
+        }
+
         if (.v & 0x7000) != 0x7000 {
             .v += 0x1000
         } else {
@@ -502,8 +640,8 @@ class PPU {
                     }
                     //let sprite_index = (tile_row & 0x7) | ((sprite_x & 0xf) << 4) | ((sprite_y & 0xf) << 8)
                     let sprite_index = .oam[sprite_addr + 1] as! u64 * 0x10 + tile_row as! u64
-                    let first_plane = .chr_rom_pages[sprite_table][sprite_index]
-                    let second_plane = .chr_rom_pages[sprite_table][sprite_index + 8]
+                    let first_plane = .chr_rom_byte_at(sprite_table, sprite_index)
+                    let second_plane = .chr_rom_byte_at(sprite_table, sprite_index + 8)
 
                     mut mask = [0u8; 8]
                     for i in 0..8u8 {
@@ -532,8 +670,8 @@ class PPU {
                         tile_row -= 8
                         sprite_index += 8
                     }
-                    let first_plane = .chr_rom_pages[sprite_table][sprite_index]
-                    let second_plane = .chr_rom_pages[sprite_table][sprite_index + 8]
+                    let first_plane = .chr_rom_byte_at(sprite_table, sprite_index)
+                    let second_plane = .chr_rom_byte_at(sprite_table, sprite_index + 8)
 
                     // sprite tile: 2
                     // 0000 + offset
@@ -866,7 +1004,7 @@ class PPU {
         else if (address >= 0x3f00) and (address <= 0x3fff) {
             let sub_address = (address - 0x3f00) % 0x20
             // FIXME: add back in mirroring
-            .palette[sub_address] = value
+            .palette[sub_address] = value & 0x3f
         }
         match address {
             0x3f00 => { .palette[0x10] = value }
@@ -900,9 +1038,9 @@ class PPU {
         if address <= 0x3eff {
             mut value: u8 = 0
             if address < 0x1000 {
-                value = .chr_rom_pages[.chr_rom_page_0000][address]
+                value = .chr_rom_byte_at(.chr_rom_page_0000, address as! u64)
             } else if address < 0x2000 {
-                value = .chr_rom_pages[.chr_rom_page_1000][address - 0x1000]
+                value = .chr_rom_byte_at(.chr_rom_page_1000, address as! u64 - 0x1000)
             } else if (address >= 0x2000) and (address <= 0x2fff){
                 value = .read_nametable(address)
             }
@@ -982,11 +1120,7 @@ class PPU {
     }
 
     function convert_palette_to_rgb(this, anon value: u8) -> u32 {
-        if value > 63 {
-            eprintln("ERROR: incorrect palette for rgb: {}", value)
-            abort()
-        }
-        return .color_palette[value]
+        return .color_palette[value & 0x3f]
     }
 
 }

@@ -35,6 +35,14 @@ enum CartLoadStatus {
     NotARom
 }
 
+function is_supported_mapper(mapper: u8) -> bool {
+    return match mapper {
+        0u8..5u8 => true
+        7 => true
+        else => false
+    }
+}
+
 function load_cart(filename: String) throws -> CartLoadStatus {
     mut file = File::open_for_reading(filename)
     let buffer = file.read_all()
@@ -58,7 +66,7 @@ function load_cart(filename: String) throws -> CartLoadStatus {
     mut mapper = buffer[6] >> 4
     mapper += buffer[7] & 0xf0;
 
-    guard mapper < 4 or mapper == 7 else {
+    guard is_supported_mapper(mapper) else {
         eprintln("Mapper {} is not currently supported", mapper)
         abort()
     }
