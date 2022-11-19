@@ -37,7 +37,8 @@ jobs:
           ${VCPKG_INSTALLATION_ROOT}/vcpkg install sdl2:x64-windows
         if: ${{ matrix.os == 'windows-latest' }}
 
-      - uses: SerenityOS/setup-jakt@v1
+      # FIXME: Restore to a proper tag on SerenityOS/setup-jakt once fix is merged
+      - uses: ADKaster/setup-jakt@70e611fcdeaa18ee8787c8176920a60d8a2fb065
 
       - name: Configure CMake Unix
         run: |
