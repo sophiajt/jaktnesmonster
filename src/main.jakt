@@ -128,7 +128,7 @@ function main(args: [String]) {
                                 }
                             }
                         }
-                        ButtonDown(button) =>{
+                        ButtonDown(button) => {
                             match button {
                                 Up => {
                                     joypad.press_up()
@@ -156,7 +156,7 @@ function main(args: [String]) {
                                 }
                             }
                         }
-                        ButtonUp(button) =>{
+                        ButtonUp(button) => {
                             match button {
                                 Up => {
                                     joypad.release_up()
@@ -194,7 +194,7 @@ function main(args: [String]) {
                     }
                     one_frame = false
                 }
-                if slow_mode and not clock_pause{
+                if slow_mode and not clock_pause {
                     if clocktick(system, cpu, debugger, sdl) {
                         event = sdl.poll_event()
                     }
@@ -231,12 +231,16 @@ function clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
     }
 
     system.ppu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) * 3)
+    system.apu.tick(cycles: (cpu_clocks_after - cpu_clocks_before) as! u16 * 2)
     let in_vblank_after = system.ppu.in_vblank
 
     if not in_vblank_before and in_vblank_after {
         // We're just now in the vblank
         draw_frame(sdl, buffer: system.ppu.video_buffer, region: system.cart.region)
         next_frame = true
+
+        system.apu.render()
+        sdl.queue_audio(data: system.apu.buffer)
 
         // Let's try to create one frame of audio
         // Uncomment for test sine wave
@@ -255,6 +259,7 @@ function clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut
 
         // Finally, let's burn some time so that we're at 60fps
         let delta = sdl.delta_time() as! u32
+
         let ms_per_frame = 1000u32 / 60u32
         if delta < ms_per_frame {
             sdl.delay(ms: ms_per_frame - delta)
