@@ -513,7 +513,7 @@ class PPU {
     }
 
     function render_sprite_pixel(mut this, horizontal_pixel: u8, vertical_pixel: u8, bg_set: bool) throws {
-        for sprite in .second_oam.iterator() {
+        for sprite in .second_oam {
             let (valid, entry) = sprite.get_sprite_pixel(x: horizontal_pixel)
 
             if not valid {
