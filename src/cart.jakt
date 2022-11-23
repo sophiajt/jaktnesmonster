@@ -39,6 +39,7 @@ function is_supported_mapper(mapper: u8) -> bool {
     return match mapper {
         0u8..5u8 => true
         7 => true
+        11 => true
         else => false
     }
 }

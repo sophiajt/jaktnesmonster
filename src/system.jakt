@@ -233,6 +233,16 @@ class System {
             }
             return
         }
+        if .cart.mapper == 11 {
+            let chr_rom_mask = (.cart.chr_rom_pages.size() / 2) - 1
+            let mapper_11_prg_bank = (value as! usize & 3) * 2
+            let mapper_11_chr_bank = ((value as! usize >> 4) & chr_rom_mask) * 2
+            .prg_rom_bank_0 = mapper_11_prg_bank
+            .prg_rom_bank_1 = mapper_11_prg_bank + 1
+            .ppu.chr_rom_page_0000 = mapper_11_chr_bank
+            .ppu.chr_rom_page_1000 = mapper_11_chr_bank + 1
+            return
+        }
         if (value & 0b1000_0000) == 0b1000_0000 {
             .mapper_1_shift_register = 0
             .mapper_1_bit_count = 0
