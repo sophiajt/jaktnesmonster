@@ -6,7 +6,7 @@ class APU {
     noise: Noise,
     public buffer: [i16],
 
-    public function init() throws -> APU {
+    public fn init() throws -> APU {
         return APU(timer: 0,
                    pulse1: Pulse::init(),
                    pulse2: Pulse::init(),
@@ -15,23 +15,23 @@ class APU {
                    buffer: [0i16; 44100 / 60])
     }
 
-    public function read_apu_addr(this, address: u16) -> u8 {
+    public fn read_apu_addr(this, address: u16) -> u8 {
         return 0
     }
 
-    public function write_4008(mut this, value: u8) {
+    public fn write_4008(mut this, value: u8) {
         .triangle.register1_write(value)
     }
 
-    public function write_400a(mut this, value: u8) {
+    public fn write_400a(mut this, value: u8) {
         .triangle.register3_write(value)
     }
 
-    public function write_400b(mut this, value: u8) {
+    public fn write_400b(mut this, value: u8) {
         .triangle.register4_write(value)
     }
 
-    public function write_apu_addr(mut this, address: u16, value: u8) {
+    public fn write_apu_addr(mut this, address: u16, value: u8) {
         match address {
         //     0x4000 => .write_4000(value)
         //     0x4001 => .pulse1.register2_write(value)
@@ -52,14 +52,14 @@ class APU {
         }
     }
 
-    public function tick(mut this, cycles: u16) throws {
+    public fn tick(mut this, cycles: u16) throws {
         .pulse1.tick(cycles)
         .pulse2.tick(cycles)
         .triangle.tick(cycles)
         .noise.tick(cycles)
     }
 
-    public function render(mut this) {
+    public fn render(mut this) {
         mut i = 0
         while i < 44100 / 60 {
             .buffer[i] = .pulse1.buffer[i] + 
@@ -78,7 +78,7 @@ struct Pulse {
     sweep: u8
     buffer: [i16]
 
-    public function init() throws -> Pulse {
+    public fn init() throws -> Pulse {
         return Pulse(timer: 0, 
                      length_counter: 0,
                      envelope: 0,
@@ -86,23 +86,23 @@ struct Pulse {
                      buffer: [0i16; 44100 / 60])
     }
 
-    public function register1_write(mut this, value: u8) {
+    public fn register1_write(mut this, value: u8) {
 
     }
 
-    public function register2_write(mut this, value: u8) {
+    public fn register2_write(mut this, value: u8) {
 
     }
 
-    public function register3_write(mut this, value: u8) {
+    public fn register3_write(mut this, value: u8) {
 
     }
 
-    public function register4_write(mut this, value: u8) {
+    public fn register4_write(mut this, value: u8) {
 
     }
 
-    public function tick(mut this, cycles: u16) throws {
+    public fn tick(mut this, cycles: u16) throws {
         // TODO: handle overflow
         .timer += cycles
     }
@@ -114,19 +114,19 @@ struct Triangle {
     linear_counter: u8
     buffer: [i16]
 
-    public function init() throws -> Triangle {
+    public fn init() throws -> Triangle {
         return Triangle(timer: 0,
                         length_counter: 0,
                         linear_counter: 0, 
                         buffer: [0i16; 44100 / 60])
     }
 
-    public function tick(mut this, cycles: u16) throws {
+    public fn tick(mut this, cycles: u16) throws {
         // TODO: handle overflow
         .timer += cycles / 2
     }
 
-    public function register1_write(mut this, value: u8) {
+    public fn register1_write(mut this, value: u8) {
         let control_flag = (value & 0b1000_0000) >> 7
         let counter_reload = value & 0b0111_1111
 
@@ -135,11 +135,11 @@ struct Triangle {
         println("counter reload: {:0>2x} ", control_flag)
     }
 
-    public function register3_write(mut this, value: u8) {
+    public fn register3_write(mut this, value: u8) {
         println("timer low: {:0>2x}", value)
     }
 
-    public function register4_write(mut this, value: u8) {
+    public fn register4_write(mut this, value: u8) {
         let timer_high = (value & 0b111)
         println("timer high: {:0>2x}", timer_high)
     }
@@ -153,7 +153,7 @@ struct Noise {
     linear_feedback_shift_register: u8
     buffer: [i16]
 
-    public function init() throws -> Noise {
+    public fn init() throws -> Noise {
         return Noise(timer: 0,
                      length_counter: 0,
                      envelope: 0,
@@ -161,20 +161,20 @@ struct Noise {
                      buffer: [0i16; 44100 / 60])
     }
 
-    public function tick(mut this, cycles: u16) throws {
+    public fn tick(mut this, cycles: u16) throws {
         // TODO: handle overflow
         .timer += cycles
     }
 
-    public function register1_write(mut this, value: u8) {
+    public fn register1_write(mut this, value: u8) {
 
     }
 
-    public function register3_write(mut this, value: u8) {
+    public fn register3_write(mut this, value: u8) {
 
     }
 
-    public function register4_write(mut this, value: u8) {
+    public fn register4_write(mut this, value: u8) {
 
     }
 

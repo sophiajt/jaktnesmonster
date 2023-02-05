@@ -10,11 +10,11 @@ class Joypad {
 
     public data: u8
 
-    public function init() throws -> Joypad {
+    public fn init() throws -> Joypad {
         return Joypad(up: false, down: false, left: false, right: false, start: false, select: false, a: false, b: false, data: 0)
     }
 
-    public function poll_joypad(mut this) {
+    public fn poll_joypad(mut this) {
         // 0 - A
         // 1 - B
         // 2 - Select
@@ -51,81 +51,81 @@ class Joypad {
         }
     }
 
-    public function read_joypad(mut this) -> u8 {
+    public fn read_joypad(mut this) -> u8 {
         let output = .data & 0x1
         .data >>= 1
         return output
     }
 
-    public function press_up(mut this) {
+    public fn press_up(mut this) {
         .up = true
         .down = false
     }
 
-    public function press_down(mut this) {
+    public fn press_down(mut this) {
         .up = false
         .down = true
     }
 
-    public function press_left(mut this) {
+    public fn press_left(mut this) {
         .left = true
         .right = false
     }
 
-    public function press_right(mut this) {
+    public fn press_right(mut this) {
         .left = false
         .right = true
     }
 
-    public function press_start(mut this) {
+    public fn press_start(mut this) {
         .start = true
     }
 
-    public function press_select(mut this) {
+    public fn press_select(mut this) {
         .select = true
     }
 
-    public function press_a(mut this) {
+    public fn press_a(mut this) {
         .a = true
     }
 
-    public function press_b(mut this) {
+    public fn press_b(mut this) {
         .b = true
     }
 
-    public function release_up(mut this) {
+    public fn release_up(mut this) {
         .up = false
     }
 
-    public function release_down(mut this) {
+    public fn release_down(mut this) {
         .down = false
     }
 
-    public function release_left(mut this) {
+    public fn release_left(mut this) {
         .left = false
     }
 
-    public function release_right(mut this) {
+    public fn release_right(mut this) {
         .right = false
     }
 
-    public function release_start(mut this) {
+    public fn release_start(mut this) {
         .start = false
     }
 
-    public function release_select(mut this) {
+    public fn release_select(mut this) {
         .select = false
     }
 
-    public function release_a(mut this) {
+    public fn release_a(mut this) {
         .a = false
     }
 
-    public function release_b(mut this) {
+    public fn release_b(mut this) {
         .b = false
     }
 
-    public function dump(this) {
+    public fn dump(this) {
         println("up: {} down: {} left: {} right: {} start: {} select: {} a: {} b: {}", .up, .down, .left, .right, .start, .select, .a, .b)
     }
 }
