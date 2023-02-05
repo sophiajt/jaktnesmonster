@@ -2,7 +2,7 @@ import sdl { SDL,  null }
 import ppu { RGB }
 import cart { Region }
 
-function draw_frame(sdl: SDL, mut buffer: [u32], region: Region) throws {
+fn draw_frame(sdl: SDL, mut buffer: [u32], region: Region) throws {
 
     mut format = 0u32
     mut access: c_int = 0

@@ -5,7 +5,7 @@ class RGB {
     public green: u8
     public blue: u8
 
-    public function to_u32(this) -> u32 {
+    public fn to_u32(this) -> u32 {
     // Order is RGBA for SDL
         return (255 << 24) | (.blue << 16) | (.green << 8) | .red 
     }
@@ -18,7 +18,7 @@ class Sprite {
     public sprite_x: u8
     public sprite_zero: bool
 
-    public function get_sprite_pixel(this, x: u8) -> (bool, u8){
+    public fn get_sprite_pixel(this, x: u8) -> (bool, u8){
         //TODO (?): How did the hardware handle this with 8 bits?
         guard x >= .sprite_x and (x as! u16) < ((.sprite_x as! u16) + 8u16) else {
             return(false, 0u8)
@@ -100,7 +100,7 @@ class PPU {
 
     color_palette: [u32]
 
-    public function init(chr_rom_pages: [[u8]], mapper: u8) throws -> PPU {
+    public fn init(chr_rom_pages: [[u8]], mapper: u8) throws -> PPU {
         mut video_buffer: [u32] = [rgb(0,0,0); 256*240]
         return PPU(
             vram_address_increment: 1
@@ -223,7 +223,7 @@ class PPU {
         )
     }
 
-    public function mmc3_clock_irq(mut this) {
+    public fn mmc3_clock_irq(mut this) {
         if .mmc3_irq_counter == 0 or .mmc3_irq_reload_flag {
             .mmc3_irq_counter = .mmc3_irq_counter_reload;
             .mmc3_irq_reload_flag = false;
@@ -236,7 +236,7 @@ class PPU {
         }
     }
 
-    public function mmc3_chr_rom_byte_at(mut this, page: usize, index: u64) -> u8 {
+    public fn mmc3_chr_rom_byte_at(mut this, page: usize, index: u64) -> u8 {
         mut computed_address: u16 = 0x0
         if page == .chr_rom_page_1000 {
             computed_address += 0x1000
@@ -324,14 +324,14 @@ class PPU {
         return .chr_rom_pages[computed_page][computed_index]
     }
 
-    public function chr_rom_byte_at(mut this, anon page: usize, anon index: u64) -> u8 {
+    public fn chr_rom_byte_at(mut this, anon page: usize, anon index: u64) -> u8 {
         return match .mapper {
             4 => .mmc3_chr_rom_byte_at(page, index)
             else => .chr_rom_pages[page][index]
         }
     }
 
-    public function dma_tick(mut this) throws {
+    public fn dma_tick(mut this) throws {
         if .even_frame_flag {
             .tick(cycles: 513 * 3u64)
         } else {
@@ -339,7 +339,7 @@ class PPU {
         }
     }
 
-    public function set_mirroring(mut this, anon mirroring: Mirroring) {
+    public fn set_mirroring(mut this, anon mirroring: Mirroring) {
         match mirroring {
             Horizontal => {
                 .nametables[0] = 0
@@ -368,7 +368,7 @@ class PPU {
         }
     }
 
-    public function tick(mut this, cycles: u64) throws {
+    public fn tick(mut this, cycles: u64) throws {
         for x in (.clock)..(.clock + cycles) {
             // Where are we on the screen
             .horizontal_pixel = .clock % 341
@@ -410,7 +410,7 @@ class PPU {
         }
     }
 
-    function read_nametable(this, anon address: u16) -> u8 {
+    fn read_nametable(this, anon address: u16) -> u8 {
         match address & 0xfc00 {
             0x2000 => {
                 return .nametable_data[.nametables[0]][address & ~0xfc00]
@@ -427,7 +427,7 @@ class PPU {
         }
     }
 
-    function write_nametable(mut this, address: u16, value: u8) {
+    fn write_nametable(mut this, address: u16, value: u8) {
         match address & 0xfc00 {
             0x2000 => {
                 .nametable_data[.nametables[0]][address & ~0xfc00] = value
@@ -444,7 +444,7 @@ class PPU {
         }
     }
 
-    function render_bg_pixel(mut this) throws -> bool {
+    fn render_bg_pixel(mut this) throws -> bool {
         let scroll_x = (.v & 0x1f) * 8 + .x as! u16
         let scroll_y = ((.v >> 5) & 0x1f) * 8 + (.v >> 12)
 
@@ -512,7 +512,7 @@ class PPU {
         }
     }
 
-    function render_sprite_pixel(mut this, horizontal_pixel: u8, vertical_pixel: u8, bg_set: bool) throws {
+    fn render_sprite_pixel(mut this, horizontal_pixel: u8, vertical_pixel: u8, bg_set: bool) throws {
         for sprite in .second_oam {
             let (valid, entry) = sprite.get_sprite_pixel(x: horizontal_pixel)
 
@@ -538,7 +538,7 @@ class PPU {
         }
     }
 
-    function coarse_x_increment(mut this) {
+    fn coarse_x_increment(mut this) {
         // if ((v & 0x001F) == 31) // if coarse X == 31
         //     v &= ~0x001F          // coarse X = 0
         //     v ^= 0x0400           // switch horizontal nametable
@@ -553,7 +553,7 @@ class PPU {
         }
     }
 
-    function y_increment(mut this) {
+    fn y_increment(mut this) {
         // if ((v & 0x7000) != 0x7000)        // if fine Y < 7
         //   v += 0x1000                      // increment fine Y
         // else
@@ -589,7 +589,7 @@ class PPU {
         }
     }
 
-    function find_sprites(mut this, scanline: u8) throws -> [Sprite]  {
+    fn find_sprites(mut this, scanline: u8) throws -> [Sprite]  {
         mut result: [Sprite] = []
         mut sprite_count = 0
 
@@ -709,7 +709,7 @@ class PPU {
     }
 
 
-    function render_pixel(mut this) throws {
+    fn render_pixel(mut this) throws {
         // BACKGROUND
         //println("Hpx: {}, Vpx: {}", horizontal_pixel, vertical_pixel)
         let visible_row = (.vertical_pixel < 240) or (.vertical_pixel == 261)
@@ -770,7 +770,7 @@ class PPU {
         // print("{:0>2x}", nametable_entry)
     }
 
-    function look_up_palette_entry_bg(mut this, palette_entry: u8) -> u32 {
+    fn look_up_palette_entry_bg(mut this, palette_entry: u8) -> u32 {
         guard palette_entry < 16 else {
             println("ERROR: incorrect palette entry: {}", palette_entry)
             //return RGB(red: 0, green: 0, blue: 0)
@@ -782,7 +782,7 @@ class PPU {
         return .convert_palette_to_rgb(bg_palette)
     }
 
-    function look_up_palette_entry_sprite(mut this, palette_entry: u8) -> u32 {
+    fn look_up_palette_entry_sprite(mut this, palette_entry: u8) -> u32 {
         guard palette_entry < 16 else {
             println("ERROR: incorrect palette entry: {}", palette_entry)
             //return RGB(red: 0, green: 0, blue: 0)
@@ -798,7 +798,7 @@ class PPU {
         }
     }
 
-    function ppu_ctrl(mut this, value: u8) {
+    fn ppu_ctrl(mut this, value: u8) {
 
         // 7  bit  0
         // ---- ----
@@ -857,7 +857,7 @@ class PPU {
         // println("nmi_on_vblank: {}", .nmi_on_vblank)
     }
 
-    function ppu_mask(mut this, value: u8) {
+    fn ppu_mask(mut this, value: u8) {
         // TODO: implement
 
         // 7  bit  0
@@ -919,7 +919,7 @@ class PPU {
         }
     }
 
-    function ppu_scroll(mut this, value: u8) {
+    fn ppu_scroll(mut this, value: u8) {
         // println("PPU scroll: {:0>2x} {}", value, .scroll_toggle)
 
         if .w == 0 {
@@ -938,7 +938,7 @@ class PPU {
         }
     }
 
-    function ppu_addr(mut this, value: u8) {
+    fn ppu_addr(mut this, value: u8) {
         if .w == 0 {
             let cdefgh = value & 0x3f
             .t = .t & 0xff
@@ -952,7 +952,7 @@ class PPU {
         }
     }
 
-    function ppu_data_write(mut this, value: u8) {
+    fn ppu_data_write(mut this, value: u8) {
         // TODO: add support for various mirroring
 
         // Outside of rendering, reads from or writes to $2007 will add either 1 or 32 to v depending on the VRAM increment bit set via $2000. 
@@ -1020,7 +1020,7 @@ class PPU {
         .increment_v()
     }
 
-    function increment_v(mut this) {
+    fn increment_v(mut this) {
         if (.background_visible or .sprites_visible) and (.vertical_pixel < 240 or .vertical_pixel == 261) {
             .coarse_x_increment()
             .y_increment()
@@ -1029,7 +1029,7 @@ class PPU {
         }
     }
 
-    function ppu_data_read(mut this) -> u8 {
+    fn ppu_data_read(mut this) -> u8 {
         mut output = 0u8
         // println("PPU read: {:0>4x}", .v)
 
@@ -1055,7 +1055,7 @@ class PPU {
         return output
     }
 
-    function ppu_status(mut this) -> u8 {
+    fn ppu_status(mut this) -> u8 {
         mut status = 0
         if .in_vblank {
             // println("Reading vblank status")
@@ -1073,7 +1073,7 @@ class PPU {
         return status
     }
 
-    public function write_ppu_addr(mut this, address: u16, value: u8) {
+    public fn write_ppu_addr(mut this, address: u16, value: u8) {
         // PPU registers are mirrored all the way to 3FFF, try to handle that
         let mirrored_address = (address % 0x8) + 0x2000
         match mirrored_address {
@@ -1091,22 +1091,22 @@ class PPU {
         }
     }
 
-    public function oam_addr_write(mut this, value: u8) {
+    public fn oam_addr_write(mut this, value: u8) {
         .oam_addr = value
     }
 
-    public function oam_data_read(mut this) -> u8 {
+    public fn oam_data_read(mut this) -> u8 {
         let result = .oam[.oam_addr]
         .oam_addr++
         return result
     }
 
-    public function oam_data_write(mut this, value: u8) {
+    public fn oam_data_write(mut this, value: u8) {
         .oam[.oam_addr] = value
         .oam_addr++
     }
 
-    public function read_ppu_addr(mut this, address: u16) -> u8 {
+    public fn read_ppu_addr(mut this, address: u16) -> u8 {
         let mirrored_address = (address % 0x8) + 0x2000
         return match mirrored_address {
             0x2002 => .ppu_status()
@@ -1119,12 +1119,12 @@ class PPU {
         }
     }
 
-    function convert_palette_to_rgb(this, anon value: u8) -> u32 {
+    fn convert_palette_to_rgb(this, anon value: u8) -> u32 {
         return .color_palette[value & 0x3f]
     }
 
 }
 
-function rgb(anon red: u8, anon green: u8, anon blue: u8) -> u32 {
+fn rgb(anon red: u8, anon green: u8, anon blue: u8) -> u32 {
     return (255 << 24) | (blue << 16) | (green << 8) | red 
 }

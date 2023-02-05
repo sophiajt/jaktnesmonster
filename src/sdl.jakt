@@ -17,42 +17,42 @@ import extern c "SDL.h" {
     }
     extern struct SDL_GameController {}
 
-    extern function SDL_SetMainReady() -> void
-    extern function SDL_Init(flags: u32) -> c_int
-    extern function SDL_CreateWindowAndRenderer(width: c_int
+    extern fn SDL_SetMainReady() -> void
+    extern fn SDL_Init(flags: u32) -> c_int
+    extern fn SDL_CreateWindowAndRenderer(width: c_int
                                                 height: c_int
                                                 window_flags: u32
                                                 window: raw raw SDL_Window
                                                 renderer: raw raw SDL_Renderer) -> c_int
-    extern function SDL_CreateWindow(title: raw c_char, x: c_int, y: c_int, w: c_int, h: c_int, flags: u32) -> raw SDL_Window
-    extern function SDL_GetWindowSurface(window: raw SDL_Window) -> raw SDL_Surface
-    extern function SDL_SetRenderDrawColor(renderer: raw SDL_Renderer, r: u8, g: u8, b: u8, a: u8) -> c_int
-    extern function SDL_RenderClear(renderer: raw SDL_Renderer) -> c_int
-    extern function SDL_RenderPresent(renderer: raw SDL_Renderer) -> c_int
-    extern function SDL_RenderDrawPoint(renderer: raw SDL_Renderer, x: c_int, y: c_int) -> c_int
-    extern function SDL_RenderSetScale(renderer: raw SDL_Renderer, scaleX: f32, scaleY: f32) -> c_int
-    extern function SDL_DestroyRenderer(renderer: raw SDL_Renderer) -> void
-    extern function SDL_DestroyWindow(window: raw SDL_Window) -> void
-    extern function SDL_CloseAudioDevice(device: u32) -> void
-    extern function SDL_Quit() -> void
-    extern function SDL_Delay(ms: u32) -> void
-    extern function SDL_PauseAudioDevice(device: u32, mode: u32)
-    extern function SDL_QueueAudio(device: u32, sample: raw i16, sample_size: u32)
-    extern function SDL_ClearQueuedAudio(device: u32)
-    extern function SDL_LockTexture(mut texture: raw SDL_Texture, rect: raw SDL_Rect, pixels: raw raw void, pitch: raw c_int) -> c_int
-    extern function SDL_UnlockTexture(mut texture: raw SDL_Texture) -> void
-    extern function SDL_RenderCopy(mut renderer:  raw SDL_Renderer, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int
-    extern function SDL_CreateTexture(mut renderer: raw SDL_Renderer, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture
-    extern function SDL_UpdateWindowSurface(window: raw SDL_Window) -> c_int
-    extern function SDL_CreateRGBSurfaceFrom(pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface
-    extern function SDL_BlitScaled(source: raw SDL_Surface, srcrect: raw SDL_Rect, dest: raw SDL_Surface, destrect: raw SDL_Rect) -> c_int
-    extern function SDL_GetTicks64() -> u64
-    extern function SDL_NumJoysticks() -> c_int
-    extern function SDL_IsGameController(index: c_int) -> bool
-    extern function SDL_GameControllerOpen(index: c_int) -> raw SDL_GameController
-    extern function SDL_GameControllerClose(gamepad: raw SDL_GameController)
-    extern function SDL_GetError() -> raw c_char
-    extern function SDL_GameControllerEventState(state: c_int) -> c_int
+    extern fn SDL_CreateWindow(title: raw c_char, x: c_int, y: c_int, w: c_int, h: c_int, flags: u32) -> raw SDL_Window
+    extern fn SDL_GetWindowSurface(window: raw SDL_Window) -> raw SDL_Surface
+    extern fn SDL_SetRenderDrawColor(renderer: raw SDL_Renderer, r: u8, g: u8, b: u8, a: u8) -> c_int
+    extern fn SDL_RenderClear(renderer: raw SDL_Renderer) -> c_int
+    extern fn SDL_RenderPresent(renderer: raw SDL_Renderer) -> c_int
+    extern fn SDL_RenderDrawPoint(renderer: raw SDL_Renderer, x: c_int, y: c_int) -> c_int
+    extern fn SDL_RenderSetScale(renderer: raw SDL_Renderer, scaleX: f32, scaleY: f32) -> c_int
+    extern fn SDL_DestroyRenderer(renderer: raw SDL_Renderer) -> void
+    extern fn SDL_DestroyWindow(window: raw SDL_Window) -> void
+    extern fn SDL_CloseAudioDevice(device: u32) -> void
+    extern fn SDL_Quit() -> void
+    extern fn SDL_Delay(ms: u32) -> void
+    extern fn SDL_PauseAudioDevice(device: u32, mode: u32)
+    extern fn SDL_QueueAudio(device: u32, sample: raw i16, sample_size: u32)
+    extern fn SDL_ClearQueuedAudio(device: u32)
+    extern fn SDL_LockTexture(mut texture: raw SDL_Texture, rect: raw SDL_Rect, pixels: raw raw void, pitch: raw c_int) -> c_int
+    extern fn SDL_UnlockTexture(mut texture: raw SDL_Texture) -> void
+    extern fn SDL_RenderCopy(mut renderer:  raw SDL_Renderer, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int
+    extern fn SDL_CreateTexture(mut renderer: raw SDL_Renderer, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture
+    extern fn SDL_UpdateWindowSurface(window: raw SDL_Window) -> c_int
+    extern fn SDL_CreateRGBSurfaceFrom(pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface
+    extern fn SDL_BlitScaled(source: raw SDL_Surface, srcrect: raw SDL_Rect, dest: raw SDL_Surface, destrect: raw SDL_Rect) -> c_int
+    extern fn SDL_GetTicks64() -> u64
+    extern fn SDL_NumJoysticks() -> c_int
+    extern fn SDL_IsGameController(index: c_int) -> bool
+    extern fn SDL_GameControllerOpen(index: c_int) -> raw SDL_GameController
+    extern fn SDL_GameControllerClose(gamepad: raw SDL_GameController)
+    extern fn SDL_GetError() -> raw c_char
+    extern fn SDL_GameControllerEventState(state: c_int) -> c_int
 }
 
 enum Key {
@@ -90,7 +90,7 @@ enum SDLEvent {
 }
 
 // TODO: nullptr constant anyone?
-function null<T>() -> raw T {
+fn null<T>() -> raw T {
     unsafe {
         cpp {
             "return nullptr;"
@@ -107,11 +107,11 @@ class SDL {
     last_frame_time: u64
     gamepad: raw SDL_GameController
 
-    public function construct() throws -> SDL {
+    public fn construct() throws -> SDL {
         return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>(), audio_device: 0, surface: null(), last_frame_time: 0, gamepad: null<SDL_GameController>())
     }
 
-    public function init_video(mut this, width: i64, height: i64) {
+    public fn init_video(mut this, width: i64, height: i64) {
         let sdl_init_flags : u32 = 0x2030 // Video, Audio, Gamecontroller
         let sdl_windowpos_undefined: c_int = 0x1FFF0000
         unsafe {
@@ -129,7 +129,7 @@ class SDL {
         }
     }
 
-    public function init_audio(mut this) {
+    public fn init_audio(mut this) {
         unsafe {
             cpp {
                 "// opening an audio device:
@@ -147,37 +147,37 @@ class SDL {
         }
     }
 
-    public function set_scale(this, scale: f32) -> c_int {
+    public fn set_scale(this, scale: f32) -> c_int {
         unsafe {
             return SDL_RenderSetScale(renderer: .renderer, scaleX: scale, scaleY: scale)
         }
     }
 
-    public function set_render_draw_color(this, red: u8, green: u8, blue: u8, alpha: u8) {
+    public fn set_render_draw_color(this, red: u8, green: u8, blue: u8, alpha: u8) {
         unsafe {
             SDL_SetRenderDrawColor(renderer: .renderer, r: red, g: green, b: blue, a: alpha);
         }
     }
 
-    public function render_clear(this) {
+    public fn render_clear(this) {
         unsafe {
             SDL_RenderClear(renderer: .renderer)
         }
     }
 
-    public function render_draw_point(this, x: u64, y: u64) {
+    public fn render_draw_point(this, x: u64, y: u64) {
         unsafe {
             SDL_RenderDrawPoint(renderer: .renderer, x: x as! c_int, y: y as! c_int);
         }
     }
 
-    public function render_present(this) {
+    public fn render_present(this) {
         unsafe {
             SDL_RenderPresent(renderer: .renderer)
         }
     }
 
-    public function poll_event(this) -> SDLEvent? {
+    public fn poll_event(this) -> SDLEvent? {
         unsafe {
             cpp {
                 "SDL_Event event;
@@ -320,7 +320,7 @@ class SDL {
         return None
     }
 
-    public function quit(this) {
+    public fn quit(this) {
         unsafe {
             SDL_DestroyRenderer(renderer: .renderer)
             SDL_DestroyWindow(window: .window)
@@ -330,25 +330,25 @@ class SDL {
         }
     }
 
-    public function delay(this, anon ms:u32) {
+    public fn delay(this, anon ms:u32) {
         unsafe {
             SDL_Delay(ms)
         }
     }
 
-    public function enable_audio(mut this) {
+    public fn enable_audio(mut this) {
         unsafe {
             SDL_PauseAudioDevice(device: .audio_device, mode: 0)
         }
     }
 
-    public function disable_audio(mut this) {
+    public fn disable_audio(mut this) {
         unsafe {
             SDL_PauseAudioDevice(device: .audio_device, mode: 1)
         }
     }
 
-    public function queue_audio(mut this, mut data: [i16]) {
+    public fn queue_audio(mut this, mut data: [i16]) {
         unsafe {
             cpp {
                 "SDL_QueueAudio(this->audio_device, data.unsafe_data(), 2 * data.size());"
@@ -356,60 +356,60 @@ class SDL {
         }
     }
 
-    public function clear_queued_audio(mut this) {
+    public fn clear_queued_audio(mut this) {
         unsafe {
             SDL_ClearQueuedAudio(device: .audio_device)
         }
     }
-    public function lock_texture(this, mut texture: raw SDL_Texture, rect: raw SDL_Rect, mut pixels: raw raw void, mut pitch: raw c_int) -> c_int {
+    public fn lock_texture(this, mut texture: raw SDL_Texture, rect: raw SDL_Rect, mut pixels: raw raw void, mut pitch: raw c_int) -> c_int {
         unsafe {
             return SDL_LockTexture(texture, rect, pixels, pitch)
         }
     }
 
-    public function unlock_texture(this, mut texture: raw SDL_Texture) -> void {
+    public fn unlock_texture(this, mut texture: raw SDL_Texture) -> void {
         unsafe {
             SDL_UnlockTexture(texture)
         }
     }
 
-    public function render_copy(this, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int {
+    public fn render_copy(this, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int {
         unsafe {
             return SDL_RenderCopy(renderer: .renderer, texture, srcrect, dstrect)
         }
     }
 
-    public function create_texture(this, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture {
+    public fn create_texture(this, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture {
         unsafe {
             return SDL_CreateTexture(renderer: .renderer, format, access, w, h)
         }
     }
 
-    public function get_window_surface(this) ->  raw SDL_Surface {
+    public fn get_window_surface(this) ->  raw SDL_Surface {
         unsafe {
             return SDL_GetWindowSurface(window: .window)
         }
     }
 
-    public function update_window_surface(this) ->  c_int {
+    public fn update_window_surface(this) ->  c_int {
         unsafe  {
             return SDL_UpdateWindowSurface(window: .window)
         }
     }
 
-    public function create_rgb_surface_from(this, mut pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface {
+    public fn create_rgb_surface_from(this, mut pixels: raw void, width: c_int, height: c_int, depth: c_int, pitch: c_int, Rmask: u32, Gmask: u32, Bmask: u32, Amask: u32) -> raw SDL_Surface {
         unsafe  {
             return SDL_CreateRGBSurfaceFrom(pixels, width,  height,  depth,  pitch, Rmask, Gmask,  Bmask,  Amask)
         }
     }
 
-    public function blit_scaled(this, mut source: raw SDL_Surface, mut srcrect: raw SDL_Rect, mut dest: raw SDL_Surface, mut destrect: raw SDL_Rect) -> c_int{
+    public fn blit_scaled(this, mut source: raw SDL_Surface, mut srcrect: raw SDL_Rect, mut dest: raw SDL_Surface, mut destrect: raw SDL_Rect) -> c_int{
         unsafe  {
             return SDL_BlitScaled(source, srcrect, dest, destrect)
         }
     }
 
-    public function delta_time(mut this) -> u64 {
+    public fn delta_time(mut this) -> u64 {
         mut this_frame_time = 0u64
         unsafe {
             this_frame_time = SDL_GetTicks64()
@@ -425,7 +425,7 @@ class SDL {
 
     }
 
-    public function get_controller(mut this) {
+    public fn get_controller(mut this) {
         mut joysticks: c_int = 0
         unsafe {
             joysticks = SDL_NumJoysticks()

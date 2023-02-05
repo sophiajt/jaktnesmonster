@@ -3,11 +3,11 @@ import cpu { CPU, sxb }
 class Debugger {
     cpu: CPU
 
-    public function init(cpu: CPU) throws -> Debugger {
+    public fn init(cpu: CPU) throws -> Debugger {
         return Debugger(cpu)
     }
 
-    public function dump_cpu_state(mut this) {
+    public fn dump_cpu_state(mut this) {
         print("{:0>4x}: a: {:0>2x} x: {:0>2x} y: {:0>2x} s: {:0>2x} flags: ", 
           .cpu.pc
           .cpu.a
@@ -56,52 +56,52 @@ class Debugger {
         .dump_opcode()
     }
 
-    function immediate(mut this) {
+    fn immediate(mut this) {
         let imm = .cpu.system.read_byte(address: .cpu.pc + 1)
         println("#${:0>2x}", imm)
     }
 
-    function zero_page(mut this)  {
+    fn zero_page(mut this)  {
         let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
         println("${:0>2x}", zero_page)
     }
 
-    function zero_page_x(mut this)  {
+    fn zero_page_x(mut this)  {
         let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
         println("${:0>2x}, x({:0>2x})", zero_page, .cpu.x)
     }
 
-    function zero_page_y(mut this)  {
+    fn zero_page_y(mut this)  {
         let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
         println("${:0>2x}, y({:0>2x})", zero_page, .cpu.y)
     }
 
-    function indirect_zero_page_x(mut this)  {
+    fn indirect_zero_page_x(mut this)  {
         let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
         println("(${:0>2x}, x({:0>2x}))", zero_page, .cpu.x)
     }
 
-    function indirect_zero_page_y(mut this)  {
+    fn indirect_zero_page_y(mut this)  {
         let zero_page = .cpu.system.read_byte(address: .cpu.pc + 1)
         println("(${:0>2x}, y({:0>2x}))", zero_page, .cpu.y)
     }
 
-    function absolute(mut this)  {
+    fn absolute(mut this)  {
         let abs = .cpu.system.read_word(address: .cpu.pc + 1)
         println("#${:0>4x}", abs)
     }
 
-    function absolute_x(mut this)  {
+    fn absolute_x(mut this)  {
         let abs = .cpu.system.read_word(address: .cpu.pc + 1)
         println("#${:0>4x}, x({:0>2x})", abs, .cpu.x)
     }
 
-    function absolute_y(mut this)  {
+    fn absolute_y(mut this)  {
         let abs = .cpu.system.read_word(address: .cpu.pc + 1)
         println("#${:0>4x}, y({:0>2x})", abs, .cpu.y)
     }
 
-    function branch(mut this)  {
+    fn branch(mut this)  {
         let arg_address = .cpu.pc + 1
         let offset = .cpu.system.read_byte(address: arg_address)
 
@@ -109,7 +109,7 @@ class Debugger {
         println("${:0>4x}", addr)
     }
 
-    function asl(mut this, opcode: u8)  {
+    fn asl(mut this, opcode: u8)  {
         print("asl ")
         match opcode {
             0x0a => {
@@ -133,59 +133,59 @@ class Debugger {
         }
     }
 
-    function bpl(mut this)  {
+    fn bpl(mut this)  {
         print("bpl ")
         .branch()
     }
 
-    function bmi(mut this)  {
+    fn bmi(mut this)  {
         print("bmi ")
         .branch()
     }
 
-    function bvc(mut this)  {
+    fn bvc(mut this)  {
         print("bvc ")
         .branch()
     }
 
-    function bvs(mut this)  {
+    fn bvs(mut this)  {
         print("bvs ")
         .branch()
     }
 
-    function bcc(mut this)  {
+    fn bcc(mut this)  {
         print("bcc ")
         .branch()
     }
 
-    function bcs(mut this)  {
+    fn bcs(mut this)  {
         print("bcs ")
         .branch()
     }
 
-    function bne(mut this)  {
+    fn bne(mut this)  {
         print("bne ")
         .branch()
     }
 
-    function beq(mut this)  {
+    fn beq(mut this)  {
         print("beq ")
         .branch()
     }
 
-    function brk(mut this)  -> void {
+    fn brk(mut this)  -> void {
         println("brk")
     }
 
-    function rti(mut this)  {
+    fn rti(mut this)  {
         println("rti")
     }
 
-    function rts(mut this)  {
+    fn rts(mut this)  {
         println("rts")
     }
 
-    function jsr(mut this)  {
+    fn jsr(mut this)  {
         print("jsr ")
 
         let arg_address = .cpu.pc + 1
@@ -193,7 +193,7 @@ class Debugger {
         println("${:0>4x}", addr)
     }
 
-    function jmp(mut this, opcode: u8) {
+    fn jmp(mut this, opcode: u8) {
         print("jmp ")
 
         match opcode {
@@ -213,7 +213,7 @@ class Debugger {
         }
     }
 
-    function ora(mut this, opcode: u8)  {
+    fn ora(mut this, opcode: u8)  {
         print("ora ")
         match opcode {
             0x09 => {
@@ -246,15 +246,15 @@ class Debugger {
         }
     }
 
-    function php(mut this)  {
+    fn php(mut this)  {
         println("php")
     }
 
-    function clc(mut this)  {
+    fn clc(mut this)  {
         println("clc")
     }
 
-    function and_opcode(mut this, opcode: u8)  {
+    fn and_opcode(mut this, opcode: u8)  {
         print("and ")
         match opcode {
             0x29 => {
@@ -287,7 +287,7 @@ class Debugger {
         }
     }
 
-    function eor(mut this, opcode: u8)  {
+    fn eor(mut this, opcode: u8)  {
         print("eor ")
         match opcode {
             0x49 => {
@@ -320,7 +320,7 @@ class Debugger {
         }
     }
 
-    function bit(mut this, opcode: u8)  {
+    fn bit(mut this, opcode: u8)  {
         print("bit ")
         match opcode {
             0x24 => {
@@ -335,7 +335,7 @@ class Debugger {
         }
     }
 
-    function rol(mut this, opcode: u8)  {
+    fn rol(mut this, opcode: u8)  {
         print("rol ")
         match opcode {
             0x2a => {
@@ -359,7 +359,7 @@ class Debugger {
         }
     }
 
-    function lsr(mut this, opcode: u8)  {
+    fn lsr(mut this, opcode: u8)  {
         print("lsr ")
         match opcode {
             0x4a => {
@@ -383,7 +383,7 @@ class Debugger {
         }
     }
 
-    function ror(mut this, opcode: u8)  {
+    fn ror(mut this, opcode: u8)  {
         print("ror ")
 
         match opcode {
@@ -408,7 +408,7 @@ class Debugger {
         }
     }
 
-    public function lda(mut this, opcode: u8)  {
+    public fn lda(mut this, opcode: u8)  {
         print("lda ")
         match opcode {
             0xa9 => {
@@ -441,7 +441,7 @@ class Debugger {
         }
     }
 
-    public function ldx(mut this, opcode: u8) {
+    public fn ldx(mut this, opcode: u8) {
         print("ldx ")
         match opcode {
             0xa2 => {
@@ -465,7 +465,7 @@ class Debugger {
         }
     }
 
-    public function ldy(mut this, opcode: u8) {
+    public fn ldy(mut this, opcode: u8) {
         print("ldy ")
 
         match opcode {
@@ -490,7 +490,7 @@ class Debugger {
         }
     }
 
-    function sta(mut this, opcode: u8) {
+    fn sta(mut this, opcode: u8) {
         print("sta ")
 
         match opcode {
@@ -521,7 +521,7 @@ class Debugger {
         }
     }
 
-    function stx(mut this, opcode: u8) {
+    fn stx(mut this, opcode: u8) {
         print("stx ")
 
         match opcode {
@@ -540,7 +540,7 @@ class Debugger {
         }
     }
 
-    function sty(mut this, opcode: u8) {
+    fn sty(mut this, opcode: u8) {
         print("sty ")
 
         match opcode {
@@ -559,23 +559,23 @@ class Debugger {
         }
     }
 
-    function plp(mut this) {
+    fn plp(mut this) {
         println("plp")
     }
 
-    function sec(mut this) {
+    fn sec(mut this) {
         println("sec")
     }
 
-    function pha(mut this) {
+    fn pha(mut this) {
         println("pha")
     }
 
-    function cli(mut this) {
+    fn cli(mut this) {
         println("cli")
     }
 
-    function adc(mut this, opcode: u8) {
+    fn adc(mut this, opcode: u8) {
         print("adc ")
         match opcode {
             0x69 => {
@@ -608,7 +608,7 @@ class Debugger {
         }
     }
 
-    function sbc(mut this, opcode: u8) {
+    fn sbc(mut this, opcode: u8) {
         print("sbc ")
         match opcode {
             0xe9 => {
@@ -641,43 +641,43 @@ class Debugger {
         }
     }
 
-    function pla(mut this) {
+    fn pla(mut this) {
         println("pla")
     }
 
-    function sei(mut this) {
+    fn sei(mut this) {
         println("sei")
     }
 
-    function txa(mut this) {
+    fn txa(mut this) {
         println("txa")
     }
 
-    function tya(mut this) {
+    fn tya(mut this) {
         println("tya")
     }
 
-    function txs(mut this) {
+    fn txs(mut this) {
         println("txs")
     }
 
-    function tax(mut this) {
+    fn tax(mut this) {
         println("tax")
     }
 
-    function tay(mut this) {
+    fn tay(mut this) {
         println("tay")
     }
 
-    function tsx(mut this) {
+    fn tsx(mut this) {
         println("tsx")
     }
 
-    function clv(mut this) {
+    fn clv(mut this) {
         println("clv")
     }
 
-    function cmp(mut this, opcode: u8) {
+    fn cmp(mut this, opcode: u8) {
         print("cmp ")
         match opcode {
             0xc9 => {
@@ -710,7 +710,7 @@ class Debugger {
         }
     }
 
-    function cpx(mut this, opcode: u8) {
+    fn cpx(mut this, opcode: u8) {
         print("cpx ")
         match opcode {
             0xe0 => {
@@ -728,7 +728,7 @@ class Debugger {
         }
     }
 
-    function cpy(mut this, opcode: u8) {
+    fn cpy(mut this, opcode: u8) {
         print("cpy ")
         match opcode {
             0xc0 => {
@@ -746,7 +746,7 @@ class Debugger {
         }
     }
 
-    function dec(mut this, opcode: u8) {
+    fn dec(mut this, opcode: u8) {
         print("dec ")
         match opcode {
             0xc6 => {
@@ -767,15 +767,15 @@ class Debugger {
         }
     }
 
-    function dex(mut this) {
+    fn dex(mut this) {
         println("dex")
     }
 
-    function dey(mut this) {
+    fn dey(mut this) {
         println("dey")
     }
 
-    function inc(mut this, opcode: u8) {
+    fn inc(mut this, opcode: u8) {
         print("inc ")
         match opcode {
             0xe6 => {
@@ -796,54 +796,54 @@ class Debugger {
         }
     }
 
-    function inx(mut this) {
+    fn inx(mut this) {
         println("inx")
     }
 
-    function iny(mut this) {
+    fn iny(mut this) {
         println("iny")
     }
 
-    function cld(mut this) {
+    fn cld(mut this) {
         println("cld")
     }
 
-    function sed(mut this) {
+    fn sed(mut this) {
         println("sed")
     }
 
-    function nop(mut this) {
+    fn nop(mut this) {
         println("nop")
     }
 
-    function illegal_nop(mut this, opcode: u8) {
+    fn illegal_nop(mut this, opcode: u8) {
         println("nop")
     }
 
-    function alr(mut this) {
+    fn alr(mut this) {
         // A AND oper; LSR
         // immediate only
         print("alr ")
         .immediate()
     }
 
-    function anc(mut this) {
+    fn anc(mut this) {
         print("anc ")
         .immediate()
     }
 
-    function ane(mut this) {
+    fn ane(mut this) {
         print("ane ")
         .immediate()
     }
 
-    function arr(mut this) {
+    fn arr(mut this) {
         // AND + ROR
         print("arr ")
         .immediate()
     }
 
-    function dcp(mut this, opcode: u8) {
+    fn dcp(mut this, opcode: u8) {
         // DEC + CMP
         print("dcp ")
         match opcode {
@@ -858,7 +858,7 @@ class Debugger {
         }
     }
 
-    function isc(mut this, opcode: u8){
+    fn isc(mut this, opcode: u8){
         print("isc ")
         match opcode {
             0xe7 => {.zero_page()}
@@ -872,13 +872,13 @@ class Debugger {
         }
     }
 
-    function las(mut this){
+    fn las(mut this){
         // LDA + TSX
         print("las ")
         .absolute_y()
     }
 
-    function lax(mut this, opcode: u8) {
+    fn lax(mut this, opcode: u8) {
         print("lax ")
         match opcode {
             0xa7 => {.zero_page()}
@@ -891,13 +891,13 @@ class Debugger {
         }
     }
 
-    function lxa(mut this) {
+    fn lxa(mut this) {
         // This is as unstable and magic as ANE
         print("lxa ")
         .immediate()
     }
 
-    function rla(mut this, opcode: u8) {
+    fn rla(mut this, opcode: u8) {
         //  ROL +  AND
         print("rla ")
 
@@ -914,7 +914,7 @@ class Debugger {
         
     }
 
-    function rra(mut this, opcode: u8) {
+    fn rra(mut this, opcode: u8) {
         // ROR + ADC
         print("rra ")
         match opcode {
@@ -929,7 +929,7 @@ class Debugger {
         }
     }
 
-    function sax(mut this, opcode: u8) {
+    fn sax(mut this, opcode: u8) {
         // STA + STX, but since they are both thrown at the bus, the logic transistors
         // effectively perform an AND between the two values
         print("sax ")
@@ -943,12 +943,12 @@ class Debugger {
         }
     }
 
-    function sbx(mut this) {
+    fn sbx(mut this) {
         print("sbx ")
         .immediate()
     }
     
-    function sha(mut this, opcode: u8) {
+    fn sha(mut this, opcode: u8) {
         // Stores A AND X AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -964,7 +964,7 @@ class Debugger {
         }
     }
 
-    function shx(mut this) {
+    fn shx(mut this) {
         // Stores X AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -975,7 +975,7 @@ class Debugger {
         .absolute_y()
     }
 
-    function shy(mut this) {
+    fn shy(mut this) {
         // Stores Y AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -986,7 +986,7 @@ class Debugger {
         .absolute_x()
     }
 
-    function slo(mut this, opcode: u8) {
+    fn slo(mut this, opcode: u8) {
         // ASL + ORA
         print("slo ")
         match opcode {
@@ -1001,7 +1001,7 @@ class Debugger {
         }
     }
 
-    function sre(mut this, opcode: u8){
+    fn sre(mut this, opcode: u8){
         // LSR +  EOR
         print("sre ")
         match opcode {
@@ -1016,7 +1016,7 @@ class Debugger {
         }
     }
 
-    function tas(mut this)  {
+    fn tas(mut this)  {
         // Puts A AND X in SP and stores A AND X AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -1027,13 +1027,13 @@ class Debugger {
         .absolute_y()
     }
 
-    function usbc(mut this) {
+    fn usbc(mut this) {
         // SBC + NOP
         print("usbc ")
         .immediate()
     }
 
-    function jam(mut this) {
+    fn jam(mut this) {
         // These instructions freeze the CPU.
         // The processor will be trapped infinitely in T1 
         // phase with $FF on the data bus. — Reset required.
@@ -1042,7 +1042,7 @@ class Debugger {
     }
 
 
-    public function dump_opcode(mut this) {
+    public fn dump_opcode(mut this) {
         let opcode = .cpu.system.read_byte(address: .cpu.pc)
         match opcode {
             0x00 => .brk()
