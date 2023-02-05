@@ -5,7 +5,7 @@ import cpu { CPU }
 import debugger { Debugger }
 import joypad { Joypad }
 
-function main(args: [String]) {
+fn main(args: [String]) {
     guard args.size() > 1 else {
         eprintln("usage: jakt_nes <rom file>")
         return 1
@@ -218,7 +218,7 @@ function main(args: [String]) {
     return 0
 }
 
-function clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: SDL) throws -> bool {
+fn clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: SDL) throws -> bool {
     let in_vblank_before = system.ppu.in_vblank
     mut next_frame = false
 

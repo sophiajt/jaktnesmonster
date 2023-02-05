@@ -22,7 +22,7 @@ class Cart {
     public prg_rom_pages: [[u8]]
     public chr_rom_pages: [[u8]]
 
-    public function info(this) {
+    public fn info(this) {
         println("prg_rom: {}", .prg_rom)
         println("chr_rom: {}", .chr_rom)
         println("mirroring: {}", .mirroring)
@@ -35,7 +35,7 @@ enum CartLoadStatus {
     NotARom
 }
 
-function is_supported_mapper(mapper: u8) -> bool {
+fn is_supported_mapper(mapper: u8) -> bool {
     return match mapper {
         0u8..5u8 => true
         7 => true
@@ -44,7 +44,7 @@ function is_supported_mapper(mapper: u8) -> bool {
     }
 }
 
-function load_cart(filename: String) throws -> CartLoadStatus {
+fn load_cart(filename: String) throws -> CartLoadStatus {
     mut file = File::open_for_reading(filename)
     let buffer = file.read_all()
 

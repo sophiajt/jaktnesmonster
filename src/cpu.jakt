@@ -1,7 +1,7 @@
 import system { System }
 
 // Sign extend byte
-function sxb(value: u8) -> u16 {
+fn sxb(value: u8) -> u16 {
     mut value_16 = value as! u16;
     if (value > 0x7f) {
         value_16 |= 0xff00
@@ -30,7 +30,7 @@ class CPU {
     public system: System
     public clock: u64
 
-    public function init(mut system: System) throws -> CPU {
+    public fn init(mut system: System) throws -> CPU {
         let reset_vector = system.read_word(address: 0xfffc)
 
         return CPU (
@@ -52,7 +52,7 @@ class CPU {
         )
     }
 
-    public function run_opcode(mut this) {
+    public fn run_opcode(mut this) {
         if .jammed {return}
 
         let opcode = .system.read_byte(address: .pc)
@@ -324,7 +324,7 @@ class CPU {
     }
 
     // Interrupts
-   public function irq(mut this) {
+   public fn irq(mut this) {
         let irq_vector = .system.read_word(address: 0xfffe)
 
         .clock += 7
@@ -334,7 +334,7 @@ class CPU {
         .pc = irq_vector
     }
 
-    public function nmi(mut this) {
+    public fn nmi(mut this) {
         let nmi_vector = .system.read_word(address: 0xfffa)
 
         .clock += 7
@@ -345,48 +345,48 @@ class CPU {
     }
 
     // Addressing modes
-    function immediate(mut this) -> u8 {
+    fn immediate(mut this) -> u8 {
         let arg_address = .pc + 1
         return .system.read_byte(address: arg_address)
     }
 
-    function zero_page(mut this) -> u8 {
+    fn zero_page(mut this) -> u8 {
         let arg_address = .pc + 1
         let address = .system.read_byte(address: arg_address) as! u16
         return .system.read_byte(address)
     }
 
-    function zero_page_set(mut this, value: u8) {
+    fn zero_page_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = .system.read_byte(address: arg_address) as! u16
         .system.write_byte(address, value)
     }
 
-    function zero_page_x(mut this) -> u8 {
+    fn zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         return .system.read_byte(address)
     }
 
-    function zero_page_x_set(mut this, value: u8) {
+    fn zero_page_x_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         .system.write_byte(address, value)
     }
 
-    function zero_page_y(mut this) -> u8 {
+    fn zero_page_y(mut this) -> u8 {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
         return .system.read_byte(address)        
     }
 
-    function zero_page_y_set(mut this, value: u8) {
+    fn zero_page_y_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .y) as! u16
         .system.write_byte(address, value)
     }
     
-    function indirect_zero_page_x(mut this) -> u8 {
+    fn indirect_zero_page_x(mut this) -> u8 {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         let new_address = .system.read_word_wrapped(address)
@@ -397,7 +397,7 @@ class CPU {
         return .system.read_byte(address: new_address)
     }
 
-    function indirect_zero_page_x_set(mut this, value: u8) {
+    fn indirect_zero_page_x_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = unchecked_add<u8>(.system.read_byte(address: arg_address), .x) as! u16
         let new_address = .system.read_word_wrapped(address)
@@ -405,7 +405,7 @@ class CPU {
         .system.write_byte(address: new_address, value)
     }
     
-    function indirect_zero_page_y(mut this, check_extra_clock: bool) -> u8 {
+    fn indirect_zero_page_y(mut this, check_extra_clock: bool) -> u8 {
         let arg_address = .pc + 1
         let address = (.system.read_byte(address: arg_address)) as! u16
 
@@ -424,7 +424,7 @@ class CPU {
         return .system.read_byte(address: new_address)
     }
 
-    function indirect_zero_page_y_set(mut this, value: u8){
+    fn indirect_zero_page_y_set(mut this, value: u8){
         let arg_address = .pc + 1
         let address = (.system.read_byte(address: arg_address)) as! u16
 
@@ -435,19 +435,19 @@ class CPU {
         .system.write_byte(address: new_address, value)
     }
     
-    function absolute(mut this) -> u8 {
+    fn absolute(mut this) -> u8 {
         let arg_address = .pc + 1
         let address = .system.read_word(address: arg_address)
         return .system.read_byte(address)
     }
 
-    function absolute_set(mut this, value: u8) {
+    fn absolute_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = .system.read_word(address: arg_address)
         .system.write_byte(address, value)
     }
 
-    function absolute_x(mut this, check_extra_clock: bool) -> u8 {
+    fn absolute_x(mut this, check_extra_clock: bool) -> u8 {
         let arg_address = .pc + 1
         mut address = .system.read_word(address: arg_address)
         let page = address >> 8
@@ -464,14 +464,14 @@ class CPU {
         return .system.read_byte(address)
     }
 
-    function absolute_x_set(mut this, value: u8) {
+    fn absolute_x_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = .system.read_word(address: arg_address)
 
         .system.write_byte(address: unchecked_add<u16>(.x as! u16, address), value)
     }
 
-    function absolute_y(mut this, check_extra_clock: bool) -> u8 {
+    fn absolute_y(mut this, check_extra_clock: bool) -> u8 {
         let arg_address = .pc + 1
         mut address = .system.read_word(address: arg_address)
         let page = address >> 8
@@ -488,19 +488,19 @@ class CPU {
         return .system.read_byte(address)
     }
 
-    function absolute_y_set(mut this, value: u8) {
+    fn absolute_y_set(mut this, value: u8) {
         let arg_address = .pc + 1
         let address = .system.read_word(address: arg_address)
 
         .system.write_byte(address: unchecked_add<u16>(.y as! u16, address), value)
     }
     
-    function test_nz_flags(mut this, value: u8) {
+    fn test_nz_flags(mut this, value: u8) {
         .negative = (value & 0x80) == 0x80
         .zero = value == 0
     }
 
-    function ora(mut this, opcode: u8) {
+    fn ora(mut this, opcode: u8) {
         match opcode {
             0x09 => {
                 .a = .a | .immediate()
@@ -549,7 +549,7 @@ class CPU {
         .test_nz_flags(value: .a)
     }
 
-    function and_opcode(mut this, opcode: u8) {
+    fn and_opcode(mut this, opcode: u8) {
         match opcode {
             0x29 => {
                 .a = .a & .immediate()
@@ -598,7 +598,7 @@ class CPU {
         .test_nz_flags(value: .a)
     }
 
-    function eor(mut this, opcode: u8) {
+    fn eor(mut this, opcode: u8) {
         match opcode {
             0x49 => {
                 .a = .a ^ .immediate()
@@ -647,7 +647,7 @@ class CPU {
         .test_nz_flags(value: .a)
     }
 
-    function adder(mut this, accumulator: u8, operand: u8, carry: bool) -> u8 {
+    fn adder(mut this, accumulator: u8, operand: u8, carry: bool) -> u8 {
         // TODO: decimal mode
         let a = accumulator as! u16;
         let b = operand as! u16;
@@ -659,13 +659,13 @@ class CPU {
         return result
     }
 
-    function adder_with_overflow(mut this, accumulator: u8, operand: u8, carry: bool) -> u8 {
+    fn adder_with_overflow(mut this, accumulator: u8, operand: u8, carry: bool) -> u8 {
         let result = .adder(accumulator, operand, carry);
         .overflow = ((result ^ accumulator) & (result ^ operand) & 0x80) != 0
         return result
     }
 
-    function adc(mut this, opcode: u8) {
+    fn adc(mut this, opcode: u8) {
         let operand = match opcode {
             0x69 => {
                 let tmp = .immediate()
@@ -724,7 +724,7 @@ class CPU {
         .a = .adder_with_overflow(accumulator: .a, operand, carry: .carry)
     }
 
-    function sbc(mut this, opcode: u8) {
+    fn sbc(mut this, opcode: u8) {
         let operand = match opcode {
             0xe9 => {
                 let tmp = .immediate()
@@ -784,7 +784,7 @@ class CPU {
         .a = .adder_with_overflow(accumulator: .a, operand: ~operand, carry: .carry)
     }
 
-    function cmp(mut this, opcode: u8) {
+    fn cmp(mut this, opcode: u8) {
         let operand = match opcode {
             0xc9 => {
                 let tmp = .immediate()
@@ -843,7 +843,7 @@ class CPU {
         .adder(accumulator: .a, operand: ~operand, carry: true)
     }
 
-    function cpx(mut this, opcode: u8) {
+    fn cpx(mut this, opcode: u8) {
         let intermediate = match opcode {
             0xe0 => {
                 let tmp = .x as! i16 - .immediate() as! i16
@@ -874,7 +874,7 @@ class CPU {
         .negative = (intermediate & 0x80) == 0x80
     }
 
-    function cpy(mut this, opcode: u8) {
+    fn cpy(mut this, opcode: u8) {
         let intermediate = match opcode {
             0xc0 => {
                 let tmp = .y as! i16 - .immediate() as! i16 
@@ -905,7 +905,7 @@ class CPU {
         .negative = (intermediate & 0x80) == 0x80
     }
 
-    function dec(mut this, opcode: u8) {
+    fn dec(mut this, opcode: u8) {
         match opcode {
             0xc6 => {
                 mut intermediate = .zero_page()
@@ -949,21 +949,21 @@ class CPU {
         }
     }
 
-    function dex(mut this) {
+    fn dex(mut this) {
         .pc += 1
         .clock += 2
         .x--
         .test_nz_flags(value: .x)
     }
 
-    function dey(mut this) {
+    fn dey(mut this) {
         .pc += 1
         .clock += 2
         .y--
         .test_nz_flags(value: .y)
     }
 
-    function inc(mut this, opcode: u8) {
+    fn inc(mut this, opcode: u8) {
         match opcode {
             0xe6 => {
                 mut intermediate = .zero_page()
@@ -1007,21 +1007,21 @@ class CPU {
         }
     }
 
-    function inx(mut this) {
+    fn inx(mut this) {
         .pc += 1
         .clock += 2
         .x++
         .test_nz_flags(value: .x)
     }
 
-    function iny(mut this) {
+    fn iny(mut this) {
         .pc += 1
         .clock += 2
         .y++
         .test_nz_flags(value: .y)
     }
 
-    function asl(mut this, opcode: u8) {
+    fn asl(mut this, opcode: u8) {
         match opcode {
             0x0a => {
                 .carry = (.a & 0x80) == 0x80
@@ -1072,7 +1072,7 @@ class CPU {
         }
     }
 
-    function rol(mut this, opcode: u8) {
+    fn rol(mut this, opcode: u8) {
         let carry_value = match .carry {
             true => 1u8
             else => 0u8
@@ -1128,7 +1128,7 @@ class CPU {
         }
     }
 
-    function lsr(mut this, opcode: u8) {
+    fn lsr(mut this, opcode: u8) {
         match opcode {
             0x4a => {
                 .carry = (.a & 0x1) == 0x1
@@ -1179,7 +1179,7 @@ class CPU {
         }
     }
 
-    function ror(mut this, opcode: u8) {
+    fn ror(mut this, opcode: u8) {
         let carry_value = match .carry {
             true => 0x80u8
             else => 0u8
@@ -1235,7 +1235,7 @@ class CPU {
         }
     }
 
-    public function lda(mut this, opcode: u8) {
+    public fn lda(mut this, opcode: u8) {
         let intermediate: u8 = match opcode {
             0xa9 => {
                 let tmp = .immediate()
@@ -1305,7 +1305,7 @@ class CPU {
         .a = intermediate
     }
 
-    public function ldx(mut this, opcode: u8) {
+    public fn ldx(mut this, opcode: u8) {
         let intermediate: u8 = match opcode {
             0xa2 => {
                 let tmp = .immediate()
@@ -1354,7 +1354,7 @@ class CPU {
         .x = intermediate
     }
 
-    public function ldy(mut this, opcode: u8) {
+    public fn ldy(mut this, opcode: u8) {
         let arg_address = .pc + 1
 
         let intermediate: u8 = match opcode {
@@ -1405,7 +1405,7 @@ class CPU {
         .y = intermediate
     }
 
-    function sta(mut this, opcode: u8) {
+    fn sta(mut this, opcode: u8) {
         let arg_address = .pc + 1
 
         match opcode {
@@ -1478,7 +1478,7 @@ class CPU {
         }
     }
 
-    function stx(mut this, opcode: u8) {
+    fn stx(mut this, opcode: u8) {
         let arg_address = .pc + 1
 
         match opcode {
@@ -1513,7 +1513,7 @@ class CPU {
         }
     }
 
-    function sty(mut this, opcode: u8) {
+    fn sty(mut this, opcode: u8) {
         let arg_address = .pc + 1
 
         match opcode {
@@ -1548,7 +1548,7 @@ class CPU {
         }
     }
 
-    function tax(mut this) {
+    fn tax(mut this) {
         .pc += 1
         .clock += 2
 
@@ -1558,7 +1558,7 @@ class CPU {
         .x = .a
     }
 
-    function txa(mut this) {
+    fn txa(mut this) {
         .pc += 1
         .clock += 2
 
@@ -1568,7 +1568,7 @@ class CPU {
         .a = .x
     }
 
-    function tay(mut this) {
+    fn tay(mut this) {
         .pc += 1
         .clock += 2
 
@@ -1578,7 +1578,7 @@ class CPU {
         .y = .a
     }
 
-    function tya(mut this) {
+    fn tya(mut this) {
         .pc += 1
         .clock += 2
 
@@ -1588,7 +1588,7 @@ class CPU {
         .a = .y
     }
 
-    function tsx(mut this) {
+    fn tsx(mut this) {
         .pc += 1
         .clock += 2
 
@@ -1598,14 +1598,14 @@ class CPU {
         .x = .s
     }
 
-    function txs(mut this) {
+    fn txs(mut this) {
         .pc += 1
         .clock += 2
 
         .s = .x
     }
 
-    function pla(mut this) {
+    fn pla(mut this) {
         .pc += 1
         .clock += 4
 
@@ -1620,7 +1620,7 @@ class CPU {
         .a = intermediate
     }
 
-    function pha(mut this) {
+    fn pha(mut this) {
         .pc += 1
         .clock += 3
 
@@ -1628,7 +1628,7 @@ class CPU {
         .s -= 1
     }
 
-    function pull_status(mut this) {
+    fn pull_status(mut this) {
         .s += 1
         let intermediate = .system.read_byte(address: 0x100u16 + .s as! u16)
 
@@ -1640,7 +1640,7 @@ class CPU {
         .carry = ((intermediate & 0x01) == 0x01)
     }
 
-    function pull_pc(mut this) {
+    fn pull_pc(mut this) {
         if .s == 0xff {
             .s = 0
         } else {
@@ -1656,14 +1656,14 @@ class CPU {
         .pc = ((pc_high as! u16) << 8) | (pc_low as! u16)
     }
 
-    function plp(mut this) {
+    fn plp(mut this) {
         .pc += 1
         .clock += 4
 
         .pull_status()
     }
 
-    function push_status(mut this) {
+    fn push_status(mut this) {
         mut intermediate = 0u8
         if .negative {
             intermediate |= 0x80
@@ -1694,7 +1694,7 @@ class CPU {
         .s -= 1
     }
 
-    function push_byte(mut this, anon value: u8) {
+    fn push_byte(mut this, anon value: u8) {
         .system.write_byte(address: (0x100u16 + .s as! u16), value)
         if .s == 0 {
             .s = 0xff
@@ -1703,7 +1703,7 @@ class CPU {
         }
     }
 
-    function push_word(mut this, value: u16) {
+    fn push_word(mut this, value: u16) {
         let first_byte = (value >> 8) as! u8
         .push_byte(first_byte)
 
@@ -1711,14 +1711,14 @@ class CPU {
         .push_byte(second_byte)
     }
 
-    function php(mut this) {
+    fn php(mut this) {
         .pc += 1
         .clock += 3
 
         .push_status()
     }
 
-    function branch(mut this) {
+    fn branch(mut this) {
         let arg_address = .pc + 1
         let offset = .system.read_byte(address: arg_address)
 
@@ -1737,7 +1737,7 @@ class CPU {
         }
     }
 
-    function bpl(mut this) {
+    fn bpl(mut this) {
         if not .negative {
             .branch()
         } else {
@@ -1746,7 +1746,7 @@ class CPU {
         }
     }
 
-    function bmi(mut this) {
+    fn bmi(mut this) {
         if .negative {
             .branch()
         } else {
@@ -1755,7 +1755,7 @@ class CPU {
         }
     }
 
-    function bvc(mut this) {
+    fn bvc(mut this) {
         if not .overflow {
             .branch()
         } else {
@@ -1764,7 +1764,7 @@ class CPU {
         }
     }
 
-    function bvs(mut this) {
+    fn bvs(mut this) {
         if .overflow {
             .branch()
         } else {
@@ -1773,7 +1773,7 @@ class CPU {
         }
     }
 
-    function bcc(mut this) {
+    fn bcc(mut this) {
         if not .carry {
             .branch()
         } else {
@@ -1782,7 +1782,7 @@ class CPU {
         }
     }
 
-    function bcs(mut this) {
+    fn bcs(mut this) {
         if .carry {
             .branch()
         } else {
@@ -1791,7 +1791,7 @@ class CPU {
         }
     }
 
-    function bne(mut this) {
+    fn bne(mut this) {
         if not .zero {
             .branch()
         } else {
@@ -1800,7 +1800,7 @@ class CPU {
         }
     }
 
-    function beq(mut this) {
+    fn beq(mut this) {
         if .zero {
             .branch()
         } else {
@@ -1809,7 +1809,7 @@ class CPU {
         }
     }
 
-    function brk(mut this) -> void {
+    fn brk(mut this) -> void {
         .push_word(value: .pc + 2)
         .push_status()
 
@@ -1820,14 +1820,14 @@ class CPU {
         .interrupt_disable = true
     }
 
-    function rti(mut this) {
+    fn rti(mut this) {
         .clock += 6
 
         .pull_status()
         .pull_pc()
     }
 
-    function jsr(mut this) {
+    fn jsr(mut this) {
         // .pc is at the current opcode, so next pc is + 3
         .push_word(value: .pc + 2)
 
@@ -1837,13 +1837,13 @@ class CPU {
         .pc = .system.read_word(address: arg_address)
     }
 
-    function rts(mut this) {
+    fn rts(mut this) {
         .clock += 6
         .pull_pc()
         .pc += 1
     }
 
-    function jmp(mut this, opcode: u8) {
+    fn jmp(mut this, opcode: u8) {
         let arg_address = .pc + 1
 
         match opcode {
@@ -1865,7 +1865,7 @@ class CPU {
         }
     }
 
-    function bit(mut this, opcode: u8) {
+    fn bit(mut this, opcode: u8) {
         let arg_address = .pc + 1
 
         let value = match opcode {
@@ -1896,56 +1896,56 @@ class CPU {
         .overflow = (value & 0x40) == 0x40
     }
 
-    function clc(mut this) {
+    fn clc(mut this) {
         .carry = false
         .pc += 1
         .clock += 2
     }
 
-    function sec(mut this) {
+    fn sec(mut this) {
         .carry = true
         .pc += 1
         .clock += 2
     }
 
-    function cld(mut this) {
+    fn cld(mut this) {
         .decimal = false
         .pc += 1
         .clock += 2
     }
 
-    function sed(mut this) {
+    fn sed(mut this) {
         .decimal = true
         .pc += 1
         .clock += 2
     }
 
-    function cli(mut this) {
+    fn cli(mut this) {
         .interrupt_disable = false
         .pc += 1
         .clock += 2
     }
 
-    function sei(mut this) {
+    fn sei(mut this) {
         .interrupt_disable = true
         .pc += 1
         .clock += 2
     }
 
-    function clv(mut this) {
+    fn clv(mut this) {
         .overflow = false
         .pc += 1
         .clock += 2
     }
 
-    function nop(mut this) {
+    fn nop(mut this) {
         .pc += 1
         .clock += 2
     }
 
     // The "illegal" opcodes follow
 
-    function illegal_nop(mut this, opcode: u8)  {
+    fn illegal_nop(mut this, opcode: u8)  {
         match opcode {
             0x1a => {
                 .pc += 1
@@ -2065,7 +2065,7 @@ class CPU {
         }
     }
 
-    function alr(mut this) {
+    fn alr(mut this) {
         // A AND oper; LSR
         // immediate only
         .a = .a & .immediate()
@@ -2076,14 +2076,14 @@ class CPU {
         .clock += 2
     }
 
-    function anc(mut this) {
+    fn anc(mut this) {
         .a  = .a & .immediate()
         .carry = (.a & 0x80) == 0x80
         .pc += 2
         .clock += 2
     }
 
-    function ane(mut this) {
+    fn ane(mut this) {
         // Highly unstable, do not use.
         // A base value in A is determined based on the contents of A and a constant, which may be typically $00, $ff, $ee, etc. The value of this constant depends on temerature, the chip series, and maybe other factors, as well.
         // In order to eliminate these uncertaincies from the equation, use either 0 as the operand or a value of $FF in the accumulator.
@@ -2096,7 +2096,7 @@ class CPU {
         //eprintln("The effect of this opcode are pure magic and depend on all kinds of physical influences.")
     }
 
-    function arr(mut this) {
+    fn arr(mut this) {
         // AND + ROR
         // To whomever wants to make this support decimal mode: Good luck
         // Please stop here, the NES doesn't support decimal mode
@@ -2119,7 +2119,7 @@ class CPU {
         .clock += 2
     }
 
-    function dcp(mut this, opcode: u8) {
+    fn dcp(mut this, opcode: u8) {
         // DEC + CMP
         match opcode {
             0xc7 => {
@@ -2183,7 +2183,7 @@ class CPU {
         }
     }
 
-    function isc(mut this, opcode: u8){
+    fn isc(mut this, opcode: u8){
         match opcode {
             0xe7 => {
                 mut intermediate = .zero_page()
@@ -2245,7 +2245,7 @@ class CPU {
         }
     }
 
-    function las(mut this){
+    fn las(mut this){
         // LDA + TSX
         let intermediate = .absolute_y(check_extra_clock: true) & .s
         .a = intermediate
@@ -2257,7 +2257,7 @@ class CPU {
         .clock += 4
     }
 
-    function lax(mut this, opcode: u8) {
+    fn lax(mut this, opcode: u8) {
         let (intermediate, pc: u16, clock: u64) = match opcode {
             0xa7 => {
                 yield (.zero_page(), 2, 3)
@@ -2289,7 +2289,7 @@ class CPU {
         .clock += clock
     }
 
-    function lxa(mut this) {
+    fn lxa(mut this) {
         // This is as unstable and magic as ANE
         // (A OR constant)  AND oper -> A -> X
         .a = (.a | 0xee) & .immediate() // Let's watch the world burn
@@ -2299,7 +2299,7 @@ class CPU {
         .clock += 2
     }
 
-    function rla(mut this, opcode: u8) {
+    fn rla(mut this, opcode: u8) {
         //  ROL +  AND
         let carry_value = match .carry {
             true => 1u8
@@ -2382,7 +2382,7 @@ class CPU {
         }
     }
 
-    function rra(mut this, opcode: u8) {
+    fn rra(mut this, opcode: u8) {
         // ROR + ADC
         let carry_value = match .carry {
             true => 0x80u8
@@ -2457,7 +2457,7 @@ class CPU {
         .test_nz_flags(value: .a)
     }
 
-    function sax(mut this, opcode: u8) {
+    fn sax(mut this, opcode: u8) {
         // STA + STX, but since they are both thrown at the bus, the logic transistors
         // effectively perform an AND between the two values
         let value = .a & .x
@@ -2487,13 +2487,13 @@ class CPU {
         }
     }
 
-    function sbx(mut this) {
+    fn sbx(mut this) {
         let value = .immediate()
         .x = (.a & .x) - value
         .adder(accumulator: .a, operand: ~value, carry: true)
     }
     
-    function sha(mut this, opcode: u8) {
+    fn sha(mut this, opcode: u8) {
         // Stores A AND X AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -2516,7 +2516,7 @@ class CPU {
         }
     }
 
-    function shx(mut this) {
+    fn shx(mut this) {
         // Stores X AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -2528,7 +2528,7 @@ class CPU {
         .clock += 5
     }
 
-    function shy(mut this) {
+    fn shy(mut this) {
         // Stores Y AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -2540,7 +2540,7 @@ class CPU {
         .clock += 5
     }
 
-    function slo(mut this, opcode: u8) {
+    fn slo(mut this, opcode: u8) {
         // ASL + ORA
         match opcode {
             0x07 => {
@@ -2610,7 +2610,7 @@ class CPU {
         }
     }
 
-    function sre(mut this, opcode: u8){
+    fn sre(mut this, opcode: u8){
         // LSR +  EOR
         match opcode {
             0x47 => {
@@ -2687,7 +2687,7 @@ class CPU {
         }
     }
 
-    function tas(mut this)  {
+    fn tas(mut this)  {
         // Puts A AND X in SP and stores A AND X AND (high-byte of addr. + 1) at addr.
         // unstable: sometimes 'AND (H+1)' is dropped, 
         // page boundary crossings may not work 
@@ -2702,12 +2702,12 @@ class CPU {
         .clock += 5
     }
 
-    function usbc(mut this) {
+    fn usbc(mut this) {
         // SBC + NOP
         .sbc(opcode: 0xe9)
     }
 
-    function jam(mut this) {
+    fn jam(mut this) {
         // These instructions freeze the CPU.
 
         // The processor will be trapped infinitely in T1 
