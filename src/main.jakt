@@ -5,7 +5,7 @@ import cpu { CPU }
 import debugger { Debugger }
 import joypad { Joypad }
 
-fn main(args: [String]) {
+fn main(args: [String]) -> c_int {
     guard args.size() > 1 else {
         eprintln("usage: jakt_nes <rom file>")
         return 1
