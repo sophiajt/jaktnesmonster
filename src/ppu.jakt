@@ -7,7 +7,7 @@ class RGB {
 
     public fn to_u32(this) -> u32 {
     // Order is RGBA for SDL
-        return (255 << 24) | (.blue << 16) | (.green << 8) | .red 
+        return (255 << 24u32) | (.blue << 16) | (.green << 8) | .red 
     }
 }
 
@@ -1056,7 +1056,7 @@ class PPU {
     }
 
     fn ppu_status(mut this) -> u8 {
-        mut status = 0
+        mut status = 0u8
         if .in_vblank {
             // println("Reading vblank status")
             status |= 0x80
@@ -1126,5 +1126,5 @@ class PPU {
 }
 
 fn rgb(anon red: u8, anon green: u8, anon blue: u8) -> u32 {
-    return (255 << 24) | (blue << 16) | (green << 8) | red 
+    return (255 << 24u32) | (blue << 16) | (green << 8) | red 
 }
