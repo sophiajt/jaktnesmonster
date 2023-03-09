@@ -240,6 +240,7 @@ fn clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: 
         next_frame = true
 
         system.apu.render()
+        // println("{}", system.apu.buffer)
         sdl.queue_audio(data: system.apu.buffer)
 
         // Let's try to create one frame of audio
