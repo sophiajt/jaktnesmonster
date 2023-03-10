@@ -53,6 +53,7 @@ import extern c "SDL.h" {
     extern fn SDL_GameControllerClose(gamepad: raw SDL_GameController)
     extern fn SDL_GetError() -> raw c_char
     extern fn SDL_GameControllerEventState(state: c_int) -> c_int
+    extern fn SDL_RenderSetVSync(mut renderer: raw SDL_Renderer, vsync: c_int) -> c_int
 }
 
 enum Key {
@@ -100,7 +101,7 @@ fn null<T>() -> raw T {
 }
 
 class SDL {
-    renderer: raw SDL_Renderer
+    // renderer: raw SDL_Renderer
     window: raw SDL_Window
     audio_device: u32
     public surface: raw SDL_Surface
@@ -108,7 +109,7 @@ class SDL {
     gamepad: raw SDL_GameController
 
     public fn construct() throws -> SDL {
-        return SDL(renderer: null<SDL_Renderer>(), window: null<SDL_Window>(), audio_device: 0, surface: null(), last_frame_time: 0, gamepad: null<SDL_GameController>())
+        return SDL(window: null<SDL_Window>(), audio_device: 0, surface: null(), last_frame_time: 0, gamepad: null<SDL_GameController>())
     }
 
     public fn init_video(mut this, width: i64, height: i64) {
@@ -144,36 +145,6 @@ class SDL {
                 this->audio_device = SDL_OpenAudioDevice(
                     NULL, 0, &audio_spec, NULL, 0);"
             }
-        }
-    }
-
-    public fn set_scale(this, scale: f32) -> c_int {
-        unsafe {
-            return SDL_RenderSetScale(renderer: .renderer, scaleX: scale, scaleY: scale)
-        }
-    }
-
-    public fn set_render_draw_color(this, red: u8, green: u8, blue: u8, alpha: u8) {
-        unsafe {
-            SDL_SetRenderDrawColor(renderer: .renderer, r: red, g: green, b: blue, a: alpha);
-        }
-    }
-
-    public fn render_clear(this) {
-        unsafe {
-            SDL_RenderClear(renderer: .renderer)
-        }
-    }
-
-    public fn render_draw_point(this, x: u64, y: u64) {
-        unsafe {
-            SDL_RenderDrawPoint(renderer: .renderer, x: x as! c_int, y: y as! c_int);
-        }
-    }
-
-    public fn render_present(this) {
-        unsafe {
-            SDL_RenderPresent(renderer: .renderer)
         }
     }
 
@@ -322,7 +293,6 @@ class SDL {
 
     public fn quit(this) {
         unsafe {
-            SDL_DestroyRenderer(renderer: .renderer)
             SDL_DestroyWindow(window: .window)
             SDL_CloseAudioDevice(device: .audio_device)
             SDL_GameControllerClose(gamepad: .gamepad)
@@ -351,7 +321,7 @@ class SDL {
     public fn queue_audio(mut this, mut data: [i16]) {
         unsafe {
             cpp {
-                "SDL_QueueAudio(this->audio_device, data.unsafe_data(), 2 * data.size());"
+                "SDL_QueueAudio(this->audio_device, data.unsafe_data(), data.size() * 2);"
             }
         }
     }
@@ -373,19 +343,7 @@ class SDL {
         }
     }
 
-    public fn render_copy(this, mut texture: raw SDL_Texture, srcrect: raw SDL_Rect, dstrect: raw SDL_Rect) -> c_int {
-        unsafe {
-            return SDL_RenderCopy(renderer: .renderer, texture, srcrect, dstrect)
-        }
-    }
-
-    public fn create_texture(this, format: u32, access: c_int, w: c_int, h: c_int) -> raw SDL_Texture {
-        unsafe {
-            return SDL_CreateTexture(renderer: .renderer, format, access, w, h)
-        }
-    }
-
-    public fn get_window_surface(this) ->  raw SDL_Surface {
+    public fn get_window_surface(this) -> raw SDL_Surface {
         unsafe {
             return SDL_GetWindowSurface(window: .window)
         }
@@ -422,7 +380,6 @@ class SDL {
             .last_frame_time = this_frame_time
             return delta_time
         }
-
     }
 
     public fn get_controller(mut this) {

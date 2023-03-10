@@ -63,12 +63,12 @@ class APU {
     public fn render(mut this) {
         mut i = 0
         .pulse1.render()
-        // .pulse2.render()
+        .pulse2.render()
 
         // FIXME: rendering needs to use the PPU mixer
         while i < 44100 / 60 {
-            .buffer[i] = .pulse1.buffer[i]
-                         //.pulse2.buffer[i] 
+            .buffer[i] = .pulse1.buffer[i] +
+                         .pulse2.buffer[i] 
                         //  .triangle.buffer[i] + 
                         //  .noise.buffer[i]
             ++i
@@ -78,7 +78,7 @@ class APU {
 
 struct Pulse {
     duty: u8
-    envelope_loop: u8
+    envelope_loop: bool
     constant_volume: u8
     volume_envelope: u8
     sweep_enabled: bool
@@ -92,7 +92,7 @@ struct Pulse {
 
     public fn init() throws -> Pulse {
         return Pulse(duty: 0,
-                     envelope_loop: 0,
+                     envelope_loop: false,
                      constant_volume: 0,
                      volume_envelope: 0,
                      sweep_enabled: false,
@@ -107,6 +107,16 @@ struct Pulse {
     }
 
     public fn render(mut this) {
+        if not .envelope_loop {
+            if .length_counter == 0 {
+                for i in 0..(.buffer.size()) {
+                    .buffer[i] = 0;
+                }
+                return
+            } else {
+                .length_counter--
+            }
+        }
         if .timer < 8 {
             for i in 0..(.buffer.size()) {
                 .buffer[i] = 0;
@@ -137,11 +147,27 @@ struct Pulse {
             mut sound_position = .phase % transition_length
 
             for i in 0..window_length {
-                if sound_position < (transition_length / 2) {
-                    .buffer[i] = 5000i16
-                } else {
-                    .buffer[i] = -5000i16
+                let value = transition_length / 8
+                if .duty == 0 {
+                    if value == 0 or value > 1 {
+                        .buffer[i] = -5000i16
+                    } else {
+                        .buffer[i] = 5000i16
+                    }
+                } else if .duty == 1 {
+                    if sound_position < (transition_length / 4) * 3 {
+                        .buffer[i] = 5000i16
+                    } else {
+                        .buffer[i] = -5000i16
+                    }
+                } else if .duty == 2 {
+                    if sound_position < (transition_length / 2) {
+                        .buffer[i] = 5000i16
+                    } else {
+                        .buffer[i] = -5000i16
+                    }
                 }
+
                 sound_position++
                 if sound_position == transition_length {
                     sound_position = 0
@@ -157,7 +183,7 @@ struct Pulse {
 
     public fn register1_write(mut this, value: u8) {
         .duty = value >> 6
-        .envelope_loop = (value >> 5) & 0x1
+        .envelope_loop = ((value >> 5) & 0x1) == 0x1
         .constant_volume = (value >> 4) & 0x1
         .volume_envelope = value & 0b1111
 
@@ -180,7 +206,7 @@ struct Pulse {
     }
 
     public fn register4_write(mut this, value: u8) {
-        .length_counter = value >> 3
+        .length_counter = (value >> 3) * 2
 
         .timer &= 0xff
         .timer |= (value as! u64 & 0x7) << 8

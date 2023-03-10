@@ -28,6 +28,7 @@ class System {
     public mmc3_prg_rom_8k_bank_2: usize
     public mmc3_prg_rom_8k_bank_3: usize
     public mmc3_prg_rom_bank_mode: usize
+    public frame: u64,
 
     public fn init(filename: String) throws -> SystemLoadStatus {
         let status = load_cart(filename)
@@ -63,6 +64,7 @@ class System {
                 mmc3_prg_rom_8k_bank_2: (cart.prg_rom_pages.size() * 2) - 2
                 mmc3_prg_rom_8k_bank_3: (cart.prg_rom_pages.size() * 2) - 1
                 mmc3_prg_rom_bank_mode: 0
+                frame: 1
             )
         )
     }
