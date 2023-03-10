@@ -147,26 +147,26 @@ struct Pulse {
             mut sound_position = .phase % transition_length
 
             for i in 0..window_length {
-                let value = transition_length / 8
-                if .duty == 0 {
-                    if value == 0 or value > 1 {
-                        .buffer[i] = -5000i16
-                    } else {
-                        .buffer[i] = 5000i16
-                    }
-                } else if .duty == 1 {
+                let value = transition_length % 8
+                // if .duty == 0 {
+                //     if value == 0 or value > 1 {
+                //         .buffer[i] = -5000i16
+                //     } else {
+                //         .buffer[i] = 5000i16
+                //     }
+                // } else if .duty == 1 {
                     if sound_position < (transition_length / 4) * 3 {
                         .buffer[i] = 5000i16
                     } else {
                         .buffer[i] = -5000i16
-                    }
-                } else if .duty == 2 {
-                    if sound_position < (transition_length / 2) {
-                        .buffer[i] = 5000i16
-                    } else {
-                        .buffer[i] = -5000i16
-                    }
-                }
+                    } 
+                // } else if .duty == 3 {
+                //     if value == 0 or value > 2 {
+                //         .buffer[i] = 5000i16
+                //     } else {
+                //         .buffer[i] = -5000i16
+                //     }
+                // }
 
                 sound_position++
                 if sound_position == transition_length {
@@ -187,7 +187,7 @@ struct Pulse {
         .constant_volume = (value >> 4) & 0x1
         .volume_envelope = value & 0b1111
 
-        // println("register 1 write: {:x} {}", value, this)
+        println("register 1. duty: {}, env loop: {}, const vol: {}, vol env: {}", .duty, .envelope_loop, .constant_volume, .volume_envelope)
     }
 
     public fn register2_write(mut this, value: u8) {
@@ -196,6 +196,7 @@ struct Pulse {
         .sweep_negative = (value & 0b1000) == 0b1000
         .sweep_shift = value & 0b111
 
+        println("sweep: {}, period: {}, negative: {}, shift: {}", .sweep_enabled, .sweep_period, .sweep_negative, .sweep_shift)
         // println("register 2 write: {:x} {}", value, this)
     }
 
