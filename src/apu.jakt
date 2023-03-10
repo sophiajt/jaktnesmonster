@@ -34,16 +34,17 @@ class APU {
     public fn write_apu_addr(mut this, address: u16, value: u8) {
         match address {
         //     0x4000 => .write_4000(value)
-        //     0x4001 => .pulse1.register2_write(value)
-        //     0x4002 => .pulse1.register3_write(value)
-        //     0x4003 => .pulse1.register4_write(value)
-        //     0x4004 => .pulse2.register1_write(value)
-        //     0x4005 => .pulse2.register2_write(value)
-        //     0x4006 => .pulse2.register3_write(value)
-        //     0x4007 => .pulse2.register4_write(value)
-            0x4008 => .write_4008(value)
-            0x400a => .write_400a(value)
-            0x400b => .write_400b(value)
+            0x4000 => .pulse1.register1_write(value)
+            0x4001 => .pulse1.register2_write(value)
+            0x4002 => .pulse1.register3_write(value)
+            0x4003 => .pulse1.register4_write(value)
+            0x4004 => .pulse2.register1_write(value)
+            0x4005 => .pulse2.register2_write(value)
+            0x4006 => .pulse2.register3_write(value)
+            0x4007 => .pulse2.register4_write(value)
+            // 0x4008 => .write_4008(value)
+            // 0x400a => .write_400a(value)
+            // 0x400b => .write_400b(value)
         //     0x400c => .noise.register1_write(value)
         //     0x400e => .noise.register3_write(value)
         //     0x400f => .noise.register4_write(value)
@@ -61,50 +62,167 @@ class APU {
 
     public fn render(mut this) {
         mut i = 0
+        .pulse1.render()
+        .pulse2.render()
+
+        // FIXME: rendering needs to use the PPU mixer
         while i < 44100 / 60 {
-            .buffer[i] = .pulse1.buffer[i] + 
-                         .pulse2.buffer[i] + 
-                         .triangle.buffer[i] + 
-                         .noise.buffer[i]
+            .buffer[i] = .pulse1.buffer[i] +
+                         .pulse2.buffer[i] 
+                        //  .triangle.buffer[i] + 
+                        //  .noise.buffer[i]
             ++i
         }
     }
 }
 
 struct Pulse {
-    timer: u16
+    duty: u8
+    envelope_loop: bool
+    constant_volume: u8
+    volume_envelope: u8
+    sweep_enabled: bool
+    sweep_period: u8
+    sweep_negative: bool
+    sweep_shift: u8
+    timer: u64
     length_counter: u8
-    envelope: u8
-    sweep: u8
+    phase: u64
     buffer: [i16]
 
     public fn init() throws -> Pulse {
-        return Pulse(timer: 0, 
+        return Pulse(duty: 0,
+                     envelope_loop: false,
+                     constant_volume: 0,
+                     volume_envelope: 0,
+                     sweep_enabled: false,
+                     sweep_period: 0,
+                     sweep_negative: false,
+                     sweep_shift: 0,
+                     timer: 0,
                      length_counter: 0,
-                     envelope: 0,
-                     sweep: 0,
-                     buffer: [0i16; 44100 / 60])
+                     phase: 0,
+                     buffer: [0i16; 44100 / 60]
+                     )
+    }
+
+    public fn render(mut this) {
+        if not .envelope_loop {
+            if .length_counter == 0 {
+                for i in 0..(.buffer.size()) {
+                    .buffer[i] = 0;
+                }
+                return
+            } else {
+                .length_counter--
+            }
+        }
+        if .timer < 8 {
+            for i in 0..(.buffer.size()) {
+                .buffer[i] = 0;
+            }
+        } else {
+            let pitch = 1789773 / (16 * (.timer as! u64 + 1))
+
+            let window_length = 44100 / 60u64
+
+            let transition_length = 44100 / pitch
+
+            mut sample = -5000i16;
+
+            let phase_end = .phase + window_length
+
+            // for i in 0..44100u64 {
+            //     if (i % transition_length) == 0 {
+            //         sample = -sample
+            //     }
+
+            //     if i >= phase_end {
+            //         break
+            //     } else if i >= .phase {
+            //         .buffer[i - .phase] = sample
+            //     }
+            // }
+
+            mut sound_position = .phase % transition_length
+
+            for i in 0..window_length {
+                let value = transition_length % 8
+                // if .duty == 0 {
+                //     if value == 0 or value > 1 {
+                //         .buffer[i] = -5000i16
+                //     } else {
+                //         .buffer[i] = 5000i16
+                //     }
+                // } else if .duty == 1 {
+                    if sound_position < (transition_length / 4) * 3 {
+                        .buffer[i] = 5000i16
+                    } else {
+                        .buffer[i] = -5000i16
+                    } 
+                // } else if .duty == 3 {
+                //     if value == 0 or value > 2 {
+                //         .buffer[i] = 5000i16
+                //     } else {
+                //         .buffer[i] = -5000i16
+                //     }
+                // }
+
+                sound_position++
+                if sound_position == transition_length {
+                    sound_position = 0
+                }
+            }
+
+            .phase = phase_end
+            if .phase >= 44100 {
+                .phase -= 44100
+            }
+        }
     }
 
     public fn register1_write(mut this, value: u8) {
+        .duty = value >> 6
+        .envelope_loop = ((value >> 5) & 0x1) == 0x1
+        .constant_volume = (value >> 4) & 0x1
+        .volume_envelope = value & 0b1111
 
+        println("register 1. duty: {}, env loop: {}, const vol: {}, vol env: {}", .duty, .envelope_loop, .constant_volume, .volume_envelope)
     }
 
     public fn register2_write(mut this, value: u8) {
+        .sweep_enabled = (value & 0b1000_0000) == 0b1000_0000
+        .sweep_period = (value >> 4) & 0b111
+        .sweep_negative = (value & 0b1000) == 0b1000
+        .sweep_shift = value & 0b111
 
+        println("sweep: {}, period: {}, negative: {}, shift: {}", .sweep_enabled, .sweep_period, .sweep_negative, .sweep_shift)
+        // println("register 2 write: {:x} {}", value, this)
     }
 
     public fn register3_write(mut this, value: u8) {
+        .timer = (.timer & 0xff00) | value
 
+        // println("register 3 write: {:x} {}", value, this)
     }
 
     public fn register4_write(mut this, value: u8) {
+        .length_counter = (value >> 3) * 2
 
+        .timer &= 0xff
+        .timer |= (value as! u64 & 0x7) << 8
+
+        // println("register 4 write: {:x} {}", value, this)
     }
 
     public fn tick(mut this, cycles: u16) throws {
         // TODO: handle overflow
-        .timer += cycles
+        // .timer += cycles
+
+        // 11-bit timer rollover
+        // if .timer > 0b111_1111_1111 {
+        //     .timer -= 0b111_1111_1111
+        // }
     }
 }
 
@@ -163,7 +281,7 @@ struct Noise {
 
     public fn tick(mut this, cycles: u16) throws {
         // TODO: handle overflow
-        .timer += cycles
+        // .timer += cycles
     }
 
     public fn register1_write(mut this, value: u8) {

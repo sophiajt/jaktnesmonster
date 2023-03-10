@@ -1,4 +1,4 @@
-import sdl { SDL }
+import sdl { SDL, SDL_GetTicks64 }
 import video { draw_frame }
 import system { System }
 import cpu { CPU }
@@ -240,6 +240,7 @@ fn clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: 
         next_frame = true
 
         system.apu.render()
+        // println("{}", system.apu.buffer)
         sdl.queue_audio(data: system.apu.buffer)
 
         // Let's try to create one frame of audio
@@ -258,11 +259,16 @@ fn clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: 
         // sdl.queue_audio(data: system.audio_buffer)
 
         // Finally, let's burn some time so that we're at 60fps
+        
         let delta = sdl.delta_time() as! u32
 
         let ms_per_frame = 1000u32 / 60u32
+        
         if delta < ms_per_frame {
-            sdl.delay(ms: ms_per_frame - delta)
+            // println("{}", ms_per_frame - delta)
+
+            // Why do I have to do * 2 to get close?!
+            sdl.delay(ms: (ms_per_frame - delta) * 2)
         }
     }
 
