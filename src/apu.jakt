@@ -81,6 +81,7 @@ struct Pulse {
     envelope_loop: bool
     constant_volume: bool
     volume_envelope: u8
+    volume_envelope_current: u8
     sweep_enabled: bool
     sweep_period: u8
     sweep_negative: bool
@@ -95,6 +96,7 @@ struct Pulse {
             envelope_loop: false,
             constant_volume: false,
             volume_envelope: 0,
+            volume_envelope_current: 0,
             sweep_enabled: false,
             sweep_period: 0,
             sweep_negative: false,
@@ -120,26 +122,40 @@ struct Pulse {
 
         mut volume = 4000i16
 
-        if .timer < 8 {
-            if .volume_envelope > 0 {
-                if not .constant_volume {
-                    volume = volume / .volume_envelope as! i16 * (.volume_envelope as! i16 - 1)
-                } else {
-                    volume = 4000i16 / 16i16 * .volume_envelope as! i16
-                }
-                .volume_envelope -= 1
+        // if .timer < 8 {
+        if .volume_envelope_current > 0 {
+            if not .constant_volume {
+                volume = volume / .volume_envelope as! i16 * (.volume_envelope as! i16 - 1)
             } else {
-                volume = 0
+                volume = 4000i16 / 16i16 * .volume_envelope as! i16
+            }
+            .volume_envelope_current -= 1
+        } else {
+            volume = 0
+            if .envelope_loop {
+                .volume_envelope_current = .volume_envelope
             }
         }
+        // }
 
-        if volume == 0  {
+        if volume == 0 {
             for i in 0..(.buffer.size()) {
                 .buffer[i] = 0
             }
         } else {
             let pitch = (1789773 / (16 * (.timer as! u64 + 1)))
-            //let pitch = (1662607 / (16 * (.timer as! u64 + 1)))
+            // let pitch = (1662607 / (16 * (.timer as! u64 + 1)))
+
+            if .sweep_enabled {
+                // FIXME: the two pulse channels work differently here
+                mut change_amount = (.timer >> .sweep_shift) as! i64
+                if .sweep_negative {
+                    change_amount = change_amount * -1
+                }
+                change_amount = change_amount / .sweep_period as! i64
+                .timer = (.timer as! i64 + change_amount) as! u64
+            }
+
             let window_length = 44100 / 60u64
             let transition_length = 44100 / pitch
             mut sample = -volume
@@ -194,7 +210,8 @@ struct Pulse {
         .duty = value >> 6
         .envelope_loop = ((value >> 5) & 0x1) == 0x1
         .constant_volume = ((value >> 4) & 0x1) == 0x1
-        .volume_envelope = value & 0b1111
+        .volume_envelope = (value & 0b1111) * 2
+        .volume_envelope_current = .volume_envelope
 
         // println(
         //     "register 1. duty: {}, env loop: {}, const vol: {}, vol env: {}"
@@ -211,13 +228,15 @@ struct Pulse {
         .sweep_negative = (value & 0b1000) == 0b1000
         .sweep_shift = value & 0b111
 
-        // println(
-        //     "sweep: {}, period: {}, negative: {}, shift: {}"
-        //     .sweep_enabled
-        //     .sweep_period
-        //     .sweep_negative
-        //     .sweep_shift
-        // )
+        if .sweep_enabled {
+            println(
+                "sweep: {}, period: {}, negative: {}, shift: {}"
+                .sweep_enabled
+                .sweep_period
+                .sweep_negative
+                .sweep_shift
+            )
+        }
         // println("register 2 write: {:x} {}", value, this)
     }
 
@@ -245,29 +264,28 @@ struct Pulse {
             0b10010 => { .length_counter = 24 }
             0b10001 => { .length_counter = 16 }
             0b10000 => { .length_counter = 12 }
-            0b1111 =>  { .length_counter = 14 }
-            0b1110 =>  { .length_counter = 26 }
-            0b1101 =>  { .length_counter = 12 }
-            0b1100 =>  { .length_counter = 14 }
-            0b1011 =>  { .length_counter = 10 }
-            0b1010 =>  { .length_counter = 60 }
-            0b1001 =>  { .length_counter = 8 }
-            0b1000 =>  { .length_counter = 160 }
-            0b111 =>   { .length_counter = 6 }
-            0b110 =>   { .length_counter = 80 }
-            0b101 =>   { .length_counter = 4 }
-            0b100 =>   { .length_counter = 40 }
-            0b11 =>    { .length_counter = 2 }
-            0b10 =>    { .length_counter = 20 }
-            0b1 =>     { .length_counter = 254 }
-            else =>    { .length_counter = 10 }
+            0b1111 => { .length_counter = 14 }
+            0b1110 => { .length_counter = 26 }
+            0b1101 => { .length_counter = 12 }
+            0b1100 => { .length_counter = 14 }
+            0b1011 => { .length_counter = 10 }
+            0b1010 => { .length_counter = 60 }
+            0b1001 => { .length_counter = 8 }
+            0b1000 => { .length_counter = 160 }
+            0b111 => { .length_counter = 6 }
+            0b110 => { .length_counter = 80 }
+            0b101 => { .length_counter = 4 }
+            0b100 => { .length_counter = 40 }
+            0b11 => { .length_counter = 2 }
+            0b10 => { .length_counter = 20 }
+            0b1 => { .length_counter = 254 }
+            else => { .length_counter = 10 }
         }
-        .length_counter = (value >> 3) * 8
 
         .timer &= 0xff
         .timer |= (value as! u64 & 0x7) << 8
 
-        // println("register 4 write: length_counter: {} timer: {}", .length_counter, .timer)
+        // println("register 4 write: length_counter: {} timer: {} value: {:x}", .length_counter, .timer, value >> 3)
         // println("register 4 write: {:x} {}", value, this)
     }
 
