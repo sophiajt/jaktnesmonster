@@ -259,11 +259,11 @@ fn clocktick(mut system: System, mut cpu: CPU, mut debugger: Debugger, mut sdl: 
         // sdl.queue_audio(data: system.audio_buffer)
 
         // Finally, let's burn some time so that we're at 60fps
-        
+
         let delta = sdl.delta_time() as! u32
 
         let ms_per_frame = 1000u32 / 60u32
-        
+
         if delta < ms_per_frame {
             // println("{}", ms_per_frame - delta)
 

@@ -8,11 +8,11 @@ class APU {
 
     public fn init() throws -> APU {
         return APU(timer: 0,
-                   pulse1: Pulse::init(),
-                   pulse2: Pulse::init(),
-                   triangle: Triangle::init(),
-                   noise: Noise::init(),
-                   buffer: [0i16; 44100 / 60])
+            pulse1: Pulse::init(),
+            pulse2: Pulse::init(),
+            triangle: Triangle::init(),
+            noise: Noise::init(),
+            buffer: [0i16; 44100 / 60])
     }
 
     public fn read_apu_addr(this, address: u16) -> u8 {
@@ -33,7 +33,7 @@ class APU {
 
     public fn write_apu_addr(mut this, address: u16, value: u8) {
         match address {
-        //     0x4000 => .write_4000(value)
+            //     0x4000 => .write_4000(value)
             0x4000 => .pulse1.register1_write(value)
             0x4001 => .pulse1.register2_write(value)
             0x4002 => .pulse1.register3_write(value)
@@ -45,9 +45,9 @@ class APU {
             // 0x4008 => .write_4008(value)
             // 0x400a => .write_400a(value)
             // 0x400b => .write_400b(value)
-        //     0x400c => .noise.register1_write(value)
-        //     0x400e => .noise.register3_write(value)
-        //     0x400f => .noise.register4_write(value)
+            //     0x400c => .noise.register1_write(value)
+            //     0x400e => .noise.register3_write(value)
+            //     0x400f => .noise.register4_write(value)
             else => {
             }
         }
@@ -68,9 +68,9 @@ class APU {
         // FIXME: rendering needs to use the PPU mixer
         while i < 44100 / 60 {
             .buffer[i] = .pulse1.buffer[i] +
-                         .pulse2.buffer[i] 
-                        //  .triangle.buffer[i] + 
-                        //  .noise.buffer[i]
+            .pulse2.buffer[i]
+            //  .triangle.buffer[i] + 
+            //  .noise.buffer[i]
             ++i
         }
     }
@@ -92,25 +92,25 @@ struct Pulse {
 
     public fn init() throws -> Pulse {
         return Pulse(duty: 0,
-                     envelope_loop: false,
-                     constant_volume: 0,
-                     volume_envelope: 0,
-                     sweep_enabled: false,
-                     sweep_period: 0,
-                     sweep_negative: false,
-                     sweep_shift: 0,
-                     timer: 0,
-                     length_counter: 0,
-                     phase: 0,
-                     buffer: [0i16; 44100 / 60]
-                     )
+            envelope_loop: false,
+            constant_volume: 0,
+            volume_envelope: 0,
+            sweep_enabled: false,
+            sweep_period: 0,
+            sweep_negative: false,
+            sweep_shift: 0,
+            timer: 0,
+            length_counter: 0,
+            phase: 0,
+            buffer: [0i16; 44100 / 60]
+        )
     }
 
     public fn render(mut this) {
         if not .envelope_loop {
             if .length_counter == 0 {
                 for i in 0..(.buffer.size()) {
-                    .buffer[i] = 0;
+                    .buffer[i] = 0
                 }
                 return
             } else {
@@ -119,7 +119,7 @@ struct Pulse {
         }
         if .timer < 8 {
             for i in 0..(.buffer.size()) {
-                .buffer[i] = 0;
+                .buffer[i] = 0
             }
         } else {
             let pitch = 1789773 / (16 * (.timer as! u64 + 1))
@@ -128,7 +128,7 @@ struct Pulse {
 
             let transition_length = 44100 / pitch
 
-            mut sample = -5000i16;
+            mut sample = -5000i16
 
             let phase_end = .phase + window_length
 
@@ -155,11 +155,11 @@ struct Pulse {
                 //         .buffer[i] = 5000i16
                 //     }
                 // } else if .duty == 1 {
-                    if sound_position < (transition_length / 4) * 3 {
-                        .buffer[i] = 5000i16
-                    } else {
-                        .buffer[i] = -5000i16
-                    } 
+                if sound_position < (transition_length / 2) {
+                    .buffer[i] = 5000i16
+                } else {
+                    .buffer[i] = -5000i16
+                }
                 // } else if .duty == 3 {
                 //     if value == 0 or value > 2 {
                 //         .buffer[i] = 5000i16
@@ -187,7 +187,13 @@ struct Pulse {
         .constant_volume = (value >> 4) & 0x1
         .volume_envelope = value & 0b1111
 
-        println("register 1. duty: {}, env loop: {}, const vol: {}, vol env: {}", .duty, .envelope_loop, .constant_volume, .volume_envelope)
+        println(
+            "register 1. duty: {}, env loop: {}, const vol: {}, vol env: {}"
+            .duty
+            .envelope_loop
+            .constant_volume
+            .volume_envelope
+        )
     }
 
     public fn register2_write(mut this, value: u8) {
@@ -196,7 +202,13 @@ struct Pulse {
         .sweep_negative = (value & 0b1000) == 0b1000
         .sweep_shift = value & 0b111
 
-        println("sweep: {}, period: {}, negative: {}, shift: {}", .sweep_enabled, .sweep_period, .sweep_negative, .sweep_shift)
+        println(
+            "sweep: {}, period: {}, negative: {}, shift: {}"
+            .sweep_enabled
+            .sweep_period
+            .sweep_negative
+            .sweep_shift
+        )
         // println("register 2 write: {:x} {}", value, this)
     }
 
@@ -207,7 +219,41 @@ struct Pulse {
     }
 
     public fn register4_write(mut this, value: u8) {
-        .length_counter = (value >> 3) * 2
+        match (value >> 3) {
+            0b11111 => { .length_counter = 30 }
+            0b11110 => { .length_counter = 32 }
+            0b11101 => { .length_counter = 28 }
+            0b11100 => { .length_counter = 16 }
+            0b11011 => { .length_counter = 26 }
+            0b11010 => { .length_counter = 72 }
+            0b11001 => { .length_counter = 24 }
+            0b11000 => { .length_counter = 192 }
+            0b10111 => { .length_counter = 22 }
+            0b10110 => { .length_counter = 96 }
+            0b10101 => { .length_counter = 20 }
+            0b10100 => { .length_counter = 48 }
+            0b10011 => { .length_counter = 18 }
+            0b10010 => { .length_counter = 24 }
+            0b10001 => { .length_counter = 16 }
+            0b10000 => { .length_counter = 12 }
+            0b1111 =>  { .length_counter = 14 }
+            0b1110 =>  { .length_counter = 26 }
+            0b1101 =>  { .length_counter = 12 }
+            0b1100 =>  { .length_counter = 14 }
+            0b1011 =>  { .length_counter = 10 }
+            0b1010 =>  { .length_counter = 60 }
+            0b1001 =>  { .length_counter = 8 }
+            0b1000 =>  { .length_counter = 160 }
+            0b111 =>   { .length_counter = 6 }
+            0b110 =>   { .length_counter = 80 }
+            0b101 =>   { .length_counter = 4 }
+            0b100 =>   { .length_counter = 40 }
+            0b11 =>    { .length_counter = 2 }
+            0b10 =>    { .length_counter = 20 }
+            0b1 =>     { .length_counter = 254 }
+            else =>    { .length_counter = 10 }
+        }
+        .length_counter = (value >> 3) * 8
 
         .timer &= 0xff
         .timer |= (value as! u64 & 0x7) << 8
@@ -234,9 +280,9 @@ struct Triangle {
 
     public fn init() throws -> Triangle {
         return Triangle(timer: 0,
-                        length_counter: 0,
-                        linear_counter: 0, 
-                        buffer: [0i16; 44100 / 60])
+            length_counter: 0,
+            linear_counter: 0,
+            buffer: [0i16; 44100 / 60])
     }
 
     public fn tick(mut this, cycles: u16) throws {
@@ -273,10 +319,10 @@ struct Noise {
 
     public fn init() throws -> Noise {
         return Noise(timer: 0,
-                     length_counter: 0,
-                     envelope: 0,
-                     linear_feedback_shift_register: 0,
-                     buffer: [0i16; 44100 / 60])
+            length_counter: 0,
+            envelope: 0,
+            linear_feedback_shift_register: 0,
+            buffer: [0i16; 44100 / 60])
     }
 
     public fn tick(mut this, cycles: u16) throws {
