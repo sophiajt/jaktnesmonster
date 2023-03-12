@@ -122,7 +122,7 @@ struct Pulse {
 
         if .timer < 8 {
             if .volume_envelope > 0 {
-                volume = volume / 3 * 2
+                volume = volume / .volume_envelope as! i16 * (.volume_envelope as! i16 - 1)
                 .volume_envelope -= 1
             } else {
                 volume = 0
