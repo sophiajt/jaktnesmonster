@@ -117,56 +117,39 @@ struct Pulse {
                 .length_counter--
             }
         }
+
+        mut volume = 5000i16
+
         if .timer < 8 {
+            if .volume_envelope > 0 {
+                volume = volume / .volume_envelope as! i16 * (.volume_envelope as! i16 - 1)
+                .volume_envelope -= 1
+            } else {
+                volume = 0
+            }
+        }
+
+        if volume == 0  {
             for i in 0..(.buffer.size()) {
                 .buffer[i] = 0
             }
         } else {
             let pitch = 1789773 / (16 * (.timer as! u64 + 1))
-
             let window_length = 44100 / 60u64
-
             let transition_length = 44100 / pitch
-
-            mut sample = -5000i16
+            mut sample = -volume
 
             let phase_end = .phase + window_length
-
-            // for i in 0..44100u64 {
-            //     if (i % transition_length) == 0 {
-            //         sample = -sample
-            //     }
-
-            //     if i >= phase_end {
-            //         break
-            //     } else if i >= .phase {
-            //         .buffer[i - .phase] = sample
-            //     }
-            // }
 
             mut sound_position = .phase % transition_length
 
             for i in 0..window_length {
                 let value = transition_length % 8
-                // if .duty == 0 {
-                //     if value == 0 or value > 1 {
-                //         .buffer[i] = -5000i16
-                //     } else {
-                //         .buffer[i] = 5000i16
-                //     }
-                // } else if .duty == 1 {
                 if sound_position < (transition_length / 2) {
-                    .buffer[i] = 5000i16
+                    .buffer[i] = volume
                 } else {
-                    .buffer[i] = -5000i16
+                    .buffer[i] = -volume
                 }
-                // } else if .duty == 3 {
-                //     if value == 0 or value > 2 {
-                //         .buffer[i] = 5000i16
-                //     } else {
-                //         .buffer[i] = -5000i16
-                //     }
-                // }
 
                 sound_position++
                 if sound_position == transition_length {
@@ -215,7 +198,7 @@ struct Pulse {
     public fn register3_write(mut this, value: u8) {
         .timer = (.timer & 0xff00) | value
 
-        // println("register 3 write: {:x} {}", value, this)
+        println("register 3 write: timer: {}", .timer)
     }
 
     public fn register4_write(mut this, value: u8) {
@@ -258,6 +241,7 @@ struct Pulse {
         .timer &= 0xff
         .timer |= (value as! u64 & 0x7) << 8
 
+        println("register 4 write: length_counter: {} timer: {}", .length_counter, .timer)
         // println("register 4 write: {:x} {}", value, this)
     }
 
