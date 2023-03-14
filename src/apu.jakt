@@ -42,9 +42,9 @@ class APU {
             0x4005 => .pulse2.register2_write(value)
             0x4006 => .pulse2.register3_write(value)
             0x4007 => .pulse2.register4_write(value)
-            // 0x4008 => .write_4008(value)
-            // 0x400a => .write_400a(value)
-            // 0x400b => .write_400b(value)
+            0x4008 => .triangle.register1_write(value)
+            0x400a => .triangle.register3_write(value)
+            0x400b => .triangle.register4_write(value)
             //     0x400c => .noise.register1_write(value)
             //     0x400e => .noise.register3_write(value)
             //     0x400f => .noise.register4_write(value)
@@ -64,12 +64,13 @@ class APU {
         mut i = 0
         .pulse1.render()
         .pulse2.render()
+        .triangle.render()
 
         // FIXME: rendering needs to use the PPU mixer
         while i < 44100 / 60 {
             .buffer[i] = .pulse1.buffer[i] +
-            .pulse2.buffer[i]
-            //  .triangle.buffer[i] + 
+            .pulse2.buffer[i] +
+            .triangle.buffer[i]
             //  .noise.buffer[i]
             ++i
         }
@@ -303,37 +304,88 @@ struct Pulse {
 struct Triangle {
     timer: u16
     length_counter: u8
-    linear_counter: u8
+    control_flag: bool
+    counter_reload: u8
+    phase: u64
     buffer: [i16]
 
     public fn init() throws -> Triangle {
         return Triangle(timer: 0,
             length_counter: 0,
-            linear_counter: 0,
+            control_flag: false,
+            counter_reload: 0,
+            phase: 0,
             buffer: [0i16; 44100 / 60])
+    }
+
+    public fn render(mut this) {
+        mut volume = 2000i16
+
+        if .length_counter == 0 {
+            for i in 0..(.buffer.size()) {
+                .buffer[i] = 0
+            }
+        } else {
+            let pitch = (1789773 / (16 * (.timer as! u64 + 1))) / 2
+            // let pitch = (1662607 / (16 * (.timer as! u64 + 1)))
+
+            let window_length = 44100 / 60u64
+            let transition_length = 44100 / pitch
+            mut sample = -volume
+
+            let phase_end = .phase + window_length
+
+            mut sound_position = .phase % transition_length
+
+            mut increment = volume / transition_length as! i16
+
+            for i in 0..window_length {
+                let value = transition_length / 4
+
+                if sound_position < value {
+                    .buffer[i] = increment * ((value as! i16) - (sound_position as! i16))
+                } else if sound_position >= value and sound_position < (value * 3) {
+                    .buffer[i] = volume - increment * ((value as! i16) - (sound_position as! i16))
+                } else {
+                    .buffer[i] = -volume + increment * ((value as! i16) - (sound_position as! i16))
+                }
+
+                sound_position++
+                if sound_position == transition_length {
+                    sound_position = 0
+                }
+            }
+
+            .length_counter--
+
+            .phase = phase_end
+            if .phase >= 44100 {
+                .phase -= 44100
+            }
+        }
     }
 
     public fn tick(mut this, cycles: u16) throws {
         // TODO: handle overflow
-        .timer += cycles / 2
+        // .timer += cycles / 2
     }
 
     public fn register1_write(mut this, value: u8) {
-        let control_flag = (value & 0b1000_0000) >> 7
-        let counter_reload = value & 0b0111_1111
-
-        // println("triangle:");
-        // print("control flag: {:0>2x} ", control_flag)
-        // println("counter reload: {:0>2x} ", control_flag)
+        .control_flag = (value & 0b1000_0000) >> 7 == 1
+        .counter_reload = value & 0b0111_1111
     }
 
     public fn register3_write(mut this, value: u8) {
-        // println("timer low: {:0>2x}", value)
+        .timer = (.timer & 0xff00) + value as! u16
     }
 
     public fn register4_write(mut this, value: u8) {
-        let timer_high = (value & 0b111)
-        // println("timer high: {:0>2x}", timer_high)
+        let timer_high = ((value & 0b111) as! u16) << 8
+        .timer = (.timer & 0xff) + timer_high
+
+        .length_counter = (value >> 3) * 8
+
+        .control_flag = true
     }
 
 }
