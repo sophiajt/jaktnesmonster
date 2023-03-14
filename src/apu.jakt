@@ -56,7 +56,7 @@ class APU {
         .pulse1.render()
         .pulse2.render()
         .triangle.render()
-        .noise.render()
+        // .noise.render()
 
         // FIXME: rendering needs to use the PPU mixer
         while i < 44100 / 60 {
