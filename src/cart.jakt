@@ -23,6 +23,7 @@ class Cart {
     public chr_rom_pages: [[u8]]
 
     public fn info(this) {
+        println("region: {}", .region)
         println("prg_rom: {}", .prg_rom)
         println("chr_rom: {}", .chr_rom)
         println("mirroring: {}", .mirroring)
@@ -72,12 +73,21 @@ fn load_cart(filename: String) throws -> CartLoadStatus {
         abort()
     }
 
-    let region = match buffer[12] & 0x3 {
+    mut region = match buffer[10] & 0x3 {
         0 => Region::NTSC
         1 => Region::PAL
         2 => Region::Multi
         3 => Region::Dendy
         else => Region::NTSC
+    }
+
+    if filename.contains("(E)") {
+        region = Region::PAL
+    }
+
+    guard region is NTSC else {
+        eprintln("Region {} is not currently supported", region)
+        abort()
     }
 
     mut prg_rom_pages: [[u8]] = []
