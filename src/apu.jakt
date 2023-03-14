@@ -1,3 +1,7 @@
+import extern c "stdlib.h" {
+    extern fn rand() -> c_int
+}
+
 class APU {
     timer: u16,
     pulse1: Pulse,
@@ -19,21 +23,8 @@ class APU {
         return 0
     }
 
-    public fn write_4008(mut this, value: u8) {
-        .triangle.register1_write(value)
-    }
-
-    public fn write_400a(mut this, value: u8) {
-        .triangle.register3_write(value)
-    }
-
-    public fn write_400b(mut this, value: u8) {
-        .triangle.register4_write(value)
-    }
-
     public fn write_apu_addr(mut this, address: u16, value: u8) {
         match address {
-            //     0x4000 => .write_4000(value)
             0x4000 => .pulse1.register1_write(value)
             0x4001 => .pulse1.register2_write(value)
             0x4002 => .pulse1.register3_write(value)
@@ -45,9 +36,9 @@ class APU {
             0x4008 => .triangle.register1_write(value)
             0x400a => .triangle.register3_write(value)
             0x400b => .triangle.register4_write(value)
-            //     0x400c => .noise.register1_write(value)
-            //     0x400e => .noise.register3_write(value)
-            //     0x400f => .noise.register4_write(value)
+            0x400c => .noise.register1_write(value)
+            0x400e => .noise.register3_write(value)
+            0x400f => .noise.register4_write(value)
             else => {
             }
         }
@@ -65,13 +56,14 @@ class APU {
         .pulse1.render()
         .pulse2.render()
         .triangle.render()
+        .noise.render()
 
         // FIXME: rendering needs to use the PPU mixer
         while i < 44100 / 60 {
             .buffer[i] = .pulse1.buffer[i] +
             .pulse2.buffer[i] +
-            .triangle.buffer[i]
-            //  .noise.buffer[i]
+            .triangle.buffer[i] +
+            .noise.buffer[i]
             ++i
         }
     }
@@ -229,15 +221,15 @@ struct Pulse {
         .sweep_negative = (value & 0b1000) == 0b1000
         .sweep_shift = value & 0b111
 
-        if .sweep_enabled {
-            println(
-                "sweep: {}, period: {}, negative: {}, shift: {}"
-                .sweep_enabled
-                .sweep_period
-                .sweep_negative
-                .sweep_shift
-            )
-        }
+        // if .sweep_enabled {
+        //     println(
+        //         "sweep: {}, period: {}, negative: {}, shift: {}"
+        //         .sweep_enabled
+        //         .sweep_period
+        //         .sweep_negative
+        //         .sweep_shift
+        //     )
+        // }
         // println("register 2 write: {:x} {}", value, this)
     }
 
@@ -321,14 +313,13 @@ struct Triangle {
     public fn render(mut this) {
         mut volume = 2000i16
 
-        if .length_counter == 0 {
+        let pitch = (1789773 / (32 * (.timer as! u64 + 1)))
+
+        if .length_counter == 0 or .timer == 0 or .control_flag == false or pitch < 40 {
             for i in 0..(.buffer.size()) {
                 .buffer[i] = 0
             }
         } else {
-            let pitch = (1789773 / (16 * (.timer as! u64 + 1))) / 2
-            // let pitch = (1662607 / (16 * (.timer as! u64 + 1)))
-
             let window_length = 44100 / 60u64
             let transition_length = 44100 / pitch
             mut sample = -volume
@@ -373,10 +364,14 @@ struct Triangle {
     public fn register1_write(mut this, value: u8) {
         .control_flag = (value & 0b1000_0000) >> 7 == 1
         .counter_reload = value & 0b0111_1111
+
+        // println("control: {} counter_reload: {}", .control_flag, .counter_reload)
     }
 
     public fn register3_write(mut this, value: u8) {
         .timer = (.timer & 0xff00) + value as! u16
+
+        // println("timer: {}", .timer)
     }
 
     public fn register4_write(mut this, value: u8) {
@@ -386,22 +381,34 @@ struct Triangle {
         .length_counter = (value >> 3) * 8
 
         .control_flag = true
+
+        // println("timer: {} length counter: {} control: {}", .timer, .length_counter, .control_flag)
     }
 
 }
 
 struct Noise {
     timer: u16
+    envelope_loop: bool
+    constant_volume: bool
+    volume_envelope: u8
+    volume_envelope_current: u8
+    loop_noise: bool
+    noise_period: u8
     length_counter: u8
-    envelope: u8
-    linear_feedback_shift_register: u8
+    phase: u64
     buffer: [i16]
 
     public fn init() throws -> Noise {
         return Noise(timer: 0,
+            envelope_loop: false,
+            constant_volume: false,
+            volume_envelope: 0,
+            volume_envelope_current: 0,
+            loop_noise: false,
+            noise_period: 0,
             length_counter: 0,
-            envelope: 0,
-            linear_feedback_shift_register: 0,
+            phase: 0,
             buffer: [0i16; 44100 / 60])
     }
 
@@ -410,16 +417,133 @@ struct Noise {
         // .timer += cycles
     }
 
-    public fn register1_write(mut this, value: u8) {
+    public fn render(mut this) {
+        if not .envelope_loop {
+            if .length_counter == 0 {
+                for i in 0..(.buffer.size()) {
+                    .buffer[i] = 0
+                }
+                return
+            } else {
+                .length_counter--
+            }
+        }
 
+        mut volume = 4000i16
+
+        // if .timer < 8 {
+        if .volume_envelope_current > 0 {
+            if not .constant_volume {
+                volume = volume / .volume_envelope as! i16 * (.volume_envelope as! i16 - 1)
+            } else {
+                volume = 4000i16 / 16i16 * .volume_envelope as! i16
+            }
+            .volume_envelope_current -= 1
+        } else {
+            volume = 0
+            if .envelope_loop {
+                .volume_envelope_current = .volume_envelope
+            }
+        }
+        // }
+
+        if volume == 0 {
+            for i in 0..(.buffer.size()) {
+                .buffer[i] = 0
+            }
+        } else {
+            // let pitch = (1789773 / (16 * (.timer as! u64 + 1)))
+            // let pitch = (1662607 / (16 * (.timer as! u64 + 1)))
+            let pitch = .timer as! u64
+
+            let window_length = 44100 / 60u64
+            let transition_length = 44100 / pitch
+            mut sample = -volume
+
+            let phase_end = .phase + window_length
+
+            mut sound_position = .phase % transition_length
+
+            for i in 0..window_length {
+                let value = transition_length / 8
+
+                if sound_position < value or sound_position >= value * 5 {
+                    .buffer[i] = -volume
+                } else {
+                    .buffer[i] = volume
+                }
+
+                // // fake the noise for now
+                // mut rand_val = rand() / 80000000
+                // //.buffer[i] -= (rand_val - 5000) as! i16
+                // .buffer[i] *= rand_val as! i16
+                sound_position += rand() as! u64 / 1000000 as! u64
+
+                sound_position++
+                if sound_position >= transition_length {
+                    sound_position = sound_position % transition_length
+                }
+            }
+
+            .phase = phase_end
+            if .phase >= 44100 {
+                .phase -= 44100
+            }
+        }
+    }
+
+    public fn register1_write(mut this, value: u8) {
+        .envelope_loop = (value & 0b0010_0000) == 0b0010_0000
+        .constant_volume = (value & 0b0001_0000) == 0b0001_0000
+        .volume_envelope = (value & 0xf)
+        .volume_envelope_current = .volume_envelope
     }
 
     public fn register3_write(mut this, value: u8) {
+        .loop_noise = (value & 0b1000_0000) == 0b1000_0000
+        .noise_period = value & 0xf
 
+        // FIXME: assumes NTSC
+        match .noise_period {
+            0xf => { .timer = 4 }
+            0xe => { .timer = 9 }
+            0xd => { .timer = 19 }
+            0xc => { .timer = 25 }
+            0xb => { .timer = 38 }
+            0xa => { .timer = 50 }
+            0x9 => { .timer = 75 }
+            0x8 => { .timer = 95 }
+            0x7 => { .timer = 120 }
+            0x6 => { .timer = 150 }
+            0x5 => { .timer = 200 }
+            0x4 => { .timer = 300 }
+            0x3 => { .timer = 601 }
+            0x2 => { .timer = 1202 }
+            0x1 => { .timer = 2405 }
+            else => { .timer = 4811 }
+        }
+        // match .noise_period {
+        //     0xf => { .timer = 4068 }
+        //     0xe => { .timer = 2034 }
+        //     0xd => { .timer = 1016 }
+        //     0xc => { .timer = 762 }
+        //     0xb => { .timer = 508 }
+        //     0xa => { .timer = 380 }
+        //     0x9 => { .timer = 254 }
+        //     0x8 => { .timer = 202 }
+        //     0x7 => { .timer = 160 }
+        //     0x6 => { .timer = 128 }
+        //     0x5 => { .timer = 96 }
+        //     0x4 => { .timer = 64 }
+        //     0x3 => { .timer = 32 }
+        //     0x2 => { .timer = 16 }
+        //     0x1 => { .timer = 8 }
+        //     else => { .timer = 4 }
+        // }
     }
 
     public fn register4_write(mut this, value: u8) {
-
+        .length_counter = value >> 3
     }
 
 }
