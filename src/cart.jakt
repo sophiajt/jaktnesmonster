@@ -66,12 +66,6 @@ fn load_cart(filename: String) throws -> CartLoadStatus {
     let battery_present = ((buffer[6] & 0x2) == 0x2)
 
     mut mapper = buffer[6] >> 4
-    mapper += buffer[7] & 0xf0;
-
-    guard is_supported_mapper(mapper) else {
-        eprintln("Mapper {} is not currently supported", mapper)
-        abort()
-    }
 
     mut region = match buffer[10] & 0x3 {
         0 => Region::NTSC
@@ -81,12 +75,25 @@ fn load_cart(filename: String) throws -> CartLoadStatus {
         else => Region::NTSC
     }
 
+    if buffer[11] == 0 {
+        // If we don't have garbage at the end (aka "DiskDude!"), use the
+        // second part of the mapper
+        mapper += buffer[7] & 0xf0;
+    } else {
+        region = Region::NTSC
+    }
+
     if filename.contains("(E)") {
         region = Region::PAL
     }
 
     guard region is NTSC else {
         eprintln("Region {} is not currently supported", region)
+        abort()
+    }
+
+    guard is_supported_mapper(mapper) else {
+        eprintln("Mapper {} is not currently supported", mapper)
         abort()
     }
 

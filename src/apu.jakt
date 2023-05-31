@@ -12,8 +12,8 @@ class APU {
 
     public fn init() throws -> APU {
         return APU(timer: 0,
-            pulse1: Pulse::init(),
-            pulse2: Pulse::init(),
+            pulse1: Pulse::init(1),
+            pulse2: Pulse::init(2),
             triangle: Triangle::init(),
             noise: Noise::init(),
             buffer: [0i16; 44100 / 60])
@@ -82,9 +82,10 @@ struct Pulse {
     timer: u64
     length_counter: u8
     phase: u64
+    which_pulse: u8,
     buffer: [i16]
 
-    public fn init() throws -> Pulse {
+    public fn init(anon which_pulse: u8) throws -> Pulse {
         return Pulse(duty: 0,
             envelope_loop: false,
             constant_volume: false,
@@ -97,6 +98,7 @@ struct Pulse {
             timer: 0,
             length_counter: 0,
             phase: 0,
+            which_pulse,
             buffer: [0i16; 44100 / 60]
         )
     }
@@ -143,7 +145,11 @@ struct Pulse {
                 // FIXME: the two pulse channels work differently here
                 mut change_amount = (.timer >> .sweep_shift) as! i64
                 if .sweep_negative {
-                    change_amount = change_amount * -1
+                    if .which_pulse == 1 {
+                        change_amount = change_amount * -1 - 1
+                    } else {
+                        change_amount = change_amount * -1
+                    }
                 }
                 change_amount = change_amount / .sweep_period as! i64
                 .timer = (.timer as! i64 + change_amount) as! u64
@@ -152,6 +158,10 @@ struct Pulse {
             let window_length = 44100 / 60u64
             let transition_length = 44100 / pitch
             mut sample = -volume
+
+            if transition_length == 0 {
+                return
+            }
 
             let phase_end = .phase + window_length
 
