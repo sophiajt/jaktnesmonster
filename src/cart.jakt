@@ -97,7 +97,6 @@ fn load_cart(filename: String) throws -> CartLoadStatus {
         abort()
     }
 
-
     mut prg_rom_pages: [[u8]] = []
     let prg_rom_page_size: usize = 16 * 1024
     mut current_start: usize = 16
