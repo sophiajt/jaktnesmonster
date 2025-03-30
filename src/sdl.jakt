@@ -109,10 +109,10 @@ class SDL {
     gamepad: raw SDL_GameController
 
     public fn construct() throws -> SDL {
-        return SDL(window: null<SDL_Window>(), audio_device: 0, surface: null(), last_frame_time: 0, gamepad: null<SDL_GameController>())
+        return SDL(window: null(), audio_device: 0, surface: null(), last_frame_time: 0, gamepad: null())
     }
 
-    public fn init_video(mut this, width: i64, height: i64) {
+    public fn init_video(mut this, width: i64, height: i64) throws {
         let sdl_init_flags : u32 = 0x2030 // Video, Audio, Gamecontroller
         let sdl_windowpos_undefined: c_int = 0x1FFF0000
         unsafe {
