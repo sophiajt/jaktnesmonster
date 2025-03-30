@@ -2258,7 +2258,7 @@ class CPU {
     }
 
     fn lax(mut this, opcode: u8) {
-        let (intermediate, pc: u16, clock: u64) = match opcode {
+        let (intermediate, pc: i64, clock: i64) = match opcode {
             0xa7 => {
                 yield (.zero_page(), 2, 3)
             }
@@ -2285,8 +2285,8 @@ class CPU {
 
         .test_nz_flags(value: .a)
 
-        .pc += pc
-        .clock += clock
+        .pc += (pc as! u16)
+        .clock += (clock as! u64)
     }
 
     fn lxa(mut this) {

@@ -154,134 +154,134 @@ class SDL {
                 "SDL_Event event;
                 const int has_event = SDL_PollEvent(&event);
                 if (has_event && event.type == SDL_QUIT) {
-                    const Optional<SDLEvent> event = typename SDLEvent::Quit();
+                    const Optional<SDLEvent> event = SDLEvent::Quit();
                     return event;
                 } else if (has_event && event.type == SDL_KEYDOWN) {
                     if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Up());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::Up());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_DOWN) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Down());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::Down());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_LEFT) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Left());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::Left());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Right());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::Right());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Tab());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::Tab());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_RETURN) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Return());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::Return());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_Z) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::Z());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::Z());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_X) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::X());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::X());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_D) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::D());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::D());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_H) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::H());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::H());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_J) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::J());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::J());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_L) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyDown(typename Key::L());
+                        const Optional<SDLEvent> event = SDLEvent::KeyDown(Key::L());
                         return event;
                     }
                 } else if (has_event && event.type == SDL_KEYUP) {
                     if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Up());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::Up());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_DOWN) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Down());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::Down());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_LEFT) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Left());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::Left());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Right());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::Right());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Tab());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::Tab());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_RETURN) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Return());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::Return());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_Z) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::Z());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::Z());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_X) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::X());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::X());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_D) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::D());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::D());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_H) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::H());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::H());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_J) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::J());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::J());
                         return event;
                     } else if (event.key.keysym.scancode == SDL_SCANCODE_L) {
-                        const Optional<SDLEvent> event = typename SDLEvent::KeyUp(typename Key::L());
+                        const Optional<SDLEvent> event = SDLEvent::KeyUp(Key::L());
                         return event;
                     }
                 } else if (has_event && event.type == SDL_CONTROLLERBUTTONDOWN) {
                     if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Up());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::Up());
                         return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Down());
+                            const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::Down());
                             return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
-                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Left());
+                            const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::Left());
                             return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
-                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Right());
+                            const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::Right());
                             return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
-                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::A());
+                            const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::A());
                             return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B) {
-                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::B());
+                            const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::B());
                             return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_START) {
-                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Start());
+                            const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::Start());
                             return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_BACK) {
-                            const Optional<SDLEvent> event = typename SDLEvent::ButtonDown(typename Button::Select());
+                            const Optional<SDLEvent> event = SDLEvent::ButtonDown(Button::Select());
                             return event;
                     }
                 } else if (has_event && event.type == SDL_CONTROLLERBUTTONUP) {
                     if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Up());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::Up());
                         return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Down());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::Down());
                         return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Left());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::Left());
                         return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Right());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::Right());
                         return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::A());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::A());
                         return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::B());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::B());
                         return event;
                     } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_START) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Start());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::Start());
                         return event;
                     }  else if (event.cbutton.button ==  SDL_CONTROLLER_BUTTON_BACK) {
-                        const Optional<SDLEvent> event = typename SDLEvent::ButtonUp(typename Button::Select());
+                        const Optional<SDLEvent> event = SDLEvent::ButtonUp(Button::Select());
                         return event;
                     }
                 }"

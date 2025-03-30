@@ -91,7 +91,7 @@ fn load_cart(filename: String) throws -> CartLoadStatus {
     }
 
     mut prg_rom_pages: [[u8]] = []
-    let prg_rom_page_size: usize = 16 * 1024
+    let prg_rom_page_size: usize = (16 * 1024) as! usize
     mut current_start: usize = 16
 
     for page in 0..prg_rom {
@@ -103,7 +103,7 @@ fn load_cart(filename: String) throws -> CartLoadStatus {
     }
 
     mut chr_rom_pages: [[u8]] = []
-    let chr_rom_page_size: usize = 8 * 1024
+    let chr_rom_page_size: usize = (8 * 1024) as! usize
     current_start += prg_rom_page_size * prg_rom;
 
     for page in 0..chr_rom {

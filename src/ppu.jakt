@@ -464,8 +464,8 @@ class PPU {
         }
 
         // Which tile
-        let vertical_tile: u16 = virtual_vertical_pixel / 8
-        let horizontal_tile: u16 = virtual_horizontal_pixel / 8
+        let vertical_tile: u16 = (virtual_vertical_pixel / 8) as! u16
+        let horizontal_tile: u16 = (virtual_horizontal_pixel / 8) as! u16
 
         // Fetch nametable entry
         let nametable_entry = .nametable_data[.nametables[base_table]][vertical_tile * 32 + horizontal_tile]
